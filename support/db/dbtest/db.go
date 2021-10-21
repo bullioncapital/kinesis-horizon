@@ -126,10 +126,15 @@ func Postgres(t *testing.T) *DB {
 		pgUser = "postgres"
 	}
 
+	pgHost := os.Getenv("PGHOST")
+	if len(pgHost) == 0 {
+		pgHost = "localhost"
+	}
+
 	// create the db
 	execStatement(t, pgUser, "CREATE DATABASE "+pq.QuoteIdentifier(result.dbName))
 
-	result.DSN = fmt.Sprintf("postgres://%s@localhost/%s?sslmode=disable&timezone=UTC", pgUser, result.dbName)
+	result.DSN = fmt.Sprintf("postgres://%s@%s/%s?sslmode=disable&timezone=UTC", pgUser, pgHost, result.dbName)
 
 	result.closer = func() {
 		execStatement(t, pgUser, "DROP DATABASE "+pq.QuoteIdentifier(result.dbName))
