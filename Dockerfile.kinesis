@@ -4,7 +4,7 @@ ARG KINESIS_CORE_IMAGE=abxit/kinesis-core:v17.4.0-kinesis.2
 FROM golang:1.16.15 as builder
 ENV DEBIAN_FRONTEND=noninteractive
 ARG VERSION=develop
-RUN apt-get update && apt-get upgrade -y && apt-get clean
+RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-suggests --no-install-recommends vim
 
 # install PGSQL for integration testing
 RUN apt-get install -y --no-install-suggests --no-install-recommends postgresql && apt-get clean
