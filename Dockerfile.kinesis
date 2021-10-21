@@ -1,9 +1,9 @@
-FROM golang:1.16.5
+FROM golang:1.16.5 as builder
 ENV DEBIAN_FRONTEND=noninteractive
-RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-suggests --no-install-recommends vim
+RUN apt-get update && apt-get upgrade -y && apt-get clean
 
 # install PGSQL for integration testing
-RUN apt-get install -y --no-install-suggests --no-install-recommends postgresql
+RUN apt-get install -y --no-install-suggests --no-install-recommends postgresql && apt-get clean
 COPY pg_hba.conf /etc/postgresql/11/main/pg_hba.conf
 
 # install modules
@@ -14,3 +14,14 @@ RUN go mod download
 COPY . .
 RUN /etc/init.d/postgresql start 11 && \
     go test -race -cover ./...
+
+RUN go install ./...
+
+FROM abxit/kinesis-core:v17-beta-de936f1 as core
+FROM stellar/horizon:2.8.3
+
+RUN apt-get update && apt-get upgrade -y && apt-get clean
+# remove original
+RUN rm captivecore horizon
+COPY --from=core /usr/bin/stellar-core /usr/bin/stellar-core
+COPY --from=builder /go/bin/ /usr/bin
