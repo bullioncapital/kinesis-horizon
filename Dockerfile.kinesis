@@ -1,0 +1,16 @@
+FROM golang:1.16.5
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-suggests --no-install-recommends vim
+
+# install PGSQL for integration testing
+RUN apt-get install -y --no-install-suggests --no-install-recommends postgresql
+COPY pg_hba.conf /etc/postgresql/11/main/pg_hba.conf
+
+# install modules
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+RUN /etc/init.d/postgresql start 11 && \
+    go test -race -cover ./...
