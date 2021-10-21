@@ -101,8 +101,8 @@ func (db *DB) Version() (major int) {
 	return major
 }
 
-func execStatement(t testing.TB, pguser, query string) {
-	db, err := sqlx.Open("postgres", fmt.Sprintf("postgres://%s@localhost/?sslmode=disable", pguser))
+func execStatement(t testing.TB, pguser, pghost, query string) {
+	db, err := sqlx.Open("postgres", fmt.Sprintf("postgres://%s@%s/?sslmode=disable", pguser, pghost))
 	require.NoError(t, err)
 	_, err = db.Exec(query)
 	require.NoError(t, err)
@@ -132,12 +132,12 @@ func Postgres(t testing.TB) *DB {
 	}
 
 	// create the db
-	execStatement(t, pgUser, "CREATE DATABASE "+pq.QuoteIdentifier(result.dbName))
+	execStatement(t, pgUser, pgHost, "CREATE DATABASE "+pq.QuoteIdentifier(result.dbName))
 
 	result.DSN = fmt.Sprintf("postgres://%s@%s/%s?sslmode=disable&timezone=UTC", pgUser, pgHost, result.dbName)
 
 	result.closer = func() {
-		execStatement(t, pgUser, "DROP DATABASE "+pq.QuoteIdentifier(result.dbName))
+		execStatement(t, pgUser, pgHost, "DROP DATABASE "+pq.QuoteIdentifier(result.dbName))
 	}
 
 	return &result
