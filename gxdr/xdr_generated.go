@@ -6822,12 +6822,12 @@ func (u *LedgerUpgrade) XdrUnionBody() XdrType {
 		return XDR_Uint32(u.NewLedgerVersion())
 	case LEDGER_UPGRADE_BASE_FEE:
 		return XDR_Uint32(u.NewBaseFee())
-	case LEDGER_UPGRADE_BASE_PERCENTAGE_FEE:
-		return XDR_Uint32(u.NewBasePercentageFee())
 	case LEDGER_UPGRADE_MAX_TX_SET_SIZE:
 		return XDR_Uint32(u.NewMaxTxSetSize())
 	case LEDGER_UPGRADE_BASE_RESERVE:
 		return XDR_Uint32(u.NewBaseReserve())
+	case LEDGER_UPGRADE_BASE_PERCENTAGE_FEE:
+		return XDR_Uint32(u.NewBasePercentageFee())
 	}
 	return nil
 }
@@ -6837,12 +6837,12 @@ func (u *LedgerUpgrade) XdrUnionBodyName() string {
 		return "NewLedgerVersion"
 	case LEDGER_UPGRADE_BASE_FEE:
 		return "NewBaseFee"
-	case LEDGER_UPGRADE_BASE_PERCENTAGE_FEE:
-		return "NewBasePercentageFee"
 	case LEDGER_UPGRADE_MAX_TX_SET_SIZE:
 		return "NewMaxTxSetSize"
 	case LEDGER_UPGRADE_BASE_RESERVE:
 		return "NewBaseReserve"
+	case LEDGER_UPGRADE_BASE_PERCENTAGE_FEE:
+		return "NewBasePercentageFee"
 	}
 	return ""
 }
@@ -6865,14 +6865,14 @@ func (u *LedgerUpgrade) XdrRecurse(x XDR, name string) {
 	case LEDGER_UPGRADE_BASE_FEE:
 		x.Marshal(x.Sprintf("%snewBaseFee", name), XDR_Uint32(u.NewBaseFee()))
 		return
-	case LEDGER_UPGRADE_BASE_PERCENTAGE_FEE:
-		x.Marshal(x.Sprintf("%snewBasePercentageFee", name), XDR_Uint32(u.NewBasePercentageFee()))
-		return
 	case LEDGER_UPGRADE_MAX_TX_SET_SIZE:
 		x.Marshal(x.Sprintf("%snewMaxTxSetSize", name), XDR_Uint32(u.NewMaxTxSetSize()))
 		return
 	case LEDGER_UPGRADE_BASE_RESERVE:
 		x.Marshal(x.Sprintf("%snewBaseReserve", name), XDR_Uint32(u.NewBaseReserve()))
+		return
+	case LEDGER_UPGRADE_BASE_PERCENTAGE_FEE:
+		x.Marshal(x.Sprintf("%snewBasePercentageFee", name), XDR_Uint32(u.NewBasePercentageFee()))
 		return
 	}
 	XdrPanic("invalid Type (%v) in LedgerUpgrade", u.Type)
