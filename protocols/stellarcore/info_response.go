@@ -17,14 +17,15 @@ type InfoResponse struct {
 // LedgerInfo is the part of the stellar-core's info json response.
 // It's returned under `ledger` key
 type LedgerInfo struct {
-	Age          int    `json:"age"`
-	BaseFee      int    `json:"baseFee"`
-	BaseReserve  int    `json:"baseReserve"`
-	CloseTime    int    `json:"closeTime"`
-	Hash         string `json:"hash"`
-	MaxTxSetSize int    `json:"maxTxSetSize"`
-	Num          int    `json:"num"`
-	Version      int    `json:"version"`
+	Age          			int    `json:"age"`
+	BaseFee      			int    `json:"baseFee"`
+	BasePercentageFee       int    `json:"basePercentageFee"`
+	BaseReserve  			int    `json:"baseReserve"`
+	CloseTime    			int    `json:"closeTime"`
+	Hash         			string `json:"hash"`
+	MaxTxSetSize 			int    `json:"maxTxSetSize"`
+	Num          			int    `json:"num"`
+	Version      			int    `json:"version"`
 }
 
 // IsSynced returns a boolean indicating whether stellarcore is synced with the

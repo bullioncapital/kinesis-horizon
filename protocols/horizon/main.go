@@ -233,6 +233,7 @@ type Ledger struct {
 	TotalCoins                 string    `json:"total_coins"`
 	FeePool                    string    `json:"fee_pool"`
 	BaseFee                    int32     `json:"base_fee_in_stroops"`
+	BasePercentageFee 		   int32     `json:"base_percentage_fee"`
 	BaseReserve                int32     `json:"base_reserve_in_stroops"`
 	MaxTxSetSize               int32     `json:"max_tx_set_size"`
 	ProtocolVersion            int32     `json:"protocol_version"`

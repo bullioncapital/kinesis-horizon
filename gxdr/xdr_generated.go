@@ -700,6 +700,8 @@ type LedgerHeader struct {
 	// base fee per operation in stroops
 	BaseFee Uint32
 	// account base reserve in stroops
+	BasePercentageFee Uint32
+	// percentage fee in basis points
 	BaseReserve Uint32
 	// maximum size a transaction set can be
 	MaxTxSetSize Uint32
@@ -6797,6 +6799,8 @@ func (u *LedgerUpgrade) XdrUnionBody() XdrType {
 		return XDR_Uint32(u.NewLedgerVersion())
 	case LEDGER_UPGRADE_BASE_FEE:
 		return XDR_Uint32(u.NewBaseFee())
+	case LEDGER_UPGRADE_BASE_PERCENTAGE_FEE:
+		return XDR_Uint32(u.NewBasePercentageFee())
 	case LEDGER_UPGRADE_MAX_TX_SET_SIZE:
 		return XDR_Uint32(u.NewMaxTxSetSize())
 	case LEDGER_UPGRADE_BASE_RESERVE:
@@ -6810,6 +6814,8 @@ func (u *LedgerUpgrade) XdrUnionBodyName() string {
 		return "NewLedgerVersion"
 	case LEDGER_UPGRADE_BASE_FEE:
 		return "NewBaseFee"
+	case LEDGER_UPGRADE_BASE_PERCENTAGE_FEE:
+		return "NewBasePercentageFee"
 	case LEDGER_UPGRADE_MAX_TX_SET_SIZE:
 		return "NewMaxTxSetSize"
 	case LEDGER_UPGRADE_BASE_RESERVE:
@@ -6835,6 +6841,9 @@ func (u *LedgerUpgrade) XdrRecurse(x XDR, name string) {
 		return
 	case LEDGER_UPGRADE_BASE_FEE:
 		x.Marshal(x.Sprintf("%snewBaseFee", name), XDR_Uint32(u.NewBaseFee()))
+		return
+	case LEDGER_UPGRADE_BASE_PERCENTAGE_FEE:
+		x.Marshal(x.Sprintf("%snewBasePercentageFee", name), XDR_Uint32(u.NewBasePercentageFee()))
 		return
 	case LEDGER_UPGRADE_MAX_TX_SET_SIZE:
 		x.Marshal(x.Sprintf("%snewMaxTxSetSize", name), XDR_Uint32(u.NewMaxTxSetSize()))

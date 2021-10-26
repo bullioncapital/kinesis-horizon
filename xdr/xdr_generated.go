@@ -4815,6 +4815,7 @@ type LedgerHeader struct {
 	InflationSeq       Uint32
 	IdPool             Uint64
 	BaseFee            Uint32
+	BasePercentageFee  Uint32
 	BaseReserve        Uint32
 	MaxTxSetSize       Uint32
 	SkipList           [4]Hash

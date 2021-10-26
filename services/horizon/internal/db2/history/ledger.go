@@ -168,6 +168,7 @@ func ledgerHeaderToMap(
 		"total_coins":                  ledger.Header.TotalCoins,
 		"fee_pool":                     ledger.Header.FeePool,
 		"base_fee":                     ledger.Header.BaseFee,
+		"base_percentage_fee":          ledger.Header.BasePercentageFee,
 		"base_reserve":                 ledger.Header.BaseReserve,
 		"max_tx_set_size":              ledger.Header.MaxTxSetSize,
 		"closed_at":                    closeTime,
