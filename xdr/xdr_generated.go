@@ -4853,10 +4853,11 @@ var (
 type LedgerUpgradeType int32
 
 const (
-	LedgerUpgradeTypeLedgerUpgradeVersion      LedgerUpgradeType = 1
-	LedgerUpgradeTypeLedgerUpgradeBaseFee      LedgerUpgradeType = 2
-	LedgerUpgradeTypeLedgerUpgradeMaxTxSetSize LedgerUpgradeType = 3
-	LedgerUpgradeTypeLedgerUpgradeBaseReserve  LedgerUpgradeType = 4
+	LedgerUpgradeTypeLedgerUpgradeVersion      			LedgerUpgradeType = 1
+	LedgerUpgradeTypeLedgerUpgradeBaseFee      			LedgerUpgradeType = 2
+	LedgerUpgradeTypeLedgerUpgradeMaxTxSetSize 			LedgerUpgradeType = 3
+	LedgerUpgradeTypeLedgerUpgradeBaseReserve  			LedgerUpgradeType = 4
+	LedgerUpgradeTypeLedgerUpgradeBasePercentageFee     LedgerUpgradeType = 5
 )
 
 var ledgerUpgradeTypeMap = map[int32]string{
@@ -4864,6 +4865,7 @@ var ledgerUpgradeTypeMap = map[int32]string{
 	2: "LedgerUpgradeTypeLedgerUpgradeBaseFee",
 	3: "LedgerUpgradeTypeLedgerUpgradeMaxTxSetSize",
 	4: "LedgerUpgradeTypeLedgerUpgradeBaseReserve",
+	5: "LedgerUpgradeTypeLedgerUpgradeBasePercentageFee",
 }
 
 // ValidEnum validates a proposed value for this enum.  Implements
@@ -4912,11 +4914,12 @@ var (
 //    };
 //
 type LedgerUpgrade struct {
-	Type             LedgerUpgradeType
-	NewLedgerVersion *Uint32
-	NewBaseFee       *Uint32
-	NewMaxTxSetSize  *Uint32
-	NewBaseReserve   *Uint32
+	Type             			LedgerUpgradeType
+	NewLedgerVersion 			*Uint32
+	NewBaseFee       			*Uint32
+	NewMaxTxSetSize  			*Uint32
+	NewBaseReserve   			*Uint32
+	NewBasePercentageFee        *Uint32
 }
 
 // SwitchFieldName returns the field name in which this union's
@@ -4937,6 +4940,8 @@ func (u LedgerUpgrade) ArmForSwitch(sw int32) (string, bool) {
 		return "NewMaxTxSetSize", true
 	case LedgerUpgradeTypeLedgerUpgradeBaseReserve:
 		return "NewBaseReserve", true
+	case LedgerUpgradeTypeLedgerUpgradeBasePercentageFee:
+		return "NewBasePercentageFee", true
 	}
 	return "-", false
 }
@@ -4973,6 +4978,13 @@ func NewLedgerUpgrade(aType LedgerUpgradeType, value interface{}) (result Ledger
 			return
 		}
 		result.NewBaseReserve = &tv
+	case LedgerUpgradeTypeLedgerUpgradeBasePercentageFee:
+		tv, ok := value.(Uint32)
+		if !ok {
+			err = fmt.Errorf("invalid value, must be Uint32")
+			return
+		}
+		result.NewBasePercentageFee = &tv
 	}
 	return
 }
@@ -5071,6 +5083,31 @@ func (u LedgerUpgrade) GetNewBaseReserve() (result Uint32, ok bool) {
 
 	if armName == "NewBaseReserve" {
 		result = *u.NewBaseReserve
+		ok = true
+	}
+
+	return
+}
+
+// MustNewBasePercentageFee retrieves the NewBasePercentageFee value from the union,
+// panicing if the value is not set.
+func (u LedgerUpgrade) MustNewBasePercentageFee() Uint32 {
+	val, ok := u.GetNewBasePercentageFee()
+
+	if !ok {
+		panic("arm NewBasePercentageFee is not set")
+	}
+
+	return val
+}
+
+// GetNewBasePercentageFee retrieves the NewBasePercentageFee value from the union,
+// returning ok if the union's switch indicated the value is valid.
+func (u LedgerUpgrade) GetNewBasePercentageFee() (result Uint32, ok bool) {
+	armName, _ := u.ArmForSwitch(int32(u.Type))
+
+	if armName == "NewBasePercentageFee" {
+		result = *u.NewBasePercentageFee
 		ok = true
 	}
 

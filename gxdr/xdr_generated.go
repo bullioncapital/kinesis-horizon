@@ -699,9 +699,9 @@ type LedgerHeader struct {
 	IdPool Uint64
 	// base fee per operation in stroops
 	BaseFee Uint32
-	// account base reserve in stroops
-	BasePercentageFee Uint32
 	// percentage fee in basis points
+	BasePercentageFee Uint32
+	// account base reserve in stroops
 	BaseReserve Uint32
 	// maximum size a transaction set can be
 	MaxTxSetSize Uint32
