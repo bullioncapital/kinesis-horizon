@@ -6638,6 +6638,7 @@ func (v *LedgerHeader) XdrRecurse(x XDR, name string) {
 	x.Marshal(x.Sprintf("%sinflationSeq", name), XDR_Uint32(&v.InflationSeq))
 	x.Marshal(x.Sprintf("%sidPool", name), XDR_Uint64(&v.IdPool))
 	x.Marshal(x.Sprintf("%sbaseFee", name), XDR_Uint32(&v.BaseFee))
+	x.Marshal(x.Sprintf("%sbasePercentageFee", name), XDR_Uint32(&v.BasePercentageFee))
 	x.Marshal(x.Sprintf("%sbaseReserve", name), XDR_Uint32(&v.BaseReserve))
 	x.Marshal(x.Sprintf("%smaxTxSetSize", name), XDR_Uint32(&v.MaxTxSetSize))
 	x.Marshal(x.Sprintf("%sskipList", name), (*_XdrArray_4_Hash)(&v.SkipList))
