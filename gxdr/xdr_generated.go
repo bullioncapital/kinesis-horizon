@@ -744,6 +744,8 @@ type LedgerUpgrade struct {
 	//      NewMaxTxSetSize() *Uint32
 	//   LEDGER_UPGRADE_BASE_RESERVE:
 	//      NewBaseReserve() *Uint32
+	//   LEDGER_UPGRADE_BASE_PERCENTAGE_FEE:
+	//      NewBasePercentageFee() *Uint32
 	Type LedgerUpgradeType
 	_u   interface{}
 }
@@ -6802,7 +6804,6 @@ func (u *LedgerUpgrade) NewBasePercentageFee() *Uint32 {
 		return nil
 	}
 }
-
 func (u LedgerUpgrade) XdrValid() bool {
 	switch u.Type {
 	case LEDGER_UPGRADE_VERSION, LEDGER_UPGRADE_BASE_FEE, LEDGER_UPGRADE_MAX_TX_SET_SIZE, LEDGER_UPGRADE_BASE_RESERVE, LEDGER_UPGRADE_BASE_PERCENTAGE_FEE:
