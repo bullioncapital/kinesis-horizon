@@ -4853,11 +4853,11 @@ var (
 type LedgerUpgradeType int32
 
 const (
-	LedgerUpgradeTypeLedgerUpgradeVersion      			LedgerUpgradeType = 1
-	LedgerUpgradeTypeLedgerUpgradeBaseFee      			LedgerUpgradeType = 2
-	LedgerUpgradeTypeLedgerUpgradeMaxTxSetSize 			LedgerUpgradeType = 3
-	LedgerUpgradeTypeLedgerUpgradeBaseReserve  			LedgerUpgradeType = 4
-	LedgerUpgradeTypeLedgerUpgradeBasePercentageFee     LedgerUpgradeType = 5
+	LedgerUpgradeTypeLedgerUpgradeVersion           LedgerUpgradeType = 1
+	LedgerUpgradeTypeLedgerUpgradeBaseFee           LedgerUpgradeType = 2
+	LedgerUpgradeTypeLedgerUpgradeMaxTxSetSize      LedgerUpgradeType = 3
+	LedgerUpgradeTypeLedgerUpgradeBaseReserve       LedgerUpgradeType = 4
+	LedgerUpgradeTypeLedgerUpgradeBasePercentageFee LedgerUpgradeType = 5
 )
 
 var ledgerUpgradeTypeMap = map[int32]string{
@@ -4914,12 +4914,12 @@ var (
 //    };
 //
 type LedgerUpgrade struct {
-	Type             			LedgerUpgradeType
-	NewLedgerVersion 			*Uint32
-	NewBaseFee       			*Uint32
-	NewMaxTxSetSize  			*Uint32
-	NewBaseReserve   			*Uint32
-	NewBasePercentageFee        *Uint32
+	Type                 LedgerUpgradeType
+	NewLedgerVersion     *Uint32
+	NewBaseFee           *Uint32
+	NewMaxTxSetSize      *Uint32
+	NewBaseReserve       *Uint32
+	NewBasePercentageFee *Uint32
 }
 
 // SwitchFieldName returns the field name in which this union's
