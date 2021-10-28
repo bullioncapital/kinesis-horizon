@@ -28,6 +28,7 @@ func ledgerToMap(ledger Ledger) map[string]interface{} {
 		"total_coins":                  ledger.TotalCoins,
 		"fee_pool":                     ledger.FeePool,
 		"base_fee":                     ledger.BaseFee,
+		"base_percentage_fee":          ledger.BasePercentageFee,
 		"base_reserve":                 ledger.BaseReserve,
 		"max_tx_set_size":              ledger.MaxTxSetSize,
 		"closed_at":                    ledger.ClosedAt,

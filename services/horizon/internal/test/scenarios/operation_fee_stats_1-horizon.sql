@@ -313,7 +313,8 @@ CREATE TABLE history_ledgers (
     protocol_version integer DEFAULT 0 NOT NULL,
     ledger_header text,
     successful_transaction_count integer,
-    failed_transaction_count integer
+    failed_transaction_count integer,
+    base_percentage_fee INTEGER  DEFAULT 45 NOT NULL
 );
 
 
