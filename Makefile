@@ -39,7 +39,7 @@ xdr/%.x:
 
 xdr/xdr_generated.go: $(XDRS)
 	docker run -it --rm -v $$PWD:/wd -w /wd ruby /bin/bash -c '\
-		gem install specific_install -v 0.3.7 && \
+		gem install specific_install && \
 		gem specific_install https://github.com/stellar/xdrgen.git -b $(XDRGEN_COMMIT) && \
 		xdrgen \
 			--language go \

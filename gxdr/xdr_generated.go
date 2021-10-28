@@ -1182,6 +1182,11 @@ type SendMore struct {
 	NumMessages Uint32
 }
 
+type SendMoreExtended struct {
+	NumMessages Uint32
+	NumBytes    Uint32
+}
+
 type AuthCert struct {
 	Pubkey     Curve25519Public
 	Expiration Uint64
@@ -1200,15 +1205,14 @@ type Hello struct {
 	Nonce             Uint256
 }
 
-// During the roll-out phrase, pull mode will be optional.
+// During the roll-out phrase, nodes can disable flow control in bytes.
 // Therefore, we need a way to communicate with other nodes
-// that we want/don't want pull mode.
-// However, the goal is for everyone to enable it by default,
-// so we don't want to introduce a new member variable.
-// For now, we'll use the `flags` field (originally named
-// `unused`) in `Auth`.
-// 100 is just a number that is not 0.
-const AUTH_MSG_FLAG_PULL_MODE_REQUESTED = 100
+// that we want/don't want flow control in bytes.
+// We use the `flags` field in the Auth message with a special value
+// set to communicate this. Note that AUTH_MSG_FLAG_FLOW_CONTROL_BYTES_REQUESTED != 0
+// AND AUTH_MSG_FLAG_FLOW_CONTROL_BYTES_REQUESTED != 100 (as previously
+// that value was used for other purposes).
+const AUTH_MSG_FLAG_FLOW_CONTROL_BYTES_REQUESTED = 200
 
 type Auth struct {
 	Flags int32
@@ -1236,7 +1240,7 @@ type XdrAnon_PeerAddress_Ip struct {
 	_u   interface{}
 }
 
-// Next ID: 18
+// Next ID: 21
 type MessageType int32
 
 const (
@@ -1258,12 +1262,13 @@ const (
 	SCP_MESSAGE       MessageType = 11
 	GET_SCP_STATE     MessageType = 12
 	// new messages
-	HELLO           MessageType = 13
-	SURVEY_REQUEST  MessageType = 14
-	SURVEY_RESPONSE MessageType = 15
-	SEND_MORE       MessageType = 16
-	FLOOD_ADVERT    MessageType = 18
-	FLOOD_DEMAND    MessageType = 19
+	HELLO              MessageType = 13
+	SURVEY_REQUEST     MessageType = 14
+	SURVEY_RESPONSE    MessageType = 15
+	SEND_MORE          MessageType = 16
+	SEND_MORE_EXTENDED MessageType = 20
+	FLOOD_ADVERT       MessageType = 18
+	FLOOD_DEMAND       MessageType = 19
 )
 
 type DontHave struct {
@@ -1275,6 +1280,13 @@ type SurveyMessageCommandType int32
 
 const (
 	SURVEY_TOPOLOGY SurveyMessageCommandType = 0
+)
+
+type SurveyMessageResponseType int32
+
+const (
+	SURVEY_TOPOLOGY_RESPONSE_V0 SurveyMessageResponseType = 0
+	SURVEY_TOPOLOGY_RESPONSE_V1 SurveyMessageResponseType = 1
 )
 
 type SurveyRequestMessage struct {
@@ -1325,18 +1337,29 @@ type PeerStats struct {
 
 type PeerStatList = []PeerStats // bound 25
 
-type TopologyResponseBody struct {
+type TopologyResponseBodyV0 struct {
 	InboundPeers           PeerStatList
 	OutboundPeers          PeerStatList
 	TotalInboundPeerCount  Uint32
 	TotalOutboundPeerCount Uint32
 }
 
+type TopologyResponseBodyV1 struct {
+	InboundPeers           PeerStatList
+	OutboundPeers          PeerStatList
+	TotalInboundPeerCount  Uint32
+	TotalOutboundPeerCount Uint32
+	MaxInboundPeerCount    Uint32
+	MaxOutboundPeerCount   Uint32
+}
+
 type SurveyResponseBody struct {
 	// The union discriminant Type selects among the following arms:
-	//   SURVEY_TOPOLOGY:
-	//      TopologyResponseBody() *TopologyResponseBody
-	Type SurveyMessageCommandType
+	//   SURVEY_TOPOLOGY_RESPONSE_V0:
+	//      TopologyResponseBodyV0() *TopologyResponseBodyV0
+	//   SURVEY_TOPOLOGY_RESPONSE_V1:
+	//      TopologyResponseBodyV1() *TopologyResponseBodyV1
+	Type SurveyMessageResponseType
 	_u   interface{}
 }
 
@@ -1392,6 +1415,8 @@ type StellarMessage struct {
 	//      GetSCPLedgerSeq() *Uint32
 	//   SEND_MORE:
 	//      SendMoreMessage() *SendMore
+	//   SEND_MORE_EXTENDED:
+	//      SendMoreExtendedMessage() *SendMoreExtended
 	//   FLOOD_ADVERT:
 	//      FloodAdvert() *FloodAdvert
 	//   FLOOD_DEMAND:
@@ -10313,6 +10338,21 @@ func (v *SendMore) XdrRecurse(x XDR, name string) {
 }
 func XDR_SendMore(v *SendMore) *SendMore { return v }
 
+type XdrType_SendMoreExtended = *SendMoreExtended
+
+func (v *SendMoreExtended) XdrPointer() interface{}       { return v }
+func (SendMoreExtended) XdrTypeName() string              { return "SendMoreExtended" }
+func (v SendMoreExtended) XdrValue() interface{}          { return v }
+func (v *SendMoreExtended) XdrMarshal(x XDR, name string) { x.Marshal(name, v) }
+func (v *SendMoreExtended) XdrRecurse(x XDR, name string) {
+	if name != "" {
+		name = x.Sprintf("%s.", name)
+	}
+	x.Marshal(x.Sprintf("%snumMessages", name), XDR_Uint32(&v.NumMessages))
+	x.Marshal(x.Sprintf("%snumBytes", name), XDR_Uint32(&v.NumBytes))
+}
+func XDR_SendMoreExtended(v *SendMoreExtended) *SendMoreExtended { return v }
+
 type XdrType_AuthCert = *AuthCert
 
 func (v *AuthCert) XdrPointer() interface{}       { return v }
@@ -10553,6 +10593,7 @@ var _XdrNames_MessageType = map[int32]string{
 	int32(SURVEY_REQUEST):     "SURVEY_REQUEST",
 	int32(SURVEY_RESPONSE):    "SURVEY_RESPONSE",
 	int32(SEND_MORE):          "SEND_MORE",
+	int32(SEND_MORE_EXTENDED): "SEND_MORE_EXTENDED",
 	int32(FLOOD_ADVERT):       "FLOOD_ADVERT",
 	int32(FLOOD_DEMAND):       "FLOOD_DEMAND",
 }
@@ -10574,6 +10615,7 @@ var _XdrValues_MessageType = map[string]int32{
 	"SURVEY_REQUEST":     int32(SURVEY_REQUEST),
 	"SURVEY_RESPONSE":    int32(SURVEY_RESPONSE),
 	"SEND_MORE":          int32(SEND_MORE),
+	"SEND_MORE_EXTENDED": int32(SEND_MORE_EXTENDED),
 	"FLOOD_ADVERT":       int32(FLOOD_ADVERT),
 	"FLOOD_DEMAND":       int32(FLOOD_DEMAND),
 }
@@ -10683,6 +10725,51 @@ func (v *SurveyMessageCommandType) XdrMarshal(x XDR, name string) { x.Marshal(na
 type XdrType_SurveyMessageCommandType = *SurveyMessageCommandType
 
 func XDR_SurveyMessageCommandType(v *SurveyMessageCommandType) *SurveyMessageCommandType { return v }
+
+var _XdrNames_SurveyMessageResponseType = map[int32]string{
+	int32(SURVEY_TOPOLOGY_RESPONSE_V0): "SURVEY_TOPOLOGY_RESPONSE_V0",
+	int32(SURVEY_TOPOLOGY_RESPONSE_V1): "SURVEY_TOPOLOGY_RESPONSE_V1",
+}
+var _XdrValues_SurveyMessageResponseType = map[string]int32{
+	"SURVEY_TOPOLOGY_RESPONSE_V0": int32(SURVEY_TOPOLOGY_RESPONSE_V0),
+	"SURVEY_TOPOLOGY_RESPONSE_V1": int32(SURVEY_TOPOLOGY_RESPONSE_V1),
+}
+
+func (SurveyMessageResponseType) XdrEnumNames() map[int32]string {
+	return _XdrNames_SurveyMessageResponseType
+}
+func (v SurveyMessageResponseType) String() string {
+	if s, ok := _XdrNames_SurveyMessageResponseType[int32(v)]; ok {
+		return s
+	}
+	return fmt.Sprintf("SurveyMessageResponseType#%d", v)
+}
+func (v *SurveyMessageResponseType) Scan(ss fmt.ScanState, _ rune) error {
+	if tok, err := ss.Token(true, XdrSymChar); err != nil {
+		return err
+	} else {
+		stok := string(tok)
+		if val, ok := _XdrValues_SurveyMessageResponseType[stok]; ok {
+			*v = SurveyMessageResponseType(val)
+			return nil
+		} else if stok == "SurveyMessageResponseType" {
+			if n, err := fmt.Fscanf(ss, "#%d", (*int32)(v)); n == 1 && err == nil {
+				return nil
+			}
+		}
+		return XdrError(fmt.Sprintf("%s is not a valid SurveyMessageResponseType.", stok))
+	}
+}
+func (v SurveyMessageResponseType) GetU32() uint32                 { return uint32(v) }
+func (v *SurveyMessageResponseType) SetU32(n uint32)               { *v = SurveyMessageResponseType(n) }
+func (v *SurveyMessageResponseType) XdrPointer() interface{}       { return v }
+func (SurveyMessageResponseType) XdrTypeName() string              { return "SurveyMessageResponseType" }
+func (v SurveyMessageResponseType) XdrValue() interface{}          { return v }
+func (v *SurveyMessageResponseType) XdrMarshal(x XDR, name string) { x.Marshal(name, v) }
+
+type XdrType_SurveyMessageResponseType = *SurveyMessageResponseType
+
+func XDR_SurveyMessageResponseType(v *SurveyMessageResponseType) *SurveyMessageResponseType { return v }
 
 type XdrType_SurveyRequestMessage = *SurveyRequestMessage
 
@@ -10859,13 +10946,13 @@ func XDR_PeerStatList(v *PeerStatList) XdrType_PeerStatList {
 func (XdrType_PeerStatList) XdrTypeName() string  { return "PeerStatList" }
 func (v XdrType_PeerStatList) XdrUnwrap() XdrType { return v._XdrVec_25_PeerStats }
 
-type XdrType_TopologyResponseBody = *TopologyResponseBody
+type XdrType_TopologyResponseBodyV0 = *TopologyResponseBodyV0
 
-func (v *TopologyResponseBody) XdrPointer() interface{}       { return v }
-func (TopologyResponseBody) XdrTypeName() string              { return "TopologyResponseBody" }
-func (v TopologyResponseBody) XdrValue() interface{}          { return v }
-func (v *TopologyResponseBody) XdrMarshal(x XDR, name string) { x.Marshal(name, v) }
-func (v *TopologyResponseBody) XdrRecurse(x XDR, name string) {
+func (v *TopologyResponseBodyV0) XdrPointer() interface{}       { return v }
+func (TopologyResponseBodyV0) XdrTypeName() string              { return "TopologyResponseBodyV0" }
+func (v TopologyResponseBodyV0) XdrValue() interface{}          { return v }
+func (v *TopologyResponseBodyV0) XdrMarshal(x XDR, name string) { x.Marshal(name, v) }
+func (v *TopologyResponseBodyV0) XdrRecurse(x XDR, name string) {
 	if name != "" {
 		name = x.Sprintf("%s.", name)
 	}
@@ -10874,54 +10961,93 @@ func (v *TopologyResponseBody) XdrRecurse(x XDR, name string) {
 	x.Marshal(x.Sprintf("%stotalInboundPeerCount", name), XDR_Uint32(&v.TotalInboundPeerCount))
 	x.Marshal(x.Sprintf("%stotalOutboundPeerCount", name), XDR_Uint32(&v.TotalOutboundPeerCount))
 }
-func XDR_TopologyResponseBody(v *TopologyResponseBody) *TopologyResponseBody { return v }
+func XDR_TopologyResponseBodyV0(v *TopologyResponseBodyV0) *TopologyResponseBodyV0 { return v }
+
+type XdrType_TopologyResponseBodyV1 = *TopologyResponseBodyV1
+
+func (v *TopologyResponseBodyV1) XdrPointer() interface{}       { return v }
+func (TopologyResponseBodyV1) XdrTypeName() string              { return "TopologyResponseBodyV1" }
+func (v TopologyResponseBodyV1) XdrValue() interface{}          { return v }
+func (v *TopologyResponseBodyV1) XdrMarshal(x XDR, name string) { x.Marshal(name, v) }
+func (v *TopologyResponseBodyV1) XdrRecurse(x XDR, name string) {
+	if name != "" {
+		name = x.Sprintf("%s.", name)
+	}
+	x.Marshal(x.Sprintf("%sinboundPeers", name), XDR_PeerStatList(&v.InboundPeers))
+	x.Marshal(x.Sprintf("%soutboundPeers", name), XDR_PeerStatList(&v.OutboundPeers))
+	x.Marshal(x.Sprintf("%stotalInboundPeerCount", name), XDR_Uint32(&v.TotalInboundPeerCount))
+	x.Marshal(x.Sprintf("%stotalOutboundPeerCount", name), XDR_Uint32(&v.TotalOutboundPeerCount))
+	x.Marshal(x.Sprintf("%smaxInboundPeerCount", name), XDR_Uint32(&v.MaxInboundPeerCount))
+	x.Marshal(x.Sprintf("%smaxOutboundPeerCount", name), XDR_Uint32(&v.MaxOutboundPeerCount))
+}
+func XDR_TopologyResponseBodyV1(v *TopologyResponseBodyV1) *TopologyResponseBodyV1 { return v }
 
 var _XdrTags_SurveyResponseBody = map[int32]bool{
-	XdrToI32(SURVEY_TOPOLOGY): true,
+	XdrToI32(SURVEY_TOPOLOGY_RESPONSE_V0): true,
+	XdrToI32(SURVEY_TOPOLOGY_RESPONSE_V1): true,
 }
 
 func (_ SurveyResponseBody) XdrValidTags() map[int32]bool {
 	return _XdrTags_SurveyResponseBody
 }
-func (u *SurveyResponseBody) TopologyResponseBody() *TopologyResponseBody {
+func (u *SurveyResponseBody) TopologyResponseBodyV0() *TopologyResponseBodyV0 {
 	switch u.Type {
-	case SURVEY_TOPOLOGY:
-		if v, ok := u._u.(*TopologyResponseBody); ok {
+	case SURVEY_TOPOLOGY_RESPONSE_V0:
+		if v, ok := u._u.(*TopologyResponseBodyV0); ok {
 			return v
 		} else {
-			var zero TopologyResponseBody
+			var zero TopologyResponseBodyV0
 			u._u = &zero
 			return &zero
 		}
 	default:
-		XdrPanic("SurveyResponseBody.TopologyResponseBody accessed when Type == %v", u.Type)
+		XdrPanic("SurveyResponseBody.TopologyResponseBodyV0 accessed when Type == %v", u.Type)
+		return nil
+	}
+}
+func (u *SurveyResponseBody) TopologyResponseBodyV1() *TopologyResponseBodyV1 {
+	switch u.Type {
+	case SURVEY_TOPOLOGY_RESPONSE_V1:
+		if v, ok := u._u.(*TopologyResponseBodyV1); ok {
+			return v
+		} else {
+			var zero TopologyResponseBodyV1
+			u._u = &zero
+			return &zero
+		}
+	default:
+		XdrPanic("SurveyResponseBody.TopologyResponseBodyV1 accessed when Type == %v", u.Type)
 		return nil
 	}
 }
 func (u SurveyResponseBody) XdrValid() bool {
 	switch u.Type {
-	case SURVEY_TOPOLOGY:
+	case SURVEY_TOPOLOGY_RESPONSE_V0, SURVEY_TOPOLOGY_RESPONSE_V1:
 		return true
 	}
 	return false
 }
 func (u *SurveyResponseBody) XdrUnionTag() XdrNum32 {
-	return XDR_SurveyMessageCommandType(&u.Type)
+	return XDR_SurveyMessageResponseType(&u.Type)
 }
 func (u *SurveyResponseBody) XdrUnionTagName() string {
 	return "Type"
 }
 func (u *SurveyResponseBody) XdrUnionBody() XdrType {
 	switch u.Type {
-	case SURVEY_TOPOLOGY:
-		return XDR_TopologyResponseBody(u.TopologyResponseBody())
+	case SURVEY_TOPOLOGY_RESPONSE_V0:
+		return XDR_TopologyResponseBodyV0(u.TopologyResponseBodyV0())
+	case SURVEY_TOPOLOGY_RESPONSE_V1:
+		return XDR_TopologyResponseBodyV1(u.TopologyResponseBodyV1())
 	}
 	return nil
 }
 func (u *SurveyResponseBody) XdrUnionBodyName() string {
 	switch u.Type {
-	case SURVEY_TOPOLOGY:
-		return "TopologyResponseBody"
+	case SURVEY_TOPOLOGY_RESPONSE_V0:
+		return "TopologyResponseBodyV0"
+	case SURVEY_TOPOLOGY_RESPONSE_V1:
+		return "TopologyResponseBodyV1"
 	}
 	return ""
 }
@@ -10936,10 +11062,13 @@ func (u *SurveyResponseBody) XdrRecurse(x XDR, name string) {
 	if name != "" {
 		name = x.Sprintf("%s.", name)
 	}
-	XDR_SurveyMessageCommandType(&u.Type).XdrMarshal(x, x.Sprintf("%stype", name))
+	XDR_SurveyMessageResponseType(&u.Type).XdrMarshal(x, x.Sprintf("%stype", name))
 	switch u.Type {
-	case SURVEY_TOPOLOGY:
-		x.Marshal(x.Sprintf("%stopologyResponseBody", name), XDR_TopologyResponseBody(u.TopologyResponseBody()))
+	case SURVEY_TOPOLOGY_RESPONSE_V0:
+		x.Marshal(x.Sprintf("%stopologyResponseBodyV0", name), XDR_TopologyResponseBodyV0(u.TopologyResponseBodyV0()))
+		return
+	case SURVEY_TOPOLOGY_RESPONSE_V1:
+		x.Marshal(x.Sprintf("%stopologyResponseBodyV1", name), XDR_TopologyResponseBodyV1(u.TopologyResponseBodyV1()))
 		return
 	}
 	XdrPanic("invalid Type (%v) in SurveyResponseBody", u.Type)
@@ -11126,6 +11255,7 @@ var _XdrTags_StellarMessage = map[int32]bool{
 	XdrToI32(SCP_MESSAGE):        true,
 	XdrToI32(GET_SCP_STATE):      true,
 	XdrToI32(SEND_MORE):          true,
+	XdrToI32(SEND_MORE_EXTENDED): true,
 	XdrToI32(FLOOD_ADVERT):       true,
 	XdrToI32(FLOOD_DEMAND):       true,
 }
@@ -11375,6 +11505,21 @@ func (u *StellarMessage) SendMoreMessage() *SendMore {
 		return nil
 	}
 }
+func (u *StellarMessage) SendMoreExtendedMessage() *SendMoreExtended {
+	switch u.Type {
+	case SEND_MORE_EXTENDED:
+		if v, ok := u._u.(*SendMoreExtended); ok {
+			return v
+		} else {
+			var zero SendMoreExtended
+			u._u = &zero
+			return &zero
+		}
+	default:
+		XdrPanic("StellarMessage.SendMoreExtendedMessage accessed when Type == %v", u.Type)
+		return nil
+	}
+}
 func (u *StellarMessage) FloodAdvert() *FloodAdvert {
 	switch u.Type {
 	case FLOOD_ADVERT:
@@ -11407,7 +11552,7 @@ func (u *StellarMessage) FloodDemand() *FloodDemand {
 }
 func (u StellarMessage) XdrValid() bool {
 	switch u.Type {
-	case ERROR_MSG, HELLO, AUTH, DONT_HAVE, GET_PEERS, PEERS, GET_TX_SET, TX_SET, GENERALIZED_TX_SET, TRANSACTION, SURVEY_REQUEST, SURVEY_RESPONSE, GET_SCP_QUORUMSET, SCP_QUORUMSET, SCP_MESSAGE, GET_SCP_STATE, SEND_MORE, FLOOD_ADVERT, FLOOD_DEMAND:
+	case ERROR_MSG, HELLO, AUTH, DONT_HAVE, GET_PEERS, PEERS, GET_TX_SET, TX_SET, GENERALIZED_TX_SET, TRANSACTION, SURVEY_REQUEST, SURVEY_RESPONSE, GET_SCP_QUORUMSET, SCP_QUORUMSET, SCP_MESSAGE, GET_SCP_STATE, SEND_MORE, SEND_MORE_EXTENDED, FLOOD_ADVERT, FLOOD_DEMAND:
 		return true
 	}
 	return false
@@ -11454,6 +11599,8 @@ func (u *StellarMessage) XdrUnionBody() XdrType {
 		return XDR_Uint32(u.GetSCPLedgerSeq())
 	case SEND_MORE:
 		return XDR_SendMore(u.SendMoreMessage())
+	case SEND_MORE_EXTENDED:
+		return XDR_SendMoreExtended(u.SendMoreExtendedMessage())
 	case FLOOD_ADVERT:
 		return XDR_FloodAdvert(u.FloodAdvert())
 	case FLOOD_DEMAND:
@@ -11497,6 +11644,8 @@ func (u *StellarMessage) XdrUnionBodyName() string {
 		return "GetSCPLedgerSeq"
 	case SEND_MORE:
 		return "SendMoreMessage"
+	case SEND_MORE_EXTENDED:
+		return "SendMoreExtendedMessage"
 	case FLOOD_ADVERT:
 		return "FloodAdvert"
 	case FLOOD_DEMAND:
@@ -11566,6 +11715,9 @@ func (u *StellarMessage) XdrRecurse(x XDR, name string) {
 		return
 	case SEND_MORE:
 		x.Marshal(x.Sprintf("%ssendMoreMessage", name), XDR_SendMore(u.SendMoreMessage()))
+		return
+	case SEND_MORE_EXTENDED:
+		x.Marshal(x.Sprintf("%ssendMoreExtendedMessage", name), XDR_SendMoreExtended(u.SendMoreExtendedMessage()))
 		return
 	case FLOOD_ADVERT:
 		x.Marshal(x.Sprintf("%sfloodAdvert", name), XDR_FloodAdvert(u.FloodAdvert()))
