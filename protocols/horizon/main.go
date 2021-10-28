@@ -238,7 +238,7 @@ type Ledger struct {
 	MaxTxSetSize               int32     `json:"max_tx_set_size"`
 	ProtocolVersion            int32     `json:"protocol_version"`
 	HeaderXDR                  string    `json:"header_xdr"`
-	MaxFee			           int32     `json:"max_fee"`
+	MaxFee			           int64     `json:"max_fee"`
 }
 
 func (l Ledger) PagingToken() string {

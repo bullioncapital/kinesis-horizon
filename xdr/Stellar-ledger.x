@@ -74,7 +74,7 @@ struct LedgerHeader
 
     uint32 maxTxSetSize; // maximum size a transaction set can be
 
-    uint32 maxFee; // max fee in basis points
+    uint64 maxFee; // max fee in basis points
 
     Hash skipList[4]; // hashes of ledgers in the past. allows you to jump back
                       // in time without walking the chain back ledger by ledger
