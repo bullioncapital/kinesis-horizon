@@ -34,6 +34,7 @@ func PopulateLedger(ctx context.Context, dest *protocol.Ledger, row history.Ledg
 	dest.BaseReserve = row.BaseReserve
 	dest.MaxTxSetSize = row.MaxTxSetSize
 	dest.ProtocolVersion = row.ProtocolVersion
+	dest.MaxFee = row.MaxFee
 
 	if row.LedgerHeaderXDR.Valid {
 		dest.HeaderXDR = row.LedgerHeaderXDR.String

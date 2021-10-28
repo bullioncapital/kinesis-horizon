@@ -40,6 +40,7 @@ func ledgerToMap(ledger Ledger) map[string]interface{} {
 		"operation_count":              ledger.OperationCount,
 		"protocol_version":             ledger.ProtocolVersion,
 		"ledger_header":                ledger.LedgerHeaderXDR,
+		"max_fee":                      ledger.MaxFee,
 	}
 }
 

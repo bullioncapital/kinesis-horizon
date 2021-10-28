@@ -450,7 +450,8 @@ CREATE TABLE history_ledgers (
     successful_transaction_count integer,
     failed_transaction_count integer,
     tx_set_operation_count integer,
-    base_percentage_fee INTEGER  DEFAULT 45 NOT NULL
+    base_percentage_fee INTEGER  DEFAULT 45 NOT NULL,
+    max_fee INTEGER  DEFAULT 250000000000 NOT NULL
 );
 
 

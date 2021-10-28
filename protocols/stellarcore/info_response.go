@@ -26,6 +26,7 @@ type LedgerInfo struct {
 	MaxTxSetSize      int    `json:"maxTxSetSize"`
 	Num               int    `json:"num"`
 	Version           int    `json:"version"`
+	MaxFee 			  int    `json:"maxFee"`
 }
 
 // IsSynced returns a boolean indicating whether stellarcore is synced with the
