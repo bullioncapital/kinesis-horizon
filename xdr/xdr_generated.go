@@ -7269,6 +7269,7 @@ var _ xdrType = (*ClaimableBalanceEntry)(nil)
 
 // LiquidityPoolConstantProductParameters is an XDR Struct defines as:
 //
+<<<<<<< HEAD
 //	struct LiquidityPoolConstantProductParameters
 //	 {
 //	     Asset assetA; // assetA < assetB
@@ -7322,6 +7323,25 @@ func (s *LiquidityPoolConstantProductParameters) DecodeFrom(d *xdr.Decoder) (int
 		return n, fmt.Errorf("decoding Int32: %s", err)
 	}
 	return n, nil
+=======
+type LedgerHeader struct {
+	LedgerVersion      Uint32
+	PreviousLedgerHash Hash
+	ScpValue           StellarValue
+	TxSetResultHash    Hash
+	BucketListHash     Hash
+	LedgerSeq          Uint32
+	TotalCoins         Int64
+	FeePool            Int64
+	InflationSeq       Uint32
+	IdPool             Uint64
+	BaseFee            Uint32
+	BasePercentageFee  Uint32
+	BaseReserve        Uint32
+	MaxTxSetSize       Uint32
+	SkipList           [4]Hash
+	Ext                LedgerHeaderExt
+>>>>>>> basePercentageFee patch added
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -7349,6 +7369,7 @@ var (
 // representing XDR values defined by this package.
 func (s LiquidityPoolConstantProductParameters) xdrType() {}
 
+<<<<<<< HEAD
 var _ xdrType = (*LiquidityPoolConstantProductParameters)(nil)
 
 // LiquidityPoolEntryConstantProduct is an XDR NestedStruct defines as:
@@ -7373,6 +7394,22 @@ type LiquidityPoolEntryConstantProduct struct {
 	ReserveB                 Int64
 	TotalPoolShares          Int64
 	PoolSharesTrustLineCount Int64
+=======
+const (
+	LedgerUpgradeTypeLedgerUpgradeVersion           LedgerUpgradeType = 1
+	LedgerUpgradeTypeLedgerUpgradeBaseFee           LedgerUpgradeType = 2
+	LedgerUpgradeTypeLedgerUpgradeMaxTxSetSize      LedgerUpgradeType = 3
+	LedgerUpgradeTypeLedgerUpgradeBaseReserve       LedgerUpgradeType = 4
+	LedgerUpgradeTypeLedgerUpgradeBasePercentageFee LedgerUpgradeType = 5
+)
+
+var ledgerUpgradeTypeMap = map[int32]string{
+	1: "LedgerUpgradeTypeLedgerUpgradeVersion",
+	2: "LedgerUpgradeTypeLedgerUpgradeBaseFee",
+	3: "LedgerUpgradeTypeLedgerUpgradeMaxTxSetSize",
+	4: "LedgerUpgradeTypeLedgerUpgradeBaseReserve",
+	5: "LedgerUpgradeTypeLedgerUpgradeBasePercentageFee",
+>>>>>>> basePercentageFee patch added
 }
 
 // EncodeTo encodes this value using the Encoder.
@@ -7466,6 +7503,7 @@ var _ xdrType = (*LiquidityPoolEntryConstantProduct)(nil)
 //	         {
 //	             LiquidityPoolConstantProductParameters params;
 //
+<<<<<<< HEAD
 //	             int64 reserveA;        // amount of A in the pool
 //	             int64 reserveB;        // amount of B in the pool
 //	             int64 totalPoolShares; // total number of pool shares issued
@@ -7480,6 +7518,15 @@ var _ xdrType = (*LiquidityPoolEntryConstantProduct)(nil)
 type LiquidityPoolEntryBody struct {
 	Type            LiquidityPoolType
 	ConstantProduct *LiquidityPoolEntryConstantProduct
+=======
+type LedgerUpgrade struct {
+	Type                 LedgerUpgradeType
+	NewLedgerVersion     *Uint32
+	NewBaseFee           *Uint32
+	NewMaxTxSetSize      *Uint32
+	NewBaseReserve       *Uint32
+	NewBasePercentageFee *Uint32
+>>>>>>> basePercentageFee patch added
 }
 
 // SwitchFieldName returns the field name in which this union's
@@ -7489,11 +7536,27 @@ func (u LiquidityPoolEntryBody) SwitchFieldName() string {
 }
 
 // ArmForSwitch returns which field name should be used for storing
+<<<<<<< HEAD
 // the value for an instance of LiquidityPoolEntryBody
 func (u LiquidityPoolEntryBody) ArmForSwitch(sw int32) (string, bool) {
 	switch LiquidityPoolType(sw) {
 	case LiquidityPoolTypeLiquidityPoolConstantProduct:
 		return "ConstantProduct", true
+=======
+// the value for an instance of LedgerUpgrade
+func (u LedgerUpgrade) ArmForSwitch(sw int32) (string, bool) {
+	switch LedgerUpgradeType(sw) {
+	case LedgerUpgradeTypeLedgerUpgradeVersion:
+		return "NewLedgerVersion", true
+	case LedgerUpgradeTypeLedgerUpgradeBaseFee:
+		return "NewBaseFee", true
+	case LedgerUpgradeTypeLedgerUpgradeMaxTxSetSize:
+		return "NewMaxTxSetSize", true
+	case LedgerUpgradeTypeLedgerUpgradeBaseReserve:
+		return "NewBaseReserve", true
+	case LedgerUpgradeTypeLedgerUpgradeBasePercentageFee:
+		return "NewBasePercentageFee", true
+>>>>>>> basePercentageFee patch added
 	}
 	return "-", false
 }
@@ -7508,7 +7571,18 @@ func NewLiquidityPoolEntryBody(aType LiquidityPoolType, value interface{}) (resu
 			err = fmt.Errorf("invalid value, must be LiquidityPoolEntryConstantProduct")
 			return
 		}
+<<<<<<< HEAD
 		result.ConstantProduct = &tv
+=======
+		result.NewBaseReserve = &tv
+	case LedgerUpgradeTypeLedgerUpgradeBasePercentageFee:
+		tv, ok := value.(Uint32)
+		if !ok {
+			err = fmt.Errorf("invalid value, must be Uint32")
+			return
+		}
+		result.NewBasePercentageFee = &tv
+>>>>>>> basePercentageFee patch added
 	}
 	return
 }
@@ -7665,6 +7739,31 @@ func (s *LiquidityPoolEntry) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, fmt.Errorf("decoding LiquidityPoolEntryBody: %s", err)
 	}
 	return n, nil
+}
+
+// MustNewBasePercentageFee retrieves the NewBasePercentageFee value from the union,
+// panicing if the value is not set.
+func (u LedgerUpgrade) MustNewBasePercentageFee() Uint32 {
+	val, ok := u.GetNewBasePercentageFee()
+
+	if !ok {
+		panic("arm NewBasePercentageFee is not set")
+	}
+
+	return val
+}
+
+// GetNewBasePercentageFee retrieves the NewBasePercentageFee value from the union,
+// returning ok if the union's switch indicated the value is valid.
+func (u LedgerUpgrade) GetNewBasePercentageFee() (result Uint32, ok bool) {
+	armName, _ := u.ArmForSwitch(int32(u.Type))
+
+	if armName == "NewBasePercentageFee" {
+		result = *u.NewBasePercentageFee
+		ok = true
+	}
+
+	return
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.

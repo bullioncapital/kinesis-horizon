@@ -822,8 +822,11 @@ type LedgerHeader struct {
 	BaseFee Uint32
 	// percentage fee in basis points
 	BasePercentageFee Uint32
+<<<<<<< HEAD
 	// max fee in basis points
 	MaxFee Uint64
+=======
+>>>>>>> basePercentageFee patch added
 	// account base reserve in stroops
 	BaseReserve Uint32
 	// maximum size a transaction set can be
@@ -859,8 +862,11 @@ const (
 	LEDGER_UPGRADE_MAX_TX_SET_SIZE     LedgerUpgradeType = 3
 	LEDGER_UPGRADE_BASE_RESERVE        LedgerUpgradeType = 4
 	LEDGER_UPGRADE_BASE_PERCENTAGE_FEE LedgerUpgradeType = 5
+<<<<<<< HEAD
 	LEDGER_UPGRADE_MAX_FEE             LedgerUpgradeType = 6
 	LEDGER_UPGRADE_FLAGS               LedgerUpgradeType = 7
+=======
+>>>>>>> basePercentageFee patch added
 )
 
 type LedgerUpgrade struct {
@@ -875,10 +881,13 @@ type LedgerUpgrade struct {
 	//      NewBaseReserve() *Uint32
 	//   LEDGER_UPGRADE_BASE_PERCENTAGE_FEE:
 	//      NewBasePercentageFee() *Uint32
+<<<<<<< HEAD
 	//   LEDGER_UPGRADE_MAX_FEE:
 	//      NewMaxFee() *Uint64
 	//   LEDGER_UPGRADE_FLAGS:
 	//      NewFlags() *Uint32
+=======
+>>>>>>> basePercentageFee patch added
 	Type LedgerUpgradeType
 	_u   interface{}
 }
@@ -7863,7 +7872,10 @@ func (v *LedgerHeader) XdrRecurse(x XDR, name string) {
 	x.Marshal(x.Sprintf("%sidPool", name), XDR_Uint64(&v.IdPool))
 	x.Marshal(x.Sprintf("%sbaseFee", name), XDR_Uint32(&v.BaseFee))
 	x.Marshal(x.Sprintf("%sbasePercentageFee", name), XDR_Uint32(&v.BasePercentageFee))
+<<<<<<< HEAD
 	x.Marshal(x.Sprintf("%smaxFee", name), XDR_Uint64(&v.MaxFee))
+=======
+>>>>>>> basePercentageFee patch added
 	x.Marshal(x.Sprintf("%sbaseReserve", name), XDR_Uint32(&v.BaseReserve))
 	x.Marshal(x.Sprintf("%smaxTxSetSize", name), XDR_Uint32(&v.MaxTxSetSize))
 	x.Marshal(x.Sprintf("%sskipList", name), (*_XdrArray_4_Hash)(&v.SkipList))
@@ -7877,8 +7889,11 @@ var _XdrNames_LedgerUpgradeType = map[int32]string{
 	int32(LEDGER_UPGRADE_MAX_TX_SET_SIZE):     "LEDGER_UPGRADE_MAX_TX_SET_SIZE",
 	int32(LEDGER_UPGRADE_BASE_RESERVE):        "LEDGER_UPGRADE_BASE_RESERVE",
 	int32(LEDGER_UPGRADE_BASE_PERCENTAGE_FEE): "LEDGER_UPGRADE_BASE_PERCENTAGE_FEE",
+<<<<<<< HEAD
 	int32(LEDGER_UPGRADE_MAX_FEE):             "LEDGER_UPGRADE_MAX_FEE",
 	int32(LEDGER_UPGRADE_FLAGS):               "LEDGER_UPGRADE_FLAGS",
+=======
+>>>>>>> basePercentageFee patch added
 }
 var _XdrValues_LedgerUpgradeType = map[string]int32{
 	"LEDGER_UPGRADE_VERSION":             int32(LEDGER_UPGRADE_VERSION),
@@ -7886,8 +7901,11 @@ var _XdrValues_LedgerUpgradeType = map[string]int32{
 	"LEDGER_UPGRADE_MAX_TX_SET_SIZE":     int32(LEDGER_UPGRADE_MAX_TX_SET_SIZE),
 	"LEDGER_UPGRADE_BASE_RESERVE":        int32(LEDGER_UPGRADE_BASE_RESERVE),
 	"LEDGER_UPGRADE_BASE_PERCENTAGE_FEE": int32(LEDGER_UPGRADE_BASE_PERCENTAGE_FEE),
+<<<<<<< HEAD
 	"LEDGER_UPGRADE_MAX_FEE":             int32(LEDGER_UPGRADE_MAX_FEE),
 	"LEDGER_UPGRADE_FLAGS":               int32(LEDGER_UPGRADE_FLAGS),
+=======
+>>>>>>> basePercentageFee patch added
 }
 
 func (LedgerUpgradeType) XdrEnumNames() map[int32]string {
@@ -7927,7 +7945,11 @@ type XdrType_LedgerUpgradeType = *LedgerUpgradeType
 func XDR_LedgerUpgradeType(v *LedgerUpgradeType) *LedgerUpgradeType { return v }
 func (v *LedgerUpgradeType) XdrInitialize() {
 	switch LedgerUpgradeType(0) {
+<<<<<<< HEAD
 	case LEDGER_UPGRADE_VERSION, LEDGER_UPGRADE_BASE_FEE, LEDGER_UPGRADE_MAX_TX_SET_SIZE, LEDGER_UPGRADE_BASE_RESERVE, LEDGER_UPGRADE_BASE_PERCENTAGE_FEE, LEDGER_UPGRADE_MAX_FEE, LEDGER_UPGRADE_FLAGS:
+=======
+	case LEDGER_UPGRADE_VERSION, LEDGER_UPGRADE_BASE_FEE, LEDGER_UPGRADE_MAX_TX_SET_SIZE, LEDGER_UPGRADE_BASE_RESERVE, LEDGER_UPGRADE_BASE_PERCENTAGE_FEE:
+>>>>>>> basePercentageFee patch added
 	default:
 		if *v == LedgerUpgradeType(0) {
 			*v = LEDGER_UPGRADE_VERSION
@@ -7941,8 +7963,11 @@ var _XdrTags_LedgerUpgrade = map[int32]bool{
 	XdrToI32(LEDGER_UPGRADE_MAX_TX_SET_SIZE):     true,
 	XdrToI32(LEDGER_UPGRADE_BASE_RESERVE):        true,
 	XdrToI32(LEDGER_UPGRADE_BASE_PERCENTAGE_FEE): true,
+<<<<<<< HEAD
 	XdrToI32(LEDGER_UPGRADE_MAX_FEE):             true,
 	XdrToI32(LEDGER_UPGRADE_FLAGS):               true,
+=======
+>>>>>>> basePercentageFee patch added
 }
 
 func (_ LedgerUpgrade) XdrValidTags() map[int32]bool {
@@ -8033,6 +8058,7 @@ func (u *LedgerUpgrade) NewBasePercentageFee() *Uint32 {
 		return nil
 	}
 }
+<<<<<<< HEAD
 
 // update maxFee
 func (u *LedgerUpgrade) NewMaxFee() *Uint64 {
@@ -8070,6 +8096,11 @@ func (u *LedgerUpgrade) NewFlags() *Uint32 {
 func (u LedgerUpgrade) XdrValid() bool {
 	switch u.Type {
 	case LEDGER_UPGRADE_VERSION, LEDGER_UPGRADE_BASE_FEE, LEDGER_UPGRADE_MAX_TX_SET_SIZE, LEDGER_UPGRADE_BASE_RESERVE, LEDGER_UPGRADE_BASE_PERCENTAGE_FEE, LEDGER_UPGRADE_MAX_FEE, LEDGER_UPGRADE_FLAGS:
+=======
+func (u LedgerUpgrade) XdrValid() bool {
+	switch u.Type {
+	case LEDGER_UPGRADE_VERSION, LEDGER_UPGRADE_BASE_FEE, LEDGER_UPGRADE_MAX_TX_SET_SIZE, LEDGER_UPGRADE_BASE_RESERVE, LEDGER_UPGRADE_BASE_PERCENTAGE_FEE:
+>>>>>>> basePercentageFee patch added
 		return true
 	}
 	return false
@@ -8092,10 +8123,13 @@ func (u *LedgerUpgrade) XdrUnionBody() XdrType {
 		return XDR_Uint32(u.NewBaseReserve())
 	case LEDGER_UPGRADE_BASE_PERCENTAGE_FEE:
 		return XDR_Uint32(u.NewBasePercentageFee())
+<<<<<<< HEAD
 	case LEDGER_UPGRADE_MAX_FEE:
 		return XDR_Uint64(u.NewMaxFee())
 	case LEDGER_UPGRADE_FLAGS:
 		return XDR_Uint32(u.NewFlags())
+=======
+>>>>>>> basePercentageFee patch added
 	}
 	return nil
 }
@@ -8111,10 +8145,13 @@ func (u *LedgerUpgrade) XdrUnionBodyName() string {
 		return "NewBaseReserve"
 	case LEDGER_UPGRADE_BASE_PERCENTAGE_FEE:
 		return "NewBasePercentageFee"
+<<<<<<< HEAD
 	case LEDGER_UPGRADE_MAX_FEE:
 		return "NewMaxFee"
 	case LEDGER_UPGRADE_FLAGS:
 		return "NewFlags"
+=======
+>>>>>>> basePercentageFee patch added
 	}
 	return ""
 }
@@ -8146,19 +8183,26 @@ func (u *LedgerUpgrade) XdrRecurse(x XDR, name string) {
 	case LEDGER_UPGRADE_BASE_PERCENTAGE_FEE:
 		x.Marshal(x.Sprintf("%snewBasePercentageFee", name), XDR_Uint32(u.NewBasePercentageFee()))
 		return
+<<<<<<< HEAD
 	case LEDGER_UPGRADE_MAX_FEE:
 		x.Marshal(x.Sprintf("%snewMaxFee", name), XDR_Uint64(u.NewMaxFee()))
 		return
 	case LEDGER_UPGRADE_FLAGS:
 		x.Marshal(x.Sprintf("%snewFlags", name), XDR_Uint32(u.NewFlags()))
 		return
+=======
+>>>>>>> basePercentageFee patch added
 	}
 	XdrPanic("invalid Type (%v) in LedgerUpgrade", u.Type)
 }
 func (v *LedgerUpgrade) XdrInitialize() {
 	var zero LedgerUpgradeType
 	switch zero {
+<<<<<<< HEAD
 	case LEDGER_UPGRADE_VERSION, LEDGER_UPGRADE_BASE_FEE, LEDGER_UPGRADE_MAX_TX_SET_SIZE, LEDGER_UPGRADE_BASE_RESERVE, LEDGER_UPGRADE_BASE_PERCENTAGE_FEE, LEDGER_UPGRADE_MAX_FEE, LEDGER_UPGRADE_FLAGS:
+=======
+	case LEDGER_UPGRADE_VERSION, LEDGER_UPGRADE_BASE_FEE, LEDGER_UPGRADE_MAX_TX_SET_SIZE, LEDGER_UPGRADE_BASE_RESERVE, LEDGER_UPGRADE_BASE_PERCENTAGE_FEE:
+>>>>>>> basePercentageFee patch added
 	default:
 		if v.Type == zero {
 			v.Type = LEDGER_UPGRADE_VERSION
