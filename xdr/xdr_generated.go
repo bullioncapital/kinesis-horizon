@@ -1693,6 +1693,7 @@ var _ xdrType = (*TimePoint)(nil)
 
 // Duration is an XDR Typedef defines as:
 //
+<<<<<<< HEAD
 //	typedef uint64 Duration;
 type Duration Uint64
 
@@ -1748,6 +1749,8 @@ var _ xdrType = (*Duration)(nil)
 
 // DataValue is an XDR Typedef defines as:
 //
+=======
+>>>>>>> basePercentageFee patch added
 //	typedef opaque DataValue<64>;
 type DataValue []byte
 
@@ -2404,10 +2407,17 @@ var _ xdrType = (*AlphaNum12)(nil)
 //	 {
 //	 case ASSET_TYPE_NATIVE: // Not credit
 //	     void;
+<<<<<<< HEAD
 //
 //	 case ASSET_TYPE_CREDIT_ALPHANUM4:
 //	     AlphaNum4 alphaNum4;
 //
+=======
+//
+//	 case ASSET_TYPE_CREDIT_ALPHANUM4:
+//	     AlphaNum4 alphaNum4;
+//
+>>>>>>> basePercentageFee patch added
 //	 case ASSET_TYPE_CREDIT_ALPHANUM12:
 //	     AlphaNum12 alphaNum12;
 //
@@ -3114,6 +3124,7 @@ type SponsorshipDescriptor = *AccountId
 
 // AccountEntryExtensionV3 is an XDR Struct defines as:
 //
+<<<<<<< HEAD
 //	struct AccountEntryExtensionV3
 //	 {
 //	     // We can use this to add more fields, or because it is first, to
@@ -3200,12 +3211,17 @@ var _ xdrType = (*AccountEntryExtensionV3)(nil)
 
 // AccountEntryExtensionV2Ext is an XDR NestedUnion defines as:
 //
+=======
+>>>>>>> basePercentageFee patch added
 //	union switch (int v)
 //	     {
 //	     case 0:
 //	         void;
+<<<<<<< HEAD
 //	     case 3:
 //	         AccountEntryExtensionV3 v3;
+=======
+>>>>>>> basePercentageFee patch added
 //	     }
 type AccountEntryExtensionV2Ext struct {
 	V  int32
@@ -3357,8 +3373,11 @@ var _ xdrType = (*AccountEntryExtensionV2Ext)(nil)
 //	     {
 //	     case 0:
 //	         void;
+<<<<<<< HEAD
 //	     case 3:
 //	         AccountEntryExtensionV3 v3;
+=======
+>>>>>>> basePercentageFee patch added
 //	     }
 //	     ext;
 //	 };
@@ -5182,8 +5201,12 @@ var _ xdrType = (*TrustLineEntry)(nil)
 //
 //	enum OfferEntryFlags
 //	 {
+<<<<<<< HEAD
 //	     // an offer with this flag will not act on and take a reverse offer of equal
 //	     // price
+=======
+//	     // issuer has authorized account to perform transactions with its credit
+>>>>>>> basePercentageFee patch added
 //	     PASSIVE_FLAG = 1
 //	 };
 type OfferEntryFlags int32
@@ -7250,7 +7273,11 @@ var _ xdrType = (*ClaimableBalanceEntry)(nil)
 //	 {
 //	     Asset assetA; // assetA < assetB
 //	     Asset assetB;
+<<<<<<< HEAD
 //	     int32 fee; // Fee is in basis points, so the actual rate is (fee/100)%
+=======
+//	     int32 fee;    // Fee is in basis points, so the actual rate is (fee/100)%
+>>>>>>> basePercentageFee patch added
 //	 };
 type LiquidityPoolConstantProductParameters struct {
 	AssetA Asset
@@ -7333,8 +7360,12 @@ var _ xdrType = (*LiquidityPoolConstantProductParameters)(nil)
 //	             int64 reserveA;        // amount of A in the pool
 //	             int64 reserveB;        // amount of B in the pool
 //	             int64 totalPoolShares; // total number of pool shares issued
+<<<<<<< HEAD
 //	             int64 poolSharesTrustLineCount; // number of trust lines for the
 //	                                             // associated pool shares
+=======
+//	             int64 poolSharesTrustLineCount; // number of trust lines for the associated pool shares
+>>>>>>> basePercentageFee patch added
 //	         }
 type LiquidityPoolEntryConstantProduct struct {
 	Params                   LiquidityPoolConstantProductParameters
@@ -7438,8 +7469,12 @@ var _ xdrType = (*LiquidityPoolEntryConstantProduct)(nil)
 //	             int64 reserveA;        // amount of A in the pool
 //	             int64 reserveB;        // amount of B in the pool
 //	             int64 totalPoolShares; // total number of pool shares issued
+<<<<<<< HEAD
 //	             int64 poolSharesTrustLineCount; // number of trust lines for the
 //	                                             // associated pool shares
+=======
+//	             int64 poolSharesTrustLineCount; // number of trust lines for the associated pool shares
+>>>>>>> basePercentageFee patch added
 //	         } constantProduct;
 //	     }
 type LiquidityPoolEntryBody struct {
@@ -7586,8 +7621,12 @@ var _ xdrType = (*LiquidityPoolEntryBody)(nil)
 //	             int64 reserveA;        // amount of A in the pool
 //	             int64 reserveB;        // amount of B in the pool
 //	             int64 totalPoolShares; // total number of pool shares issued
+<<<<<<< HEAD
 //	             int64 poolSharesTrustLineCount; // number of trust lines for the
 //	                                             // associated pool shares
+=======
+//	             int64 poolSharesTrustLineCount; // number of trust lines for the associated pool shares
+>>>>>>> basePercentageFee patch added
 //	         } constantProduct;
 //	     }
 //	     body;
@@ -10299,6 +10338,10 @@ var _ xdrType = (*LedgerHeaderExt)(nil)
 //	     uint64 idPool; // last used global ID, used for generating objects
 //
 //	     uint32 baseFee;     // base fee per operation in stroops
+<<<<<<< HEAD
+=======
+//	     uint32 basePercentageFee; // percentage fee in basis points
+>>>>>>> basePercentageFee patch added
 //	     uint32 baseReserve; // account base reserve in stroops
 //
 //	     uint32 maxTxSetSize; // maximum size a transaction set can be
@@ -10331,6 +10374,7 @@ type LedgerHeader struct {
 	InflationSeq       Uint32
 	IdPool             Uint64
 	BaseFee            Uint32
+	BasePercentageFee  Uint32
 	BaseReserve        Uint32
 	MaxTxSetSize       Uint32
 	SkipList           [4]Hash
@@ -10371,6 +10415,9 @@ func (s *LedgerHeader) EncodeTo(e *xdr.Encoder) error {
 		return err
 	}
 	if err = s.BaseFee.EncodeTo(e); err != nil {
+		return err
+	}
+	if err = s.BasePercentageFee.EncodeTo(e); err != nil {
 		return err
 	}
 	if err = s.BaseReserve.EncodeTo(e); err != nil {
@@ -10451,6 +10498,11 @@ func (s *LedgerHeader) DecodeFrom(d *xdr.Decoder) (int, error) {
 	if err != nil {
 		return n, fmt.Errorf("decoding Uint32: %s", err)
 	}
+	nTmp, err = s.BasePercentageFee.DecodeFrom(d)
+	n += nTmp
+	if err != nil {
+		return n, fmt.Errorf("decoding Uint32: %s", err)
+	}
 	nTmp, err = s.BaseReserve.DecodeFrom(d)
 	n += nTmp
 	if err != nil {
@@ -10511,16 +10563,22 @@ var _ xdrType = (*LedgerHeader)(nil)
 //	     LEDGER_UPGRADE_BASE_FEE = 2,
 //	     LEDGER_UPGRADE_MAX_TX_SET_SIZE = 3,
 //	     LEDGER_UPGRADE_BASE_RESERVE = 4,
+<<<<<<< HEAD
 //	     LEDGER_UPGRADE_FLAGS = 5
+=======
+//	     LEDGER_UPGRADE_BASE_PERCENTAGE_FEE = 5,
+//	     LEDGER_UPGRADE_FLAGS = 6
+>>>>>>> basePercentageFee patch added
 //	 };
 type LedgerUpgradeType int32
 
 const (
-	LedgerUpgradeTypeLedgerUpgradeVersion      LedgerUpgradeType = 1
-	LedgerUpgradeTypeLedgerUpgradeBaseFee      LedgerUpgradeType = 2
-	LedgerUpgradeTypeLedgerUpgradeMaxTxSetSize LedgerUpgradeType = 3
-	LedgerUpgradeTypeLedgerUpgradeBaseReserve  LedgerUpgradeType = 4
-	LedgerUpgradeTypeLedgerUpgradeFlags        LedgerUpgradeType = 5
+	LedgerUpgradeTypeLedgerUpgradeVersion           LedgerUpgradeType = 1
+	LedgerUpgradeTypeLedgerUpgradeBaseFee           LedgerUpgradeType = 2
+	LedgerUpgradeTypeLedgerUpgradeMaxTxSetSize      LedgerUpgradeType = 3
+	LedgerUpgradeTypeLedgerUpgradeBaseReserve       LedgerUpgradeType = 4
+	LedgerUpgradeTypeLedgerUpgradeBasePercentageFee LedgerUpgradeType = 5
+	LedgerUpgradeTypeLedgerUpgradeFlags             LedgerUpgradeType = 6
 )
 
 var ledgerUpgradeTypeMap = map[int32]string{
@@ -10528,7 +10586,8 @@ var ledgerUpgradeTypeMap = map[int32]string{
 	2: "LedgerUpgradeTypeLedgerUpgradeBaseFee",
 	3: "LedgerUpgradeTypeLedgerUpgradeMaxTxSetSize",
 	4: "LedgerUpgradeTypeLedgerUpgradeBaseReserve",
-	5: "LedgerUpgradeTypeLedgerUpgradeFlags",
+	5: "LedgerUpgradeTypeLedgerUpgradeBasePercentageFee",
+	6: "LedgerUpgradeTypeLedgerUpgradeFlags",
 }
 
 // ValidEnum validates a proposed value for this enum.  Implements
@@ -10607,16 +10666,22 @@ var _ xdrType = (*LedgerUpgradeType)(nil)
 //	     uint32 newMaxTxSetSize; // update maxTxSetSize
 //	 case LEDGER_UPGRADE_BASE_RESERVE:
 //	     uint32 newBaseReserve; // update baseReserve
+<<<<<<< HEAD
+=======
+//	 case LEDGER_UPGRADE_BASE_PERCENTAGE_FEE:
+//	     uint32 newBasePercentageFee; // update basePercentageFee
+>>>>>>> basePercentageFee patch added
 //	 case LEDGER_UPGRADE_FLAGS:
 //	     uint32 newFlags; // update flags
 //	 };
 type LedgerUpgrade struct {
-	Type             LedgerUpgradeType
-	NewLedgerVersion *Uint32
-	NewBaseFee       *Uint32
-	NewMaxTxSetSize  *Uint32
-	NewBaseReserve   *Uint32
-	NewFlags         *Uint32
+	Type                 LedgerUpgradeType
+	NewLedgerVersion     *Uint32
+	NewBaseFee           *Uint32
+	NewMaxTxSetSize      *Uint32
+	NewBaseReserve       *Uint32
+	NewBasePercentageFee *Uint32
+	NewFlags             *Uint32
 }
 
 // SwitchFieldName returns the field name in which this union's
@@ -10637,6 +10702,8 @@ func (u LedgerUpgrade) ArmForSwitch(sw int32) (string, bool) {
 		return "NewMaxTxSetSize", true
 	case LedgerUpgradeTypeLedgerUpgradeBaseReserve:
 		return "NewBaseReserve", true
+	case LedgerUpgradeTypeLedgerUpgradeBasePercentageFee:
+		return "NewBasePercentageFee", true
 	case LedgerUpgradeTypeLedgerUpgradeFlags:
 		return "NewFlags", true
 	}
@@ -10675,6 +10742,13 @@ func NewLedgerUpgrade(aType LedgerUpgradeType, value interface{}) (result Ledger
 			return
 		}
 		result.NewBaseReserve = &tv
+	case LedgerUpgradeTypeLedgerUpgradeBasePercentageFee:
+		tv, ok := value.(Uint32)
+		if !ok {
+			err = fmt.Errorf("invalid value, must be Uint32")
+			return
+		}
+		result.NewBasePercentageFee = &tv
 	case LedgerUpgradeTypeLedgerUpgradeFlags:
 		tv, ok := value.(Uint32)
 		if !ok {
@@ -10786,6 +10860,31 @@ func (u LedgerUpgrade) GetNewBaseReserve() (result Uint32, ok bool) {
 	return
 }
 
+// MustNewBasePercentageFee retrieves the NewBasePercentageFee value from the union,
+// panicing if the value is not set.
+func (u LedgerUpgrade) MustNewBasePercentageFee() Uint32 {
+	val, ok := u.GetNewBasePercentageFee()
+
+	if !ok {
+		panic("arm NewBasePercentageFee is not set")
+	}
+
+	return val
+}
+
+// GetNewBasePercentageFee retrieves the NewBasePercentageFee value from the union,
+// returning ok if the union's switch indicated the value is valid.
+func (u LedgerUpgrade) GetNewBasePercentageFee() (result Uint32, ok bool) {
+	armName, _ := u.ArmForSwitch(int32(u.Type))
+
+	if armName == "NewBasePercentageFee" {
+		result = *u.NewBasePercentageFee
+		ok = true
+	}
+
+	return
+}
+
 // MustNewFlags retrieves the NewFlags value from the union,
 // panicing if the value is not set.
 func (u LedgerUpgrade) MustNewFlags() Uint32 {
@@ -10838,6 +10937,11 @@ func (u LedgerUpgrade) EncodeTo(e *xdr.Encoder) error {
 			return err
 		}
 		return nil
+	case LedgerUpgradeTypeLedgerUpgradeBasePercentageFee:
+		if err = (*u.NewBasePercentageFee).EncodeTo(e); err != nil {
+			return err
+		}
+		return nil
 	case LedgerUpgradeTypeLedgerUpgradeFlags:
 		if err = (*u.NewFlags).EncodeTo(e); err != nil {
 			return err
@@ -10886,6 +10990,14 @@ func (u *LedgerUpgrade) DecodeFrom(d *xdr.Decoder) (int, error) {
 	case LedgerUpgradeTypeLedgerUpgradeBaseReserve:
 		u.NewBaseReserve = new(Uint32)
 		nTmp, err = (*u.NewBaseReserve).DecodeFrom(d)
+		n += nTmp
+		if err != nil {
+			return n, fmt.Errorf("decoding Uint32: %s", err)
+		}
+		return n, nil
+	case LedgerUpgradeTypeLedgerUpgradeBasePercentageFee:
+		u.NewBasePercentageFee = new(Uint32)
+		nTmp, err = (*u.NewBasePercentageFee).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
 			return n, fmt.Errorf("decoding Uint32: %s", err)
@@ -11641,6 +11753,7 @@ var _ xdrType = (*TxSetComponentTxsMaybeDiscountedFee)(nil)
 
 // TxSetComponent is an XDR Union defines as:
 //
+<<<<<<< HEAD
 //	union TxSetComponent switch (TxSetComponentType type)
 //	 {
 //	 case TXSET_COMP_TXS_MAYBE_DISCOUNTED_FEE:
@@ -11932,6 +12045,8 @@ var _ xdrType = (*TransactionPhase)(nil)
 
 // TransactionSet is an XDR Struct defines as:
 //
+=======
+>>>>>>> basePercentageFee patch added
 //	struct TransactionSet
 //	 {
 //	     Hash previousLedgerHash;
@@ -12106,6 +12221,7 @@ var _ xdrType = (*TransactionSetV1)(nil)
 
 // GeneralizedTransactionSet is an XDR Union defines as:
 //
+<<<<<<< HEAD
 //	union GeneralizedTransactionSet switch (int v)
 //	 {
 //	 // We consider the legacy TransactionSet to be v0.
@@ -12242,6 +12358,8 @@ var _ xdrType = (*GeneralizedTransactionSet)(nil)
 
 // TransactionResultPair is an XDR Struct defines as:
 //
+=======
+>>>>>>> basePercentageFee patch added
 //	struct TransactionResultPair
 //	 {
 //	     Hash transactionHash;
@@ -12393,8 +12511,11 @@ var _ xdrType = (*TransactionResultSet)(nil)
 //	     {
 //	     case 0:
 //	         void;
+<<<<<<< HEAD
 //	     case 1:
 //	         GeneralizedTransactionSet generalizedTxSet;
+=======
+>>>>>>> basePercentageFee patch added
 //	     }
 type TransactionHistoryEntryExt struct {
 	V                int32
@@ -12541,13 +12662,20 @@ var _ xdrType = (*TransactionHistoryEntryExt)(nil)
 //	     uint32 ledgerSeq;
 //	     TransactionSet txSet;
 //
+<<<<<<< HEAD
 //	     // when v != 0, txSet must be empty
+=======
+//	     // reserved for future use
+>>>>>>> basePercentageFee patch added
 //	     union switch (int v)
 //	     {
 //	     case 0:
 //	         void;
+<<<<<<< HEAD
 //	     case 1:
 //	         GeneralizedTransactionSet generalizedTxSet;
+=======
+>>>>>>> basePercentageFee patch added
 //	     }
 //	     ext;
 //	 };
@@ -14565,6 +14693,7 @@ var _ xdrType = (*LedgerCloseMetaV0)(nil)
 //	     // followed by applying transactions
 //	     TransactionResultMeta txProcessing<>;
 //
+<<<<<<< HEAD
 //	     // upgrades are applied last
 //	     UpgradeEntryMeta upgradesProcessing<>;
 //
@@ -14712,12 +14841,17 @@ var _ xdrType = (*LedgerCloseMetaV1)(nil)
 
 // LedgerCloseMeta is an XDR Union defines as:
 //
+=======
+>>>>>>> basePercentageFee patch added
 //	union LedgerCloseMeta switch (int v)
 //	 {
 //	 case 0:
 //	     LedgerCloseMetaV0 v0;
+<<<<<<< HEAD
 //	 case 1:
 //	     LedgerCloseMetaV1 v1;
+=======
+>>>>>>> basePercentageFee patch added
 //	 };
 type LedgerCloseMeta struct {
 	V  int32
@@ -15059,6 +15193,7 @@ var _ xdrType = (*Error)(nil)
 
 // SendMore is an XDR Struct defines as:
 //
+<<<<<<< HEAD
 //	struct SendMore
 //	 {
 //	     uint32 numMessages;
@@ -15119,6 +15254,8 @@ var _ xdrType = (*SendMore)(nil)
 
 // AuthCert is an XDR Struct defines as:
 //
+=======
+>>>>>>> basePercentageFee patch added
 //	struct AuthCert
 //	 {
 //	     Curve25519Public pubkey;
@@ -15339,6 +15476,7 @@ var _ xdrType = (*Hello)(nil)
 
 // AuthMsgFlagPullModeRequested is an XDR Const defines as:
 //
+<<<<<<< HEAD
 //	const AUTH_MSG_FLAG_PULL_MODE_REQUESTED = 100;
 const AuthMsgFlagPullModeRequested = 100
 
@@ -15347,6 +15485,13 @@ const AuthMsgFlagPullModeRequested = 100
 //	struct Auth
 //	 {
 //	     int flags;
+=======
+//	struct Auth
+//	 {
+//	     // Empty message, just to confirm
+//	     // establishment of MAC keys.
+//	     int unused;
+>>>>>>> basePercentageFee patch added
 //	 };
 type Auth struct {
 	Flags int32
@@ -15764,6 +15909,7 @@ var _ xdrType = (*PeerAddress)(nil)
 //	     ERROR_MSG = 0,
 //	     AUTH = 2,
 //	     DONT_HAVE = 3,
+<<<<<<< HEAD
 //
 //	     GET_PEERS = 4, // gets a list of peers this guy knows about
 //	     PEERS = 5,
@@ -15789,6 +15935,28 @@ var _ xdrType = (*PeerAddress)(nil)
 //	     SEND_MORE = 16,
 //	     FLOOD_ADVERT = 18,
 //	     FLOOD_DEMAND = 19
+=======
+//
+//	     GET_PEERS = 4, // gets a list of peers this guy knows about
+//	     PEERS = 5,
+//
+//	     GET_TX_SET = 6, // gets a particular txset by hash
+//	     TX_SET = 7,
+//
+//	     TRANSACTION = 8, // pass on a tx you have heard about
+//
+//	     // SCP
+//	     GET_SCP_QUORUMSET = 9,
+//	     SCP_QUORUMSET = 10,
+//	     SCP_MESSAGE = 11,
+//	     GET_SCP_STATE = 12,
+//
+//	     // new messages
+//	     HELLO = 13,
+//
+//	     SURVEY_REQUEST = 14,
+//	     SURVEY_RESPONSE = 15
+>>>>>>> basePercentageFee patch added
 //	 };
 type MessageType int32
 
@@ -16965,6 +17133,7 @@ const TxAdvertVectorMaxSize = 1000
 
 // TxAdvertVector is an XDR Typedef defines as:
 //
+<<<<<<< HEAD
 //	typedef Hash TxAdvertVector<TX_ADVERT_VECTOR_MAX_SIZE>;
 type TxAdvertVector []Hash
 
@@ -17250,6 +17419,8 @@ var _ xdrType = (*FloodDemand)(nil)
 
 // StellarMessage is an XDR Union defines as:
 //
+=======
+>>>>>>> basePercentageFee patch added
 //	union StellarMessage switch (MessageType type)
 //	 {
 //	 case ERROR_MSG:
@@ -17269,8 +17440,11 @@ var _ xdrType = (*FloodDemand)(nil)
 //	     uint256 txSetHash;
 //	 case TX_SET:
 //	     TransactionSet txSet;
+<<<<<<< HEAD
 //	 case GENERALIZED_TX_SET:
 //	     GeneralizedTransactionSet generalizedTxSet;
+=======
+>>>>>>> basePercentageFee patch added
 //
 //	 case TRANSACTION:
 //	     TransactionEnvelope transaction;
@@ -17290,6 +17464,7 @@ var _ xdrType = (*FloodDemand)(nil)
 //	     SCPEnvelope envelope;
 //	 case GET_SCP_STATE:
 //	     uint32 getSCPLedgerSeq; // ledger seq requested ; if 0, requests the latest
+<<<<<<< HEAD
 //	 case SEND_MORE:
 //	     SendMore sendMoreMessage;
 //
@@ -17298,6 +17473,8 @@ var _ xdrType = (*FloodDemand)(nil)
 //	      FloodAdvert floodAdvert;
 //	 case FLOOD_DEMAND:
 //	      FloodDemand floodDemand;
+=======
+>>>>>>> basePercentageFee patch added
 //	 };
 type StellarMessage struct {
 	Type                        MessageType
@@ -21447,10 +21624,17 @@ const LiquidityPoolFeeV18 = 30
 //	struct LiquidityPoolDepositOp
 //	 {
 //	     PoolID liquidityPoolID;
+<<<<<<< HEAD
 //	     int64 maxAmountA; // maximum amount of first asset to deposit
 //	     int64 maxAmountB; // maximum amount of second asset to deposit
 //	     Price minPrice;   // minimum depositA/depositB
 //	     Price maxPrice;   // maximum depositA/depositB
+=======
+//	     int64 maxAmountA;     // maximum amount of first asset to deposit
+//	     int64 maxAmountB;     // maximum amount of second asset to deposit
+//	     Price minPrice;       // minimum depositA/depositB
+//	     Price maxPrice;       // maximum depositA/depositB
+>>>>>>> basePercentageFee patch added
 //	 };
 type LiquidityPoolDepositOp struct {
 	LiquidityPoolId PoolId
@@ -21547,9 +21731,15 @@ var _ xdrType = (*LiquidityPoolDepositOp)(nil)
 //	struct LiquidityPoolWithdrawOp
 //	 {
 //	     PoolID liquidityPoolID;
+<<<<<<< HEAD
 //	     int64 amount;     // amount of pool shares to withdraw
 //	     int64 minAmountA; // minimum amount of first asset to withdraw
 //	     int64 minAmountB; // minimum amount of second asset to withdraw
+=======
+//	     int64 amount;         // amount of pool shares to withdraw
+//	     int64 minAmountA;     // minimum amount of first asset to withdraw
+//	     int64 minAmountB;     // minimum amount of second asset to withdraw
+>>>>>>> basePercentageFee patch added
 //	 };
 type LiquidityPoolWithdrawOp struct {
 	LiquidityPoolId PoolId
@@ -23817,6 +24007,7 @@ func (s TimeBounds) xdrType() {}
 
 var _ xdrType = (*TimeBounds)(nil)
 
+<<<<<<< HEAD
 // LedgerBounds is an XDR Struct defines as:
 //
 //	struct LedgerBounds
@@ -23827,6 +24018,48 @@ var _ xdrType = (*TimeBounds)(nil)
 type LedgerBounds struct {
 	MinLedger Uint32
 	MaxLedger Uint32
+=======
+// MaxOpsPerTx is an XDR Const defines as:
+//
+//	const MAX_OPS_PER_TX = 100;
+const MaxOpsPerTx = 100
+
+// TransactionV0Ext is an XDR NestedUnion defines as:
+//
+//	union switch (int v)
+//	     {
+//	     case 0:
+//	         void;
+//	     }
+type TransactionV0Ext struct {
+	V int32
+}
+
+// SwitchFieldName returns the field name in which this union's
+// discriminant is stored
+func (u TransactionV0Ext) SwitchFieldName() string {
+	return "V"
+}
+
+// ArmForSwitch returns which field name should be used for storing
+// the value for an instance of TransactionV0Ext
+func (u TransactionV0Ext) ArmForSwitch(sw int32) (string, bool) {
+	switch int32(sw) {
+	case 0:
+		return "", true
+	}
+	return "-", false
+}
+
+// NewTransactionV0Ext creates a new  TransactionV0Ext.
+func NewTransactionV0Ext(v int32, value interface{}) (result TransactionV0Ext, err error) {
+	result.V = v
+	switch int32(v) {
+	case 0:
+		// void
+	}
+	return
+>>>>>>> basePercentageFee patch added
 }
 
 // EncodeTo encodes this value using the Encoder.
@@ -23889,6 +24122,7 @@ var _ xdrType = (*LedgerBounds)(nil)
 
 // PreconditionsV2 is an XDR Struct defines as:
 //
+<<<<<<< HEAD
 //	struct PreconditionsV2
 //	 {
 //	     TimeBounds* timeBounds;
@@ -23928,6 +24162,31 @@ type PreconditionsV2 struct {
 	MinSeqAge       Duration
 	MinSeqLedgerGap Uint32
 	ExtraSigners    []SignerKey `xdrmaxsize:"2"`
+=======
+//	struct TransactionV0
+//	 {
+//	     uint256 sourceAccountEd25519;
+//	     uint32 fee;
+//	     SequenceNumber seqNum;
+//	     TimeBounds* timeBounds;
+//	     Memo memo;
+//	     Operation operations<MAX_OPS_PER_TX>;
+//	     union switch (int v)
+//	     {
+//	     case 0:
+//	         void;
+//	     }
+//	     ext;
+//	 };
+type TransactionV0 struct {
+	SourceAccountEd25519 Uint256
+	Fee                  Uint32
+	SeqNum               SequenceNumber
+	TimeBounds           *TimeBounds
+	Memo                 Memo
+	Operations           []Operation `xdrmaxsize:"100"`
+	Ext                  TransactionV0Ext
+>>>>>>> basePercentageFee patch added
 }
 
 // EncodeTo encodes this value using the Encoder.
@@ -24171,6 +24430,7 @@ var _ xdrType = (*PreconditionType)(nil)
 
 // Preconditions is an XDR Union defines as:
 //
+<<<<<<< HEAD
 //	union Preconditions switch (PreconditionType type)
 //	 {
 //	 case PRECOND_NONE:
@@ -24278,6 +24538,18 @@ func (u Preconditions) GetV2() (result PreconditionsV2, ok bool) {
 	}
 
 	return
+=======
+//	struct TransactionV0Envelope
+//	 {
+//	     TransactionV0 tx;
+//	     /* Each decorated signature is a signature over the SHA256 hash of
+//	      * a TransactionSignaturePayload */
+//	     DecoratedSignature signatures<20>;
+//	 };
+type TransactionV0Envelope struct {
+	Tx         TransactionV0
+	Signatures []DecoratedSignature `xdrmaxsize:"20"`
+>>>>>>> basePercentageFee patch added
 }
 
 // EncodeTo encodes this value using the Encoder.
@@ -24368,17 +24640,24 @@ var _ xdrType = (*Preconditions)(nil)
 
 // MaxOpsPerTx is an XDR Const defines as:
 //
+<<<<<<< HEAD
 //	const MAX_OPS_PER_TX = 100;
 const MaxOpsPerTx = 100
 
 // TransactionV0Ext is an XDR NestedUnion defines as:
 //
+=======
+>>>>>>> basePercentageFee patch added
 //	union switch (int v)
 //	     {
 //	     case 0:
 //	         void;
 //	     }
+<<<<<<< HEAD
 type TransactionV0Ext struct {
+=======
+type TransactionExt struct {
+>>>>>>> basePercentageFee patch added
 	V int32
 }
 
@@ -24468,6 +24747,7 @@ func (s TransactionV0Ext) xdrType() {}
 
 var _ xdrType = (*TransactionV0Ext)(nil)
 
+<<<<<<< HEAD
 // TransactionV0 is an XDR Struct defines as:
 //
 //	struct TransactionV0
@@ -24478,6 +24758,29 @@ var _ xdrType = (*TransactionV0Ext)(nil)
 //	     TimeBounds* timeBounds;
 //	     Memo memo;
 //	     Operation operations<MAX_OPS_PER_TX>;
+=======
+// Transaction is an XDR Struct defines as:
+//
+//	struct Transaction
+//	 {
+//	     // account used to run the transaction
+//	     MuxedAccount sourceAccount;
+//
+//	     // the fee the sourceAccount will pay
+//	     uint32 fee;
+//
+//	     // sequence number to consume in the account
+//	     SequenceNumber seqNum;
+//
+//	     // validity range (inclusive) for the last ledger close time
+//	     TimeBounds* timeBounds;
+//
+//	     Memo memo;
+//
+//	     Operation operations<MAX_OPS_PER_TX>;
+//
+//	     // reserved for future use
+>>>>>>> basePercentageFee patch added
 //	     union switch (int v)
 //	     {
 //	     case 0:
@@ -24485,6 +24788,7 @@ var _ xdrType = (*TransactionV0Ext)(nil)
 //	     }
 //	     ext;
 //	 };
+<<<<<<< HEAD
 type TransactionV0 struct {
 	SourceAccountEd25519 Uint256
 	Fee                  Uint32
@@ -24493,6 +24797,16 @@ type TransactionV0 struct {
 	Memo                 Memo
 	Operations           []Operation `xdrmaxsize:"100"`
 	Ext                  TransactionV0Ext
+=======
+type Transaction struct {
+	SourceAccount MuxedAccount
+	Fee           Uint32
+	SeqNum        SequenceNumber
+	TimeBounds    *TimeBounds
+	Memo          Memo
+	Operations    []Operation `xdrmaxsize:"100"`
+	Ext           TransactionExt
+>>>>>>> basePercentageFee patch added
 }
 
 // EncodeTo encodes this value using the Encoder.
@@ -26745,10 +27059,14 @@ var _ xdrType = (*CreateAccountResultCode)(nil)
 //	 {
 //	 case CREATE_ACCOUNT_SUCCESS:
 //	     void;
+<<<<<<< HEAD
 //	 case CREATE_ACCOUNT_MALFORMED:
 //	 case CREATE_ACCOUNT_UNDERFUNDED:
 //	 case CREATE_ACCOUNT_LOW_RESERVE:
 //	 case CREATE_ACCOUNT_ALREADY_EXIST:
+=======
+//	 default:
+>>>>>>> basePercentageFee patch added
 //	     void;
 //	 };
 type CreateAccountResult struct {
@@ -26997,6 +27315,7 @@ var _ xdrType = (*PaymentResultCode)(nil)
 //	 {
 //	 case PAYMENT_SUCCESS:
 //	     void;
+<<<<<<< HEAD
 //	 case PAYMENT_MALFORMED:
 //	 case PAYMENT_UNDERFUNDED:
 //	 case PAYMENT_SRC_NO_TRUST:
@@ -27006,6 +27325,9 @@ var _ xdrType = (*PaymentResultCode)(nil)
 //	 case PAYMENT_NOT_AUTHORIZED:
 //	 case PAYMENT_LINE_FULL:
 //	 case PAYMENT_NO_ISSUER:
+=======
+//	 default:
+>>>>>>> basePercentageFee patch added
 //	     void;
 //	 };
 type PaymentResult struct {
@@ -27494,6 +27816,7 @@ var _ xdrType = (*PathPaymentStrictReceiveResultSuccess)(nil)
 //	         ClaimAtom offers<>;
 //	         SimplePaymentResult last;
 //	     } success;
+<<<<<<< HEAD
 //	 case PATH_PAYMENT_STRICT_RECEIVE_MALFORMED:
 //	 case PATH_PAYMENT_STRICT_RECEIVE_UNDERFUNDED:
 //	 case PATH_PAYMENT_STRICT_RECEIVE_SRC_NO_TRUST:
@@ -27508,6 +27831,11 @@ var _ xdrType = (*PathPaymentStrictReceiveResultSuccess)(nil)
 //	 case PATH_PAYMENT_STRICT_RECEIVE_TOO_FEW_OFFERS:
 //	 case PATH_PAYMENT_STRICT_RECEIVE_OFFER_CROSS_SELF:
 //	 case PATH_PAYMENT_STRICT_RECEIVE_OVER_SENDMAX:
+=======
+//	 case PATH_PAYMENT_STRICT_RECEIVE_NO_ISSUER:
+//	     Asset noIssuer; // the asset that caused the error
+//	 default:
+>>>>>>> basePercentageFee patch added
 //	     void;
 //	 };
 type PathPaymentStrictReceiveResult struct {
@@ -28020,6 +28348,7 @@ var _ xdrType = (*PathPaymentStrictSendResultSuccess)(nil)
 //	         ClaimAtom offers<>;
 //	         SimplePaymentResult last;
 //	     } success;
+<<<<<<< HEAD
 //	 case PATH_PAYMENT_STRICT_SEND_MALFORMED:
 //	 case PATH_PAYMENT_STRICT_SEND_UNDERFUNDED:
 //	 case PATH_PAYMENT_STRICT_SEND_SRC_NO_TRUST:
@@ -28034,6 +28363,11 @@ var _ xdrType = (*PathPaymentStrictSendResultSuccess)(nil)
 //	 case PATH_PAYMENT_STRICT_SEND_TOO_FEW_OFFERS:
 //	 case PATH_PAYMENT_STRICT_SEND_OFFER_CROSS_SELF:
 //	 case PATH_PAYMENT_STRICT_SEND_UNDER_DESTMIN:
+=======
+//	 case PATH_PAYMENT_STRICT_SEND_NO_ISSUER:
+//	     Asset noIssuer; // the asset that caused the error
+//	 default:
+>>>>>>> basePercentageFee patch added
 //	     void;
 //	 };
 type PathPaymentStrictSendResult struct {
@@ -28541,7 +28875,11 @@ var _ xdrType = (*ManageOfferEffect)(nil)
 //	     case MANAGE_OFFER_CREATED:
 //	     case MANAGE_OFFER_UPDATED:
 //	         OfferEntry offer;
+<<<<<<< HEAD
 //	     case MANAGE_OFFER_DELETED:
+=======
+//	     default:
+>>>>>>> basePercentageFee patch added
 //	         void;
 //	     }
 type ManageOfferSuccessResultOffer struct {
@@ -28716,7 +29054,11 @@ var _ xdrType = (*ManageOfferSuccessResultOffer)(nil)
 //	     case MANAGE_OFFER_CREATED:
 //	     case MANAGE_OFFER_UPDATED:
 //	         OfferEntry offer;
+<<<<<<< HEAD
 //	     case MANAGE_OFFER_DELETED:
+=======
+//	     default:
+>>>>>>> basePercentageFee patch added
 //	         void;
 //	     }
 //	     offer;
@@ -28807,6 +29149,7 @@ var _ xdrType = (*ManageOfferSuccessResult)(nil)
 //	 {
 //	 case MANAGE_SELL_OFFER_SUCCESS:
 //	     ManageOfferSuccessResult success;
+<<<<<<< HEAD
 //	 case MANAGE_SELL_OFFER_MALFORMED:
 //	 case MANAGE_SELL_OFFER_SELL_NO_TRUST:
 //	 case MANAGE_SELL_OFFER_BUY_NO_TRUST:
@@ -28819,6 +29162,9 @@ var _ xdrType = (*ManageOfferSuccessResult)(nil)
 //	 case MANAGE_SELL_OFFER_BUY_NO_ISSUER:
 //	 case MANAGE_SELL_OFFER_NOT_FOUND:
 //	 case MANAGE_SELL_OFFER_LOW_RESERVE:
+=======
+//	 default:
+>>>>>>> basePercentageFee patch added
 //	     void;
 //	 };
 type ManageSellOfferResult struct {
@@ -29198,6 +29544,7 @@ var _ xdrType = (*ManageBuyOfferResultCode)(nil)
 //	 {
 //	 case MANAGE_BUY_OFFER_SUCCESS:
 //	     ManageOfferSuccessResult success;
+<<<<<<< HEAD
 //	 case MANAGE_BUY_OFFER_MALFORMED:
 //	 case MANAGE_BUY_OFFER_SELL_NO_TRUST:
 //	 case MANAGE_BUY_OFFER_BUY_NO_TRUST:
@@ -29210,6 +29557,9 @@ var _ xdrType = (*ManageBuyOfferResultCode)(nil)
 //	 case MANAGE_BUY_OFFER_BUY_NO_ISSUER:
 //	 case MANAGE_BUY_OFFER_NOT_FOUND:
 //	 case MANAGE_BUY_OFFER_LOW_RESERVE:
+=======
+//	 default:
+>>>>>>> basePercentageFee patch added
 //	     void;
 //	 };
 type ManageBuyOfferResult struct {
@@ -29579,6 +29929,7 @@ var _ xdrType = (*SetOptionsResultCode)(nil)
 //	 {
 //	 case SET_OPTIONS_SUCCESS:
 //	     void;
+<<<<<<< HEAD
 //	 case SET_OPTIONS_LOW_RESERVE:
 //	 case SET_OPTIONS_TOO_MANY_SIGNERS:
 //	 case SET_OPTIONS_BAD_FLAGS:
@@ -29589,6 +29940,9 @@ var _ xdrType = (*SetOptionsResultCode)(nil)
 //	 case SET_OPTIONS_BAD_SIGNER:
 //	 case SET_OPTIONS_INVALID_HOME_DOMAIN:
 //	 case SET_OPTIONS_AUTH_REVOCABLE_REQUIRED:
+=======
+//	 default:
+>>>>>>> basePercentageFee patch added
 //	     void;
 //	 };
 type SetOptionsResult struct {
@@ -29794,12 +30148,19 @@ var _ xdrType = (*SetOptionsResult)(nil)
 //	                                      // cannot create with a limit of 0
 //	     CHANGE_TRUST_LOW_RESERVE =
 //	         -4, // not enough funds to create a new trust line,
+<<<<<<< HEAD
 //	     CHANGE_TRUST_SELF_NOT_ALLOWED = -5,   // trusting self is not allowed
 //	     CHANGE_TRUST_TRUST_LINE_MISSING = -6, // Asset trustline is missing for pool
 //	     CHANGE_TRUST_CANNOT_DELETE =
 //	         -7, // Asset trustline is still referenced in a pool
 //	     CHANGE_TRUST_NOT_AUTH_MAINTAIN_LIABILITIES =
 //	         -8 // Asset trustline is deauthorized
+=======
+//	     CHANGE_TRUST_SELF_NOT_ALLOWED = -5, // trusting self is not allowed
+//	     CHANGE_TRUST_TRUST_LINE_MISSING = -6, // Asset trustline is missing for pool
+//	     CHANGE_TRUST_CANNOT_DELETE = -7, // Asset trustline is still referenced in a pool
+//	     CHANGE_TRUST_NOT_AUTH_MAINTAIN_LIABILITIES = -8 // Asset trustline is deauthorized
+>>>>>>> basePercentageFee patch added
 //	 };
 type ChangeTrustResultCode int32
 
@@ -29897,6 +30258,7 @@ var _ xdrType = (*ChangeTrustResultCode)(nil)
 //	 {
 //	 case CHANGE_TRUST_SUCCESS:
 //	     void;
+<<<<<<< HEAD
 //	 case CHANGE_TRUST_MALFORMED:
 //	 case CHANGE_TRUST_NO_ISSUER:
 //	 case CHANGE_TRUST_INVALID_LIMIT:
@@ -29905,6 +30267,9 @@ var _ xdrType = (*ChangeTrustResultCode)(nil)
 //	 case CHANGE_TRUST_TRUST_LINE_MISSING:
 //	 case CHANGE_TRUST_CANNOT_DELETE:
 //	 case CHANGE_TRUST_NOT_AUTH_MAINTAIN_LIABILITIES:
+=======
+//	 default:
+>>>>>>> basePercentageFee patch added
 //	     void;
 //	 };
 type ChangeTrustResult struct {
@@ -30088,10 +30453,17 @@ var _ xdrType = (*ChangeTrustResult)(nil)
 //	     ALLOW_TRUST_NO_TRUST_LINE = -2, // trustor does not have a trustline
 //	                                     // source account does not require trust
 //	     ALLOW_TRUST_TRUST_NOT_REQUIRED = -3,
+<<<<<<< HEAD
 //	     ALLOW_TRUST_CANT_REVOKE = -4,      // source account can't revoke trust,
 //	     ALLOW_TRUST_SELF_NOT_ALLOWED = -5, // trusting self is not allowed
 //	     ALLOW_TRUST_LOW_RESERVE = -6       // claimable balances can't be created
 //	                                        // on revoke due to low reserves
+=======
+//	     ALLOW_TRUST_CANT_REVOKE = -4,     // source account can't revoke trust,
+//	     ALLOW_TRUST_SELF_NOT_ALLOWED = -5, // trusting self is not allowed
+//	     ALLOW_TRUST_LOW_RESERVE = -6 // claimable balances can't be created
+//	                                  // on revoke due to low reserves
+>>>>>>> basePercentageFee patch added
 //	 };
 type AllowTrustResultCode int32
 
@@ -30185,12 +30557,16 @@ var _ xdrType = (*AllowTrustResultCode)(nil)
 //	 {
 //	 case ALLOW_TRUST_SUCCESS:
 //	     void;
+<<<<<<< HEAD
 //	 case ALLOW_TRUST_MALFORMED:
 //	 case ALLOW_TRUST_NO_TRUST_LINE:
 //	 case ALLOW_TRUST_TRUST_NOT_REQUIRED:
 //	 case ALLOW_TRUST_CANT_REVOKE:
 //	 case ALLOW_TRUST_SELF_NOT_ALLOWED:
 //	 case ALLOW_TRUST_LOW_RESERVE:
+=======
+//	 default:
+>>>>>>> basePercentageFee patch added
 //	     void;
 //	 };
 type AllowTrustResult struct {
@@ -30453,6 +30829,7 @@ var _ xdrType = (*AccountMergeResultCode)(nil)
 //	 {
 //	 case ACCOUNT_MERGE_SUCCESS:
 //	     int64 sourceAccountBalance; // how much got transferred from source account
+<<<<<<< HEAD
 //	 case ACCOUNT_MERGE_MALFORMED:
 //	 case ACCOUNT_MERGE_NO_ACCOUNT:
 //	 case ACCOUNT_MERGE_IMMUTABLE_SET:
@@ -30460,6 +30837,9 @@ var _ xdrType = (*AccountMergeResultCode)(nil)
 //	 case ACCOUNT_MERGE_SEQNUM_TOO_FAR:
 //	 case ACCOUNT_MERGE_DEST_FULL:
 //	 case ACCOUNT_MERGE_IS_SPONSOR:
+=======
+//	 default:
+>>>>>>> basePercentageFee patch added
 //	     void;
 //	 };
 type AccountMergeResult struct {
@@ -30821,7 +31201,11 @@ var _ xdrType = (*InflationPayout)(nil)
 //	 {
 //	 case INFLATION_SUCCESS:
 //	     InflationPayout payouts<>;
+<<<<<<< HEAD
 //	 case INFLATION_NOT_TIME:
+=======
+//	 default:
+>>>>>>> basePercentageFee patch added
 //	     void;
 //	 };
 type InflationResult struct {
@@ -31081,10 +31465,14 @@ var _ xdrType = (*ManageDataResultCode)(nil)
 //	 {
 //	 case MANAGE_DATA_SUCCESS:
 //	     void;
+<<<<<<< HEAD
 //	 case MANAGE_DATA_NOT_SUPPORTED_YET:
 //	 case MANAGE_DATA_NAME_NOT_FOUND:
 //	 case MANAGE_DATA_LOW_RESERVE:
 //	 case MANAGE_DATA_INVALID_NAME:
+=======
+//	 default:
+>>>>>>> basePercentageFee patch added
 //	     void;
 //	 };
 type ManageDataResult struct {
@@ -31308,7 +31696,11 @@ var _ xdrType = (*BumpSequenceResultCode)(nil)
 //	 {
 //	 case BUMP_SEQUENCE_SUCCESS:
 //	     void;
+<<<<<<< HEAD
 //	 case BUMP_SEQUENCE_BAD_SEQ:
+=======
+//	 default:
+>>>>>>> basePercentageFee patch added
 //	     void;
 //	 };
 type BumpSequenceResult struct {
@@ -31513,11 +31905,15 @@ var _ xdrType = (*CreateClaimableBalanceResultCode)(nil)
 //	 {
 //	 case CREATE_CLAIMABLE_BALANCE_SUCCESS:
 //	     ClaimableBalanceID balanceID;
+<<<<<<< HEAD
 //	 case CREATE_CLAIMABLE_BALANCE_MALFORMED:
 //	 case CREATE_CLAIMABLE_BALANCE_LOW_RESERVE:
 //	 case CREATE_CLAIMABLE_BALANCE_NO_TRUST:
 //	 case CREATE_CLAIMABLE_BALANCE_NOT_AUTHORIZED:
 //	 case CREATE_CLAIMABLE_BALANCE_UNDERFUNDED:
+=======
+//	 default:
+>>>>>>> basePercentageFee patch added
 //	     void;
 //	 };
 type CreateClaimableBalanceResult struct {
@@ -31708,6 +32104,10 @@ var _ xdrType = (*CreateClaimableBalanceResult)(nil)
 //	     CLAIM_CLAIMABLE_BALANCE_LINE_FULL = -3,
 //	     CLAIM_CLAIMABLE_BALANCE_NO_TRUST = -4,
 //	     CLAIM_CLAIMABLE_BALANCE_NOT_AUTHORIZED = -5
+<<<<<<< HEAD
+=======
+//
+>>>>>>> basePercentageFee patch added
 //	 };
 type ClaimClaimableBalanceResultCode int32
 
@@ -31799,11 +32199,15 @@ var _ xdrType = (*ClaimClaimableBalanceResultCode)(nil)
 //	 {
 //	 case CLAIM_CLAIMABLE_BALANCE_SUCCESS:
 //	     void;
+<<<<<<< HEAD
 //	 case CLAIM_CLAIMABLE_BALANCE_DOES_NOT_EXIST:
 //	 case CLAIM_CLAIMABLE_BALANCE_CANNOT_CLAIM:
 //	 case CLAIM_CLAIMABLE_BALANCE_LINE_FULL:
 //	 case CLAIM_CLAIMABLE_BALANCE_NO_TRUST:
 //	 case CLAIM_CLAIMABLE_BALANCE_NOT_AUTHORIZED:
+=======
+//	 default:
+>>>>>>> basePercentageFee patch added
 //	     void;
 //	 };
 type ClaimClaimableBalanceResult struct {
@@ -32045,9 +32449,13 @@ var _ xdrType = (*BeginSponsoringFutureReservesResultCode)(nil)
 //	 {
 //	 case BEGIN_SPONSORING_FUTURE_RESERVES_SUCCESS:
 //	     void;
+<<<<<<< HEAD
 //	 case BEGIN_SPONSORING_FUTURE_RESERVES_MALFORMED:
 //	 case BEGIN_SPONSORING_FUTURE_RESERVES_ALREADY_SPONSORED:
 //	 case BEGIN_SPONSORING_FUTURE_RESERVES_RECURSIVE:
+=======
+//	 default:
+>>>>>>> basePercentageFee patch added
 //	     void;
 //	 };
 type BeginSponsoringFutureReservesResult struct {
@@ -32263,7 +32671,11 @@ var _ xdrType = (*EndSponsoringFutureReservesResultCode)(nil)
 //	 {
 //	 case END_SPONSORING_FUTURE_RESERVES_SUCCESS:
 //	     void;
+<<<<<<< HEAD
 //	 case END_SPONSORING_FUTURE_RESERVES_NOT_SPONSORED:
+=======
+//	 default:
+>>>>>>> basePercentageFee patch added
 //	     void;
 //	 };
 type EndSponsoringFutureReservesResult struct {
@@ -32470,11 +32882,15 @@ var _ xdrType = (*RevokeSponsorshipResultCode)(nil)
 //	 {
 //	 case REVOKE_SPONSORSHIP_SUCCESS:
 //	     void;
+<<<<<<< HEAD
 //	 case REVOKE_SPONSORSHIP_DOES_NOT_EXIST:
 //	 case REVOKE_SPONSORSHIP_NOT_SPONSOR:
 //	 case REVOKE_SPONSORSHIP_LOW_RESERVE:
 //	 case REVOKE_SPONSORSHIP_ONLY_TRANSFERABLE:
 //	 case REVOKE_SPONSORSHIP_MALFORMED:
+=======
+//	 default:
+>>>>>>> basePercentageFee patch added
 //	     void;
 //	 };
 type RevokeSponsorshipResult struct {
@@ -32718,10 +33134,14 @@ var _ xdrType = (*ClawbackResultCode)(nil)
 //	 {
 //	 case CLAWBACK_SUCCESS:
 //	     void;
+<<<<<<< HEAD
 //	 case CLAWBACK_MALFORMED:
 //	 case CLAWBACK_NOT_CLAWBACK_ENABLED:
 //	 case CLAWBACK_NO_TRUST:
 //	 case CLAWBACK_UNDERFUNDED:
+=======
+//	 default:
+>>>>>>> basePercentageFee patch added
 //	     void;
 //	 };
 type ClawbackResult struct {
@@ -32953,9 +33373,13 @@ var _ xdrType = (*ClawbackClaimableBalanceResultCode)(nil)
 //	 {
 //	 case CLAWBACK_CLAIMABLE_BALANCE_SUCCESS:
 //	     void;
+<<<<<<< HEAD
 //	 case CLAWBACK_CLAIMABLE_BALANCE_DOES_NOT_EXIST:
 //	 case CLAWBACK_CLAIMABLE_BALANCE_NOT_ISSUER:
 //	 case CLAWBACK_CLAIMABLE_BALANCE_NOT_CLAWBACK_ENABLED:
+=======
+//	 default:
+>>>>>>> basePercentageFee patch added
 //	     void;
 //	 };
 type ClawbackClaimableBalanceResult struct {
@@ -33183,11 +33607,15 @@ var _ xdrType = (*SetTrustLineFlagsResultCode)(nil)
 //	 {
 //	 case SET_TRUST_LINE_FLAGS_SUCCESS:
 //	     void;
+<<<<<<< HEAD
 //	 case SET_TRUST_LINE_FLAGS_MALFORMED:
 //	 case SET_TRUST_LINE_FLAGS_NO_TRUST_LINE:
 //	 case SET_TRUST_LINE_FLAGS_CANT_REVOKE:
 //	 case SET_TRUST_LINE_FLAGS_INVALID_STATE:
 //	 case SET_TRUST_LINE_FLAGS_LOW_RESERVE:
+=======
+//	 default:
+>>>>>>> basePercentageFee patch added
 //	     void;
 //	 };
 type SetTrustLineFlagsResult struct {
@@ -33440,6 +33868,7 @@ var _ xdrType = (*LiquidityPoolDepositResultCode)(nil)
 
 // LiquidityPoolDepositResult is an XDR Union defines as:
 //
+<<<<<<< HEAD
 //	union LiquidityPoolDepositResult switch (LiquidityPoolDepositResultCode code)
 //	 {
 //	 case LIQUIDITY_POOL_DEPOSIT_SUCCESS:
@@ -33451,6 +33880,14 @@ var _ xdrType = (*LiquidityPoolDepositResultCode)(nil)
 //	 case LIQUIDITY_POOL_DEPOSIT_LINE_FULL:
 //	 case LIQUIDITY_POOL_DEPOSIT_BAD_PRICE:
 //	 case LIQUIDITY_POOL_DEPOSIT_POOL_FULL:
+=======
+//	union LiquidityPoolDepositResult switch (
+//	     LiquidityPoolDepositResultCode code)
+//	 {
+//	 case LIQUIDITY_POOL_DEPOSIT_SUCCESS:
+//	     void;
+//	 default:
+>>>>>>> basePercentageFee patch added
 //	     void;
 //	 };
 type LiquidityPoolDepositResult struct {
@@ -33621,6 +34058,7 @@ var _ xdrType = (*LiquidityPoolDepositResult)(nil)
 //	     LIQUIDITY_POOL_WITHDRAW_SUCCESS = 0,
 //
 //	     // codes considered as "failure" for the operation
+<<<<<<< HEAD
 //	     LIQUIDITY_POOL_WITHDRAW_MALFORMED = -1,    // bad input
 //	     LIQUIDITY_POOL_WITHDRAW_NO_TRUST = -2,     // no trust line for one of the
 //	                                                // assets
@@ -33629,6 +34067,16 @@ var _ xdrType = (*LiquidityPoolDepositResult)(nil)
 //	     LIQUIDITY_POOL_WITHDRAW_LINE_FULL = -4,    // would go above limit for one
 //	                                                // of the assets
 //	     LIQUIDITY_POOL_WITHDRAW_UNDER_MINIMUM = -5 // didn't withdraw enough
+=======
+//	     LIQUIDITY_POOL_WITHDRAW_MALFORMED = -1,      // bad input
+//	     LIQUIDITY_POOL_WITHDRAW_NO_TRUST = -2,       // no trust line for one of the
+//	                                                  // assets
+//	     LIQUIDITY_POOL_WITHDRAW_UNDERFUNDED = -3,    // not enough balance of the
+//	                                                  // pool share
+//	     LIQUIDITY_POOL_WITHDRAW_LINE_FULL = -4,      // would go above limit for one
+//	                                                  // of the assets
+//	     LIQUIDITY_POOL_WITHDRAW_UNDER_MINIMUM = -5   // didn't withdraw enough
+>>>>>>> basePercentageFee patch added
 //	 };
 type LiquidityPoolWithdrawResultCode int32
 
@@ -33716,6 +34164,7 @@ var _ xdrType = (*LiquidityPoolWithdrawResultCode)(nil)
 
 // LiquidityPoolWithdrawResult is an XDR Union defines as:
 //
+<<<<<<< HEAD
 //	union LiquidityPoolWithdrawResult switch (LiquidityPoolWithdrawResultCode code)
 //	 {
 //	 case LIQUIDITY_POOL_WITHDRAW_SUCCESS:
@@ -33725,6 +34174,14 @@ var _ xdrType = (*LiquidityPoolWithdrawResultCode)(nil)
 //	 case LIQUIDITY_POOL_WITHDRAW_UNDERFUNDED:
 //	 case LIQUIDITY_POOL_WITHDRAW_LINE_FULL:
 //	 case LIQUIDITY_POOL_WITHDRAW_UNDER_MINIMUM:
+=======
+//	union LiquidityPoolWithdrawResult switch (
+//	     LiquidityPoolWithdrawResultCode code)
+//	 {
+//	 case LIQUIDITY_POOL_WITHDRAW_SUCCESS:
+//	     void;
+//	 default:
+>>>>>>> basePercentageFee patch added
 //	     void;
 //	 };
 type LiquidityPoolWithdrawResult struct {
@@ -35308,12 +35765,16 @@ var _ xdrType = (*OperationResultTr)(nil)
 //	         LiquidityPoolWithdrawResult liquidityPoolWithdrawResult;
 //	     }
 //	     tr;
+<<<<<<< HEAD
 //	 case opBAD_AUTH:
 //	 case opNO_ACCOUNT:
 //	 case opNOT_SUPPORTED:
 //	 case opTOO_MANY_SUBENTRIES:
 //	 case opEXCEEDED_WORK_LIMIT:
 //	 case opTOO_MANY_SPONSORING:
+=======
+//	 default:
+>>>>>>> basePercentageFee patch added
 //	     void;
 //	 };
 type OperationResult struct {
@@ -35527,10 +35988,14 @@ var _ xdrType = (*OperationResult)(nil)
 //
 //	     txNOT_SUPPORTED = -12,         // transaction type not supported
 //	     txFEE_BUMP_INNER_FAILED = -13, // fee bump inner transaction failed
+<<<<<<< HEAD
 //	     txBAD_SPONSORSHIP = -14,       // sponsorship not confirmed
 //	     txBAD_MIN_SEQ_AGE_OR_GAP =
 //	         -15, // minSeqAge or minSeqLedgerGap conditions not met
 //	     txMALFORMED = -16 // precondition is invalid
+=======
+//	     txBAD_SPONSORSHIP = -14        // sponsorship not confirmed
+>>>>>>> basePercentageFee patch added
 //	 };
 type TransactionResultCode int32
 
@@ -35661,8 +36126,11 @@ var _ xdrType = (*TransactionResultCode)(nil)
 //	     case txNOT_SUPPORTED:
 //	     // txFEE_BUMP_INNER_FAILED is not included
 //	     case txBAD_SPONSORSHIP:
+<<<<<<< HEAD
 //	     case txBAD_MIN_SEQ_AGE_OR_GAP:
 //	     case txMALFORMED:
+=======
+>>>>>>> basePercentageFee patch added
 //	         void;
 //	     }
 type InnerTransactionResultResult struct {
@@ -36112,8 +36580,11 @@ var _ xdrType = (*InnerTransactionResultExt)(nil)
 //	     case txNOT_SUPPORTED:
 //	     // txFEE_BUMP_INNER_FAILED is not included
 //	     case txBAD_SPONSORSHIP:
+<<<<<<< HEAD
 //	     case txBAD_MIN_SEQ_AGE_OR_GAP:
 //	     case txMALFORMED:
+=======
+>>>>>>> basePercentageFee patch added
 //	         void;
 //	     }
 //	     result;
@@ -36278,6 +36749,7 @@ var _ xdrType = (*InnerTransactionResultPair)(nil)
 //	     case txSUCCESS:
 //	     case txFAILED:
 //	         OperationResult results<>;
+<<<<<<< HEAD
 //	     case txTOO_EARLY:
 //	     case txTOO_LATE:
 //	     case txMISSING_OPERATION:
@@ -36293,6 +36765,9 @@ var _ xdrType = (*InnerTransactionResultPair)(nil)
 //	     case txBAD_SPONSORSHIP:
 //	     case txBAD_MIN_SEQ_AGE_OR_GAP:
 //	     case txMALFORMED:
+=======
+//	     default:
+>>>>>>> basePercentageFee patch added
 //	         void;
 //	     }
 type TransactionResultResult struct {
@@ -36800,6 +37275,7 @@ var _ xdrType = (*TransactionResultExt)(nil)
 //	     case txSUCCESS:
 //	     case txFAILED:
 //	         OperationResult results<>;
+<<<<<<< HEAD
 //	     case txTOO_EARLY:
 //	     case txTOO_LATE:
 //	     case txMISSING_OPERATION:
@@ -36815,6 +37291,9 @@ var _ xdrType = (*TransactionResultExt)(nil)
 //	     case txBAD_SPONSORSHIP:
 //	     case txBAD_MIN_SEQ_AGE_OR_GAP:
 //	     case txMALFORMED:
+=======
+//	     default:
+>>>>>>> basePercentageFee patch added
 //	         void;
 //	     }
 //	     result;
@@ -37249,6 +37728,7 @@ var _ xdrType = (*Int64)(nil)
 
 // ExtensionPoint is an XDR Union defines as:
 //
+<<<<<<< HEAD
 //	union ExtensionPoint switch (int v)
 //	 {
 //	 case 0:
@@ -37346,12 +37826,17 @@ var _ xdrType = (*ExtensionPoint)(nil)
 
 // CryptoKeyType is an XDR Enum defines as:
 //
+=======
+>>>>>>> basePercentageFee patch added
 //	enum CryptoKeyType
 //	 {
 //	     KEY_TYPE_ED25519 = 0,
 //	     KEY_TYPE_PRE_AUTH_TX = 1,
 //	     KEY_TYPE_HASH_X = 2,
+<<<<<<< HEAD
 //	     KEY_TYPE_ED25519_SIGNED_PAYLOAD = 3,
+=======
+>>>>>>> basePercentageFee patch added
 //	     // MUXED enum values for supported type are derived from the enum values
 //	     // above by ORing them with 0x100
 //	     KEY_TYPE_MUXED_ED25519 = 0x100
@@ -37524,8 +38009,12 @@ var _ xdrType = (*PublicKeyType)(nil)
 //	 {
 //	     SIGNER_KEY_TYPE_ED25519 = KEY_TYPE_ED25519,
 //	     SIGNER_KEY_TYPE_PRE_AUTH_TX = KEY_TYPE_PRE_AUTH_TX,
+<<<<<<< HEAD
 //	     SIGNER_KEY_TYPE_HASH_X = KEY_TYPE_HASH_X,
 //	     SIGNER_KEY_TYPE_ED25519_SIGNED_PAYLOAD = KEY_TYPE_ED25519_SIGNED_PAYLOAD
+=======
+//	     SIGNER_KEY_TYPE_HASH_X = KEY_TYPE_HASH_X
+>>>>>>> basePercentageFee patch added
 //	 };
 type SignerKeyType int32
 
@@ -37744,6 +38233,7 @@ var _ xdrType = (*PublicKey)(nil)
 
 // SignerKeyEd25519SignedPayload is an XDR NestedStruct defines as:
 //
+<<<<<<< HEAD
 //	struct
 //	     {
 //	         /* Public key that must sign the payload. */
@@ -37816,6 +38306,8 @@ var _ xdrType = (*SignerKeyEd25519SignedPayload)(nil)
 
 // SignerKey is an XDR Union defines as:
 //
+=======
+>>>>>>> basePercentageFee patch added
 //	union SignerKey switch (SignerKeyType type)
 //	 {
 //	 case SIGNER_KEY_TYPE_ED25519:
@@ -37826,6 +38318,7 @@ var _ xdrType = (*SignerKeyEd25519SignedPayload)(nil)
 //	 case SIGNER_KEY_TYPE_HASH_X:
 //	     /* Hash of random 256 bit preimage X */
 //	     uint256 hashX;
+<<<<<<< HEAD
 //	 case SIGNER_KEY_TYPE_ED25519_SIGNED_PAYLOAD:
 //	     struct
 //	     {
@@ -37834,6 +38327,8 @@ var _ xdrType = (*SignerKeyEd25519SignedPayload)(nil)
 //	         /* Payload to be raw signed by ed25519. */
 //	         opaque payload<64>;
 //	     } ed25519SignedPayload;
+=======
+>>>>>>> basePercentageFee patch added
 //	 };
 type SignerKey struct {
 	Type                 SignerKeyType
