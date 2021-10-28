@@ -734,7 +734,7 @@ const (
 	LEDGER_UPGRADE_MAX_TX_SET_SIZE     LedgerUpgradeType = 3
 	LEDGER_UPGRADE_BASE_RESERVE        LedgerUpgradeType = 4
 	LEDGER_UPGRADE_BASE_PERCENTAGE_FEE LedgerUpgradeType = 5
-	LEDGER_UPGRADE_MAX_FEE LedgerUpgradeType = 6
+	LEDGER_UPGRADE_MAX_FEE 			   LedgerUpgradeType = 6
 )
 
 type LedgerUpgrade struct {
@@ -6660,7 +6660,7 @@ var _XdrNames_LedgerUpgradeType = map[int32]string{
 	int32(LEDGER_UPGRADE_MAX_TX_SET_SIZE):     "LEDGER_UPGRADE_MAX_TX_SET_SIZE",
 	int32(LEDGER_UPGRADE_BASE_RESERVE):        "LEDGER_UPGRADE_BASE_RESERVE",
 	int32(LEDGER_UPGRADE_BASE_PERCENTAGE_FEE): "LEDGER_UPGRADE_BASE_PERCENTAGE_FEE",
-	int32(LEDGER_UPGRADE_MAX_FEE): "LEDGER_UPGRADE_MAX_FEE",
+	int32(LEDGER_UPGRADE_MAX_FEE):             "LEDGER_UPGRADE_MAX_FEE",
 }
 var _XdrValues_LedgerUpgradeType = map[string]int32{
 	"LEDGER_UPGRADE_VERSION":             int32(LEDGER_UPGRADE_VERSION),
@@ -6668,7 +6668,7 @@ var _XdrValues_LedgerUpgradeType = map[string]int32{
 	"LEDGER_UPGRADE_MAX_TX_SET_SIZE":     int32(LEDGER_UPGRADE_MAX_TX_SET_SIZE),
 	"LEDGER_UPGRADE_BASE_RESERVE":        int32(LEDGER_UPGRADE_BASE_RESERVE),
 	"LEDGER_UPGRADE_BASE_PERCENTAGE_FEE": int32(LEDGER_UPGRADE_BASE_PERCENTAGE_FEE),
-	"LEDGER_UPGRADE_MAX_FEE": int32(LEDGER_UPGRADE_MAX_FEE),
+	"LEDGER_UPGRADE_MAX_FEE":             int32(LEDGER_UPGRADE_MAX_FEE),
 }
 
 func (LedgerUpgradeType) XdrEnumNames() map[int32]string {
@@ -6722,7 +6722,7 @@ var _XdrTags_LedgerUpgrade = map[int32]bool{
 	XdrToI32(LEDGER_UPGRADE_MAX_TX_SET_SIZE):     true,
 	XdrToI32(LEDGER_UPGRADE_BASE_RESERVE):        true,
 	XdrToI32(LEDGER_UPGRADE_BASE_PERCENTAGE_FEE): true,
-	XdrToI32(LEDGER_UPGRADE_MAX_FEE): true,
+	XdrToI32(LEDGER_UPGRADE_MAX_FEE):             true,
 }
 
 func (_ LedgerUpgrade) XdrValidTags() map[int32]bool {
