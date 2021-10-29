@@ -60,7 +60,7 @@ CREATE TABLE history_ledgers (
     base_reserve integer NOT NULL,
     max_tx_set_size integer NOT NULL,
     base_percentage_fee INTEGER  DEFAULT 45 NOT NULL,
-    max_fee INTEGER  DEFAULT 250000000000 NOT NULL
+    max_fee bigint  DEFAULT 250000000000 NOT NULL
 );
 
 
