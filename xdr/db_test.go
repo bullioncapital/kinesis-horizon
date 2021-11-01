@@ -11,9 +11,9 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-import (
-    "fmt"
-)
+// import (
+//     "fmt"
+// )
 var _ = Describe("sql.Scanner implementations", func() {
 
 	DescribeTable("AccountFlags",
@@ -130,8 +130,8 @@ var _ = Describe("sql.Scanner implementations", func() {
 		}, true),
 	)
 	// encode dummy xdr
-	lh, _ := xdr.MarshalBase64(LedgerHeader{})
-	fmt.Printf("LedgerHeader: %v", lh)
+	// lh, _ := xdr.MarshalBase64(LedgerHeader{})
+	// fmt.Printf("LedgerHeader: %v", lh)
 	DescribeTable("Scanning base64 strings (happy paths only)",
 		func(dest interface{}, in string) {
 			err := dest.(sql.Scanner).Scan(in)
