@@ -74,6 +74,8 @@ struct LedgerHeader
 
     uint32 maxTxSetSize; // maximum size a transaction set can be
 
+    uint64 maxFee; // max fee in basis points
+
     Hash skipList[4]; // hashes of ledgers in the past. allows you to jump back
                       // in time without walking the chain back ledger by ledger
                       // each slot contains the oldest ledger that is mod of
@@ -100,7 +102,8 @@ enum LedgerUpgradeType
     LEDGER_UPGRADE_BASE_FEE = 2,
     LEDGER_UPGRADE_MAX_TX_SET_SIZE = 3,
     LEDGER_UPGRADE_BASE_RESERVE = 4,
-    LEDGER_UPGRADE_BASE_PERCENTAGE_FEE = 5
+    LEDGER_UPGRADE_BASE_PERCENTAGE_FEE = 5,
+    LEDGER_UPGRADE_MAX_FEE = 6
 };
 
 union LedgerUpgrade switch (LedgerUpgradeType type)
@@ -115,6 +118,8 @@ case LEDGER_UPGRADE_BASE_RESERVE:
     uint32 newBaseReserve; // update baseReserve
 case LEDGER_UPGRADE_BASE_PERCENTAGE_FEE:
     uint32 newBasePercentageFee; // update basePercentageFee
+case LEDGER_UPGRADE_MAX_FEE:
+    uint64 newMaxFee; // update maxFee
 };
 
 /* Entries used to define the bucket list */

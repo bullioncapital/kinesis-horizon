@@ -4820,6 +4820,7 @@ type LedgerHeader struct {
 	MaxTxSetSize       Uint32
 	SkipList           [4]Hash
 	Ext                LedgerHeaderExt
+	MaxFee  		   Uint64
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -4858,6 +4859,7 @@ const (
 	LedgerUpgradeTypeLedgerUpgradeMaxTxSetSize      LedgerUpgradeType = 3
 	LedgerUpgradeTypeLedgerUpgradeBaseReserve       LedgerUpgradeType = 4
 	LedgerUpgradeTypeLedgerUpgradeBasePercentageFee LedgerUpgradeType = 5
+	LedgerUpgradeTypeLedgerUpgradeMaxFee 		    LedgerUpgradeType = 6
 )
 
 var ledgerUpgradeTypeMap = map[int32]string{
@@ -4866,6 +4868,7 @@ var ledgerUpgradeTypeMap = map[int32]string{
 	3: "LedgerUpgradeTypeLedgerUpgradeMaxTxSetSize",
 	4: "LedgerUpgradeTypeLedgerUpgradeBaseReserve",
 	5: "LedgerUpgradeTypeLedgerUpgradeBasePercentageFee",
+	6: "LedgerUpgradeTypeLedgerUpgradeMaxFee",
 }
 
 // ValidEnum validates a proposed value for this enum.  Implements
@@ -4920,6 +4923,7 @@ type LedgerUpgrade struct {
 	NewMaxTxSetSize      *Uint32
 	NewBaseReserve       *Uint32
 	NewBasePercentageFee *Uint32
+	NewMaxFee 			 *Uint64
 }
 
 // SwitchFieldName returns the field name in which this union's
@@ -4942,6 +4946,8 @@ func (u LedgerUpgrade) ArmForSwitch(sw int32) (string, bool) {
 		return "NewBaseReserve", true
 	case LedgerUpgradeTypeLedgerUpgradeBasePercentageFee:
 		return "NewBasePercentageFee", true
+	case LedgerUpgradeTypeLedgerUpgradeMaxFee:
+		return "NewMaxFee", true
 	}
 	return "-", false
 }
@@ -4985,6 +4991,13 @@ func NewLedgerUpgrade(aType LedgerUpgradeType, value interface{}) (result Ledger
 			return
 		}
 		result.NewBasePercentageFee = &tv
+	case LedgerUpgradeTypeLedgerUpgradeMaxFee:
+		tv, ok := value.(Uint64)
+		if !ok {
+			err = fmt.Errorf("invalid value, must be Uint64")
+			return
+		}
+		result.NewMaxFee = &tv
 	}
 	return
 }
@@ -5113,6 +5126,32 @@ func (u LedgerUpgrade) GetNewBasePercentageFee() (result Uint32, ok bool) {
 
 	return
 }
+
+// // MustNewMaxFee retrieves the NewMaxFee value from the union,
+// // panicing if the value is not set.
+// func (u LedgerUpgrade) MustNewMaxFee() Uint64 {
+// 	val, ok := u.GetNewMaxFee()
+
+// 	if !ok {
+// 		panic("arm NewMaxFee is not set")
+// 	}
+
+// 	return val
+// }
+
+// // GetNewMaxFee retrieves the NewMaxFee value from the union,
+// // returning ok if the union's switch indicated the value is valid.
+// func (u LedgerUpgrade) GetNewMaxFee() (result Uint32, ok bool) {
+// 	armName, _ := u.ArmForSwitch(int32(u.Type))
+
+// 	if armName == "NewMaxFee" {
+// 		result = *u.NewMaxFee
+// 		ok = true
+// 	}
+
+// 	return
+// }
+
 
 // MarshalBinary implements encoding.BinaryMarshaler.
 func (s LedgerUpgrade) MarshalBinary() ([]byte, error) {
