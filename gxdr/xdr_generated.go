@@ -701,12 +701,12 @@ type LedgerHeader struct {
 	BaseFee Uint32
 	// percentage fee in basis points
 	BasePercentageFee Uint32
+	// max fee in basis points
+	MaxFee Uint64
 	// account base reserve in stroops
 	BaseReserve Uint32
 	// maximum size a transaction set can be
 	MaxTxSetSize Uint32
-	// max fee in basis points
-	MaxFee Uint64
 	// hashes of ledgers in the past. allows you to jump back
 	SkipList [4]Hash
 	Ext      XdrAnon_LedgerHeader_Ext
@@ -6646,9 +6646,9 @@ func (v *LedgerHeader) XdrRecurse(x XDR, name string) {
 	x.Marshal(x.Sprintf("%sidPool", name), XDR_Uint64(&v.IdPool))
 	x.Marshal(x.Sprintf("%sbaseFee", name), XDR_Uint32(&v.BaseFee))
 	x.Marshal(x.Sprintf("%sbasePercentageFee", name), XDR_Uint32(&v.BasePercentageFee))
+	x.Marshal(x.Sprintf("%smaxFee", name), XDR_Uint64(&v.MaxFee))
 	x.Marshal(x.Sprintf("%sbaseReserve", name), XDR_Uint32(&v.BaseReserve))
 	x.Marshal(x.Sprintf("%smaxTxSetSize", name), XDR_Uint32(&v.MaxTxSetSize))
-	x.Marshal(x.Sprintf("%smaxFee", name), XDR_Uint64(&v.MaxFee))
 	x.Marshal(x.Sprintf("%sskipList", name), (*_XdrArray_4_Hash)(&v.SkipList))
 	x.Marshal(x.Sprintf("%sext", name), XDR_XdrAnon_LedgerHeader_Ext(&v.Ext))
 }

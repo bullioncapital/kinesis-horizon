@@ -4816,11 +4816,11 @@ type LedgerHeader struct {
 	IdPool             Uint64
 	BaseFee            Uint32
 	BasePercentageFee  Uint32
+	MaxFee             Uint64
 	BaseReserve        Uint32
 	MaxTxSetSize       Uint32
 	SkipList           [4]Hash
 	Ext                LedgerHeaderExt
-	MaxFee  		   Uint64
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -4859,7 +4859,7 @@ const (
 	LedgerUpgradeTypeLedgerUpgradeMaxTxSetSize      LedgerUpgradeType = 3
 	LedgerUpgradeTypeLedgerUpgradeBaseReserve       LedgerUpgradeType = 4
 	LedgerUpgradeTypeLedgerUpgradeBasePercentageFee LedgerUpgradeType = 5
-	LedgerUpgradeTypeLedgerUpgradeMaxFee 		    LedgerUpgradeType = 6
+	LedgerUpgradeTypeLedgerUpgradeMaxFee            LedgerUpgradeType = 6
 )
 
 var ledgerUpgradeTypeMap = map[int32]string{
@@ -4923,7 +4923,7 @@ type LedgerUpgrade struct {
 	NewMaxTxSetSize      *Uint32
 	NewBaseReserve       *Uint32
 	NewBasePercentageFee *Uint32
-	NewMaxFee 			 *Uint64
+	NewMaxFee            *Uint64
 }
 
 // SwitchFieldName returns the field name in which this union's
@@ -5151,7 +5151,6 @@ func (u LedgerUpgrade) GetNewBasePercentageFee() (result Uint32, ok bool) {
 
 // 	return
 // }
-
 
 // MarshalBinary implements encoding.BinaryMarshaler.
 func (s LedgerUpgrade) MarshalBinary() ([]byte, error) {

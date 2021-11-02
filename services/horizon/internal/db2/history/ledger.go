@@ -181,7 +181,7 @@ func ledgerHeaderToMap(
 		"tx_set_operation_count":       txSetOpCount,
 		"protocol_version":             ledger.Header.LedgerVersion,
 		"ledger_header":                ledgerHeaderBase64,
-		"max_fee":        		        ledger.Header.MaxFee,
+		"max_fee":                      ledger.Header.MaxFee,
 	}, nil
 }
 

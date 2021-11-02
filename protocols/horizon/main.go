@@ -234,11 +234,11 @@ type Ledger struct {
 	FeePool                    string    `json:"fee_pool"`
 	BaseFee                    int32     `json:"base_fee_in_stroops"`
 	BasePercentageFee          int32     `json:"base_percentage_fee"`
+	MaxFee                     int64     `json:"max_fee"`
 	BaseReserve                int32     `json:"base_reserve_in_stroops"`
 	MaxTxSetSize               int32     `json:"max_tx_set_size"`
 	ProtocolVersion            int32     `json:"protocol_version"`
 	HeaderXDR                  string    `json:"header_xdr"`
-	MaxFee 					   int64	 `json:"max_fee"`
 }
 
 func (l Ledger) PagingToken() string {
