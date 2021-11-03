@@ -48,4 +48,5 @@ func PopulateLedger(ctx context.Context, dest *protocol.Ledger, row history.Ledg
 	dest.Links.Operations = lb.PagedLink(self, "operations")
 	dest.Links.Payments = lb.PagedLink(self, "payments")
 	dest.Links.Effects = lb.PagedLink(self, "effects")
+	dest.MaxFee = row.MaxFee
 }
