@@ -525,6 +525,7 @@ type Ledger struct {
 	MaxTxSetSize               int32       `db:"max_tx_set_size"`
 	ProtocolVersion            int32       `db:"protocol_version"`
 	LedgerHeaderXDR            null.String `db:"ledger_header"`
+	MaxFee					   int64       `db:"max_fee"`
 }
 
 // LedgerCapacityUsageStats contains ledgers fullness stats.
