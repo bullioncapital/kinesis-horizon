@@ -259,6 +259,7 @@ func ledgerHeaderToMap(
 		"tx_set_operation_count":       txSetOpCount,
 		"protocol_version":             ledger.Header.LedgerVersion,
 		"ledger_header":                ledgerHeaderBase64,
+		"max_fee":                      ledger.Header.MaxFee,
 	}, nil
 }
 
@@ -284,4 +285,5 @@ var selectLedger = sq.Select(
 	"hl.max_tx_set_size",
 	"hl.protocol_version",
 	"hl.ledger_header",
+	"hl.max_fee",
 ).From("history_ledgers hl")

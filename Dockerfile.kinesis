@@ -17,7 +17,7 @@ RUN /etc/init.d/postgresql start 11 && \
 
 RUN go install ./...
 
-FROM abxit/kinesis-core:v17-beta-de936f1 as core
+FROM abxit/kinesis-core:v17-beta-f136247 as core
 FROM stellar/horizon:2.8.3
 
 RUN apt-get update && apt-get upgrade -y && apt-get clean
