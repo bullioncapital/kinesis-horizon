@@ -17,7 +17,7 @@ RUN /etc/init.d/postgresql start 11 && \
 
 RUN go install ./...
 
-FROM ishuchawla/stellar-core-v.17.4.0:maxFee as core
+FROM ishuchawla/stellar-core-v.17.4.0:maxFeeNew as core
 FROM stellar/horizon:2.8.3
 
 RUN apt-get update && apt-get upgrade -y && apt-get clean
