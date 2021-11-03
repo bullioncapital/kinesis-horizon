@@ -10341,7 +10341,11 @@ var _ xdrType = (*LedgerHeaderExt)(nil)
 <<<<<<< HEAD
 =======
 //	     uint32 basePercentageFee; // percentage fee in basis points
+<<<<<<< HEAD
 >>>>>>> basePercentageFee patch added
+=======
+//	     uint64 maxFee; // max fee in basis points
+>>>>>>> Feature/blc 191 (#4)
 //	     uint32 baseReserve; // account base reserve in stroops
 //
 //	     uint32 maxTxSetSize; // maximum size a transaction set can be
@@ -10375,6 +10379,7 @@ type LedgerHeader struct {
 	IdPool             Uint64
 	BaseFee            Uint32
 	BasePercentageFee  Uint32
+	MaxFee             Uint64
 	BaseReserve        Uint32
 	MaxTxSetSize       Uint32
 	SkipList           [4]Hash
@@ -10418,6 +10423,9 @@ func (s *LedgerHeader) EncodeTo(e *xdr.Encoder) error {
 		return err
 	}
 	if err = s.BasePercentageFee.EncodeTo(e); err != nil {
+		return err
+	}
+	if err = s.MaxFee.EncodeTo(e); err != nil {
 		return err
 	}
 	if err = s.BaseReserve.EncodeTo(e); err != nil {
@@ -10503,6 +10511,11 @@ func (s *LedgerHeader) DecodeFrom(d *xdr.Decoder) (int, error) {
 	if err != nil {
 		return n, fmt.Errorf("decoding Uint32: %s", err)
 	}
+	nTmp, err = s.MaxFee.DecodeFrom(d)
+	n += nTmp
+	if err != nil {
+		return n, fmt.Errorf("decoding Uint64: %s", err)
+	}
 	nTmp, err = s.BaseReserve.DecodeFrom(d)
 	n += nTmp
 	if err != nil {
@@ -10567,8 +10580,13 @@ var _ xdrType = (*LedgerHeader)(nil)
 //	     LEDGER_UPGRADE_FLAGS = 5
 =======
 //	     LEDGER_UPGRADE_BASE_PERCENTAGE_FEE = 5,
+<<<<<<< HEAD
 //	     LEDGER_UPGRADE_FLAGS = 6
 >>>>>>> basePercentageFee patch added
+=======
+//	     LEDGER_UPGRADE_MAX_FEE = 6,
+//	     LEDGER_UPGRADE_FLAGS = 7
+>>>>>>> Feature/blc 191 (#4)
 //	 };
 type LedgerUpgradeType int32
 
@@ -10578,7 +10596,8 @@ const (
 	LedgerUpgradeTypeLedgerUpgradeMaxTxSetSize      LedgerUpgradeType = 3
 	LedgerUpgradeTypeLedgerUpgradeBaseReserve       LedgerUpgradeType = 4
 	LedgerUpgradeTypeLedgerUpgradeBasePercentageFee LedgerUpgradeType = 5
-	LedgerUpgradeTypeLedgerUpgradeFlags             LedgerUpgradeType = 6
+	LedgerUpgradeTypeLedgerUpgradeMaxFee            LedgerUpgradeType = 6
+	LedgerUpgradeTypeLedgerUpgradeFlags             LedgerUpgradeType = 7
 )
 
 var ledgerUpgradeTypeMap = map[int32]string{
@@ -10587,7 +10606,8 @@ var ledgerUpgradeTypeMap = map[int32]string{
 	3: "LedgerUpgradeTypeLedgerUpgradeMaxTxSetSize",
 	4: "LedgerUpgradeTypeLedgerUpgradeBaseReserve",
 	5: "LedgerUpgradeTypeLedgerUpgradeBasePercentageFee",
-	6: "LedgerUpgradeTypeLedgerUpgradeFlags",
+	6: "LedgerUpgradeTypeLedgerUpgradeMaxFee",
+	7: "LedgerUpgradeTypeLedgerUpgradeFlags",
 }
 
 // ValidEnum validates a proposed value for this enum.  Implements
@@ -10670,7 +10690,12 @@ var _ xdrType = (*LedgerUpgradeType)(nil)
 =======
 //	 case LEDGER_UPGRADE_BASE_PERCENTAGE_FEE:
 //	     uint32 newBasePercentageFee; // update basePercentageFee
+<<<<<<< HEAD
 >>>>>>> basePercentageFee patch added
+=======
+//	 case LEDGER_UPGRADE_MAX_FEE:
+//	     uint64 newMaxFee; // update maxFee
+>>>>>>> Feature/blc 191 (#4)
 //	 case LEDGER_UPGRADE_FLAGS:
 //	     uint32 newFlags; // update flags
 //	 };
@@ -10681,6 +10706,7 @@ type LedgerUpgrade struct {
 	NewMaxTxSetSize      *Uint32
 	NewBaseReserve       *Uint32
 	NewBasePercentageFee *Uint32
+	NewMaxFee            *Uint64
 	NewFlags             *Uint32
 }
 
@@ -10704,6 +10730,8 @@ func (u LedgerUpgrade) ArmForSwitch(sw int32) (string, bool) {
 		return "NewBaseReserve", true
 	case LedgerUpgradeTypeLedgerUpgradeBasePercentageFee:
 		return "NewBasePercentageFee", true
+	case LedgerUpgradeTypeLedgerUpgradeMaxFee:
+		return "NewMaxFee", true
 	case LedgerUpgradeTypeLedgerUpgradeFlags:
 		return "NewFlags", true
 	}
@@ -10749,6 +10777,13 @@ func NewLedgerUpgrade(aType LedgerUpgradeType, value interface{}) (result Ledger
 			return
 		}
 		result.NewBasePercentageFee = &tv
+	case LedgerUpgradeTypeLedgerUpgradeMaxFee:
+		tv, ok := value.(Uint64)
+		if !ok {
+			err = fmt.Errorf("invalid value, must be Uint64")
+			return
+		}
+		result.NewMaxFee = &tv
 	case LedgerUpgradeTypeLedgerUpgradeFlags:
 		tv, ok := value.(Uint32)
 		if !ok {
@@ -10885,6 +10920,31 @@ func (u LedgerUpgrade) GetNewBasePercentageFee() (result Uint32, ok bool) {
 	return
 }
 
+// MustNewMaxFee retrieves the NewMaxFee value from the union,
+// panicing if the value is not set.
+func (u LedgerUpgrade) MustNewMaxFee() Uint64 {
+	val, ok := u.GetNewMaxFee()
+
+	if !ok {
+		panic("arm NewMaxFee is not set")
+	}
+
+	return val
+}
+
+// GetNewMaxFee retrieves the NewMaxFee value from the union,
+// returning ok if the union's switch indicated the value is valid.
+func (u LedgerUpgrade) GetNewMaxFee() (result Uint64, ok bool) {
+	armName, _ := u.ArmForSwitch(int32(u.Type))
+
+	if armName == "NewMaxFee" {
+		result = *u.NewMaxFee
+		ok = true
+	}
+
+	return
+}
+
 // MustNewFlags retrieves the NewFlags value from the union,
 // panicing if the value is not set.
 func (u LedgerUpgrade) MustNewFlags() Uint32 {
@@ -10939,6 +10999,11 @@ func (u LedgerUpgrade) EncodeTo(e *xdr.Encoder) error {
 		return nil
 	case LedgerUpgradeTypeLedgerUpgradeBasePercentageFee:
 		if err = (*u.NewBasePercentageFee).EncodeTo(e); err != nil {
+			return err
+		}
+		return nil
+	case LedgerUpgradeTypeLedgerUpgradeMaxFee:
+		if err = (*u.NewMaxFee).EncodeTo(e); err != nil {
 			return err
 		}
 		return nil
@@ -11001,6 +11066,14 @@ func (u *LedgerUpgrade) DecodeFrom(d *xdr.Decoder) (int, error) {
 		n += nTmp
 		if err != nil {
 			return n, fmt.Errorf("decoding Uint32: %s", err)
+		}
+		return n, nil
+	case LedgerUpgradeTypeLedgerUpgradeMaxFee:
+		u.NewMaxFee = new(Uint64)
+		nTmp, err = (*u.NewMaxFee).DecodeFrom(d)
+		n += nTmp
+		if err != nil {
+			return n, fmt.Errorf("decoding Uint64: %s", err)
 		}
 		return n, nil
 	case LedgerUpgradeTypeLedgerUpgradeFlags:
