@@ -1,3 +1,6 @@
+ARG HORIZON_IMAGE=stellar/horizon:2.8.3
+ARG KINESIS_CORE_IMAGE=abxit/kinesis-core:v17-beta-f136247
+
 FROM golang:1.16.5 as builder
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get upgrade -y && apt-get clean
@@ -17,8 +20,8 @@ RUN /etc/init.d/postgresql start 11 && \
 
 RUN go install ./...
 
-FROM abxit/kinesis-core:v17-beta-f136247 as core
-FROM stellar/horizon:2.8.3
+FROM ${KINESIS_CORE_IMAGE} as core
+FROM ${HORIZON_IMAGE}
 
 RUN apt-get update && apt-get upgrade -y && apt-get clean
 # remove original
