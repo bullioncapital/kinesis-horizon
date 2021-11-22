@@ -1,5 +1,5 @@
 ARG HORIZON_IMAGE=stellar/horizon:2.8.3
-ARG KINESIS_CORE_IMAGE=abxit/kinesis-core:v17.4.0-kinesis.2
+ARG KINESIS_CORE_IMAGE=abxit/kinesis-core:v17-beta-849d6c4
 
 FROM golang:1.16.15 as builder
 ENV DEBIAN_FRONTEND=noninteractive
