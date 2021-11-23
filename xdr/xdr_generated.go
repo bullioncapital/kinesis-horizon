@@ -4784,6 +4784,8 @@ var (
 //        uint64 idPool; // last used global ID, used for generating objects
 //
 //        uint32 baseFee;     // base fee per operation in stroops
+//        uint32 basePercentageFee; // percentage fee in basis points
+//        uint64 maxFee; // max fee in basis points
 //        uint32 baseReserve; // account base reserve in stroops
 //
 //        uint32 maxTxSetSize; // maximum size a transaction set can be
@@ -4848,7 +4850,9 @@ var (
 //        LEDGER_UPGRADE_VERSION = 1,
 //        LEDGER_UPGRADE_BASE_FEE = 2,
 //        LEDGER_UPGRADE_MAX_TX_SET_SIZE = 3,
-//        LEDGER_UPGRADE_BASE_RESERVE = 4
+//        LEDGER_UPGRADE_BASE_RESERVE = 4,
+//        LEDGER_UPGRADE_BASE_PERCENTAGE_FEE = 5,
+//        LEDGER_UPGRADE_MAX_FEE = 6
 //    };
 //
 type LedgerUpgradeType int32
@@ -4914,6 +4918,10 @@ var (
 //        uint32 newMaxTxSetSize; // update maxTxSetSize
 //    case LEDGER_UPGRADE_BASE_RESERVE:
 //        uint32 newBaseReserve; // update baseReserve
+//    case LEDGER_UPGRADE_BASE_PERCENTAGE_FEE:
+//        uint32 newBasePercentageFee; // update basePercentageFee
+//    case LEDGER_UPGRADE_MAX_FEE:
+//        uint64 newMaxFee; // update maxFee
 //    };
 //
 type LedgerUpgrade struct {
@@ -10947,7 +10955,7 @@ var (
 //   struct TransactionV0
 //    {
 //        uint256 sourceAccountEd25519;
-//        uint32 fee;
+//        uint64 fee;
 //        SequenceNumber seqNum;
 //        TimeBounds* timeBounds;
 //        Memo memo;
@@ -10962,7 +10970,7 @@ var (
 //
 type TransactionV0 struct {
 	SourceAccountEd25519 Uint256
-	Fee                  Uint32
+	Fee                  Uint64
 	SeqNum               SequenceNumber
 	TimeBounds           *TimeBounds
 	Memo                 Memo
@@ -11085,7 +11093,7 @@ var (
 //        MuxedAccount sourceAccount;
 //
 //        // the fee the sourceAccount will pay
-//        uint32 fee;
+//        uint64 fee;
 //
 //        // sequence number to consume in the account
 //        SequenceNumber seqNum;
@@ -11108,7 +11116,7 @@ var (
 //
 type Transaction struct {
 	SourceAccount MuxedAccount
-	Fee           Uint32
+	Fee           Uint64
 	SeqNum        SequenceNumber
 	TimeBounds    *TimeBounds
 	Memo          Memo
