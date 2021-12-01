@@ -13,9 +13,9 @@ func TestHashTransaction(t *testing.T) {
 	// 	Type: xdr.EnvelopeTypeEnvelopeTypeTxV0,
 	// 	V0: &xdr.TransactionV0Envelope{
 	// 		Tx: xdr.TransactionV0{
-	// 			SourceAccountEd25519: *xdr.MustAddress("GBRPYHIL2CI3FNQ4BXLFMNDLFJUNPU2HY3ZMFSHONUCEOASW7QC7OX2H").Ed25519,
+	// 			SourceAccountEd25519: *xdr.MustAddress("GBXGQJWVLWOYHFLVTKWV5FGHA3LNYY2JQKM7OAJAUEQFU6LPCSEFVXON").Ed25519,
 	// 			Fee:                  100,
-	// 			SeqNum:               1,
+	// 			SeqNum:               8589934594,
 	// 			Operations: []xdr.Operation{
 	// 				{
 	// 					Body: xdr.OperationBody{
