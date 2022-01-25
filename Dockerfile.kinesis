@@ -25,6 +25,8 @@ FROM ${KINESIS_CORE_IMAGE} as core
 FROM ${HORIZON_IMAGE}
 
 RUN apt-get update && apt-get upgrade -y && apt-get clean
+RUN apt-get install jq -y && apt-get clean
+
 # remove original
 RUN rm captivecore horizon
 COPY --from=core /usr/bin/stellar-core /usr/bin/stellar-core
