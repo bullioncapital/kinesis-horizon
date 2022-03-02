@@ -24239,7 +24239,7 @@ type PreconditionsV2 struct {
 //	struct TransactionV0
 //	 {
 //	     uint256 sourceAccountEd25519;
-//	     uint32 fee;
+//	     uint64 fee;
 //	     SequenceNumber seqNum;
 //	     TimeBounds* timeBounds;
 //	     Memo memo;
@@ -24253,7 +24253,7 @@ type PreconditionsV2 struct {
 //	 };
 type TransactionV0 struct {
 	SourceAccountEd25519 Uint256
-	Fee                  Uint32
+	Fee                  Uint64
 	SeqNum               SequenceNumber
 	TimeBounds           *TimeBounds
 	Memo                 Memo
@@ -24318,6 +24318,7 @@ func (s *PreconditionsV2) DecodeFrom(d *xdr.Decoder) (int, error) {
 	if err != nil {
 		return n, fmt.Errorf("decoding TimeBounds: %s", err)
 	}
+<<<<<<< HEAD
 	s.TimeBounds = nil
 	if b {
 		s.TimeBounds = new(TimeBounds)
@@ -24326,6 +24327,12 @@ func (s *PreconditionsV2) DecodeFrom(d *xdr.Decoder) (int, error) {
 		if err != nil {
 			return n, fmt.Errorf("decoding TimeBounds: %s", err)
 		}
+=======
+	nTmp, err = s.Fee.DecodeFrom(d)
+	n += nTmp
+	if err != nil {
+		return n, fmt.Errorf("decoding Uint64: %s", err)
+>>>>>>> Transaction xdr (#6)
 	}
 	b, nTmp, err = d.DecodeBool()
 	n += nTmp
@@ -24840,7 +24847,7 @@ var _ xdrType = (*TransactionV0Ext)(nil)
 //	     MuxedAccount sourceAccount;
 //
 //	     // the fee the sourceAccount will pay
-//	     uint32 fee;
+//	     uint64 fee;
 //
 //	     // sequence number to consume in the account
 //	     SequenceNumber seqNum;
@@ -24873,7 +24880,7 @@ type TransactionV0 struct {
 =======
 type Transaction struct {
 	SourceAccount MuxedAccount
-	Fee           Uint32
+	Fee           Uint64
 	SeqNum        SequenceNumber
 	TimeBounds    *TimeBounds
 	Memo          Memo
@@ -24933,7 +24940,7 @@ func (s *TransactionV0) DecodeFrom(d *xdr.Decoder) (int, error) {
 	nTmp, err = s.Fee.DecodeFrom(d)
 	n += nTmp
 	if err != nil {
-		return n, fmt.Errorf("decoding Uint32: %s", err)
+		return n, fmt.Errorf("decoding Uint64: %s", err)
 	}
 	nTmp, err = s.SeqNum.DecodeFrom(d)
 	n += nTmp

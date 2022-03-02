@@ -886,7 +886,7 @@ func TestSubmitTransactionRequest(t *testing.T) {
 	tx, err = tx.Sign(network.TestNetworkPassphrase, kp)
 	assert.NoError(t, err)
 
-	txXdr := "AAAAAgAAAAAFNPMlEPLB6oWPI/Zl1sBEXxwv93ChUnv7KQK9KxrTtgAAAGQAAAAAAAAAAQAAAAEAAAAAAAAAAAAAAAAAAAAKAAAAAAAAAAEAAAAAAAAAAQAAAAAFNPMlEPLB6oWPI/Zl1sBEXxwv93ChUnv7KQK9KxrTtgAAAAAAAAAABfXhAAAAAAAAAAABKxrTtgAAAECmVMsI0W6JmfJNeLzgH+PseZA2AgYGZl8zaHgkOvhZw65Hj9OaCdw6yssG55qu7X2sauJAwfxaoTL4gwbmH94H"
+	txXdr := "AAAAAgAAAAAFNPMlEPLB6oWPI/Zl1sBEXxwv93ChUnv7KQK9KxrTtgAAAAAAAABkAAAAAAAAAAEAAAABAAAAAAAAAAAAAAAAAAAACgAAAAAAAAABAAAAAAAAAAEAAAAABTTzJRDyweqFjyP2ZdbARF8cL/dwoVJ7+ykCvSsa07YAAAAAAAAAAAX14QAAAAAAAAAAASsa07YAAABAK5cjsPUqqOi/oObuzjysys2bwQt+qkW1gwSuQ5A85KYrmkkLAVNTD7FWvTX8W/XdAwCmjZHxQsQrj7C56ag1Aw=="
 	// successful tx with config.memo_required not found
 	hmock.On(
 		"POST",
@@ -954,7 +954,7 @@ func TestSubmitTransactionRequestMuxedAccounts(t *testing.T) {
 	tx, err = tx.Sign(network.TestNetworkPassphrase, kp)
 	assert.NoError(t, err)
 
-	txXdr := "AAAAAgAAAQAAAAAAyv66vgU08yUQ8sHqhY8j9mXWwERfHC/3cKFSe/spAr0rGtO2AAAAZAAAAAAAAAABAAAAAQAAAAAAAAAAAAAAAAAAAAoAAAAAAAAAAQAAAAAAAAABAAAAAAU08yUQ8sHqhY8j9mXWwERfHC/3cKFSe/spAr0rGtO2AAAAAAAAAAAF9eEAAAAAAAAAAAErGtO2AAAAQJvQkE9UVo/mfFBl/8ZPTzSUyVO4nvW0BYfnbowoBPEdRfLOLQz28v6sBKQc2b86NUfVHN5TQVo3+jH4nK9wVgk="
+	txXdr := "AAAAAgAAAQAAAAAAyv66vgU08yUQ8sHqhY8j9mXWwERfHC/3cKFSe/spAr0rGtO2AAAAAAAAAGQAAAAAAAAAAQAAAAEAAAAAAAAAAAAAAAAAAAAKAAAAAAAAAAEAAAAAAAAAAQAAAAAFNPMlEPLB6oWPI/Zl1sBEXxwv93ChUnv7KQK9KxrTtgAAAAAAAAAABfXhAAAAAAAAAAABKxrTtgAAAEAoQTO6PmCRZTLvgrnBGEdg7RREW+3BkQe91KDU7/wbZYAgT93/jpc3UN7ukURzmzink0xpLj6pqhX8JFjSzNEB"
 	// successful tx with config.memo_required not found
 	hmock.On(
 		"POST",
@@ -1015,12 +1015,12 @@ func TestSubmitFeeBumpTransaction(t *testing.T) {
 	assert.NoError(t, err)
 
 	feeBumpKP := keypair.MustParseFull("SA5ZEFDVFZ52GRU7YUGR6EDPBNRU2WLA6IQFQ7S2IH2DG3VFV3DOMV2Q")
-	feeBumpTx, err := txnbuild.NewFeeBumpTransaction(txnbuild.FeeBumpTransactionParams{
+	feeBumpTx, _ := txnbuild.NewFeeBumpTransaction(txnbuild.FeeBumpTransactionParams{
 		Inner:      tx,
 		FeeAccount: feeBumpKP.Address(),
 		BaseFee:    txnbuild.MinBaseFee * 2,
 	})
-	feeBumpTx, err = feeBumpTx.Sign(network.TestNetworkPassphrase, feeBumpKP)
+	feeBumpTx, _ = feeBumpTx.Sign(network.TestNetworkPassphrase, feeBumpKP)
 	feeBumpTxB64, err := feeBumpTx.Base64()
 	assert.NoError(t, err)
 
@@ -1108,7 +1108,7 @@ func TestSubmitTransactionWithOptionsRequest(t *testing.T) {
 		assert.Equal(t, ok, false)
 	}
 
-	txXdr := "AAAAAgAAAAAFNPMlEPLB6oWPI/Zl1sBEXxwv93ChUnv7KQK9KxrTtgAAAGQAAAAAAAAAAQAAAAEAAAAAAAAAAAAAAAAAAAAKAAAAAAAAAAEAAAAAAAAAAQAAAAAFNPMlEPLB6oWPI/Zl1sBEXxwv93ChUnv7KQK9KxrTtgAAAAAAAAAABfXhAAAAAAAAAAABKxrTtgAAAECmVMsI0W6JmfJNeLzgH+PseZA2AgYGZl8zaHgkOvhZw65Hj9OaCdw6yssG55qu7X2sauJAwfxaoTL4gwbmH94H"
+	txXdr := "AAAAAgAAAAAFNPMlEPLB6oWPI/Zl1sBEXxwv93ChUnv7KQK9KxrTtgAAAAAAAABkAAAAAAAAAAEAAAABAAAAAAAAAAAAAAAAAAAACgAAAAAAAAABAAAAAAAAAAEAAAAABTTzJRDyweqFjyP2ZdbARF8cL/dwoVJ7+ykCvSsa07YAAAAAAAAAAAX14QAAAAAAAAAAASsa07YAAABAK5cjsPUqqOi/oObuzjysys2bwQt+qkW1gwSuQ5A85KYrmkkLAVNTD7FWvTX8W/XdAwCmjZHxQsQrj7C56ag1Aw=="
 	// successful tx
 	hmock.On(
 		"POST",
@@ -1151,7 +1151,7 @@ func TestSubmitTransactionWithOptionsRequest(t *testing.T) {
 	assert.Equal(t, ErrAccountRequiresMemo, errors.Cause(err))
 
 	// skips memo check if tx includes a memo
-	txXdr = "AAAAAgAAAAAFNPMlEPLB6oWPI/Zl1sBEXxwv93ChUnv7KQK9KxrTtgAAAGQAAAAAAAAAAgAAAAEAAAAAAAAAAAAAAAAAAAAKAAAAAQAAAApIZWxsb1dvcmxkAAAAAAABAAAAAAAAAAEAAAAABTTzJRDyweqFjyP2ZdbARF8cL/dwoVJ7+ykCvSsa07YAAAAAAAAAAAX14QAAAAAAAAAAASsa07YAAABA7rDHZ+HcBIQbWByMZL3aT231WuwjOhxvb0c1i3vPzArUCE+HdCIJXq6Mk/xdhJj6QEEJrg15uAxke3P3k2vWCw=="
+	txXdr = "AAAAAgAAAAAFNPMlEPLB6oWPI/Zl1sBEXxwv93ChUnv7KQK9KxrTtgAAAAAAAABkAAAAAAAAAAIAAAABAAAAAAAAAAAAAAAAAAAACgAAAAEAAAAKSGVsbG9Xb3JsZAAAAAAAAQAAAAAAAAABAAAAAAU08yUQ8sHqhY8j9mXWwERfHC/3cKFSe/spAr0rGtO2AAAAAAAAAAAF9eEAAAAAAAAAAAErGtO2AAAAQG2tSCYgluhIfquVYzkXUcrSHGfM8NTMoHGrMHpr766YQh0EOeid6kHezWQxRcANUaHamLrt8dugWV1ixLY4QQc="
 	hmock.On(
 		"POST",
 		"https://localhost/transactions",
