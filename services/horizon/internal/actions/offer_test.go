@@ -89,12 +89,8 @@ func TestGetOfferByIDHandler(t *testing.T) {
 	}, 0, 0, 0, 0, 0)
 	tt.Assert.NoError(err)
 
-	batch := q.NewOffersBatchInsertBuilder(0)
-	err = batch.Add(tt.Ctx, eurOffer)
+	err = q.UpsertOffers(tt.Ctx, []history.Offer{eurOffer, usdOffer})
 	tt.Assert.NoError(err)
-	err = batch.Add(tt.Ctx, usdOffer)
-	tt.Assert.NoError(err)
-	tt.Assert.NoError(batch.Exec(tt.Ctx))
 
 	for _, testCase := range []struct {
 		name          string
@@ -200,14 +196,8 @@ func TestGetOffersHandler(t *testing.T) {
 	}, 0, 0, 0, 0, 0)
 	tt.Assert.NoError(err)
 
-	batch := q.NewOffersBatchInsertBuilder(0)
-	err = batch.Add(tt.Ctx, eurOffer)
+	err = q.UpsertOffers(tt.Ctx, []history.Offer{eurOffer, twoEurOffer, usdOffer})
 	tt.Assert.NoError(err)
-	err = batch.Add(tt.Ctx, twoEurOffer)
-	tt.Assert.NoError(err)
-	err = batch.Add(tt.Ctx, usdOffer)
-	tt.Assert.NoError(err)
-	tt.Assert.NoError(batch.Exec(tt.Ctx))
 
 	t.Run("No filter", func(t *testing.T) {
 		records, err := handler.GetResourcePage(
@@ -477,13 +467,8 @@ func TestGetAccountOffersHandler(t *testing.T) {
 	q := &history.Q{tt.HorizonSession()}
 	handler := GetAccountOffersHandler{}
 
-	batch := q.NewOffersBatchInsertBuilder(0)
-	err := batch.Add(tt.Ctx, eurOffer)
-	err = batch.Add(tt.Ctx, twoEurOffer)
+	err := q.UpsertOffers(tt.Ctx, []history.Offer{eurOffer, twoEurOffer, usdOffer})
 	tt.Assert.NoError(err)
-	err = batch.Add(tt.Ctx, usdOffer)
-	tt.Assert.NoError(err)
-	tt.Assert.NoError(batch.Exec(tt.Ctx))
 
 	records, err := handler.GetResourcePage(
 		httptest.NewRecorder(),

@@ -213,12 +213,7 @@ func TestGetOrderBookSummary(t *testing.T) {
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
 			assert.NoError(t, q.TruncateTables(tt.Ctx, []string{"offers"}))
-
-			batch := q.NewOffersBatchInsertBuilder(0)
-			for _, offer := range testCase.offers {
-				assert.NoError(t, batch.Add(tt.Ctx, offer))
-			}
-			assert.NoError(t, batch.Exec(tt.Ctx))
+			assert.NoError(t, q.UpsertOffers(tt.Ctx, testCase.offers))
 
 			assert.NoError(t, q.BeginTx(&sql.TxOptions{
 				Isolation: sql.LevelRepeatableRead,
@@ -260,11 +255,7 @@ func TestGetOrderBookSummaryExcludesRemovedOffers(t *testing.T) {
 		sellEurOffer,
 	}
 
-	batch := q.NewOffersBatchInsertBuilder(0)
-	for _, offer := range offers {
-		assert.NoError(t, batch.Add(tt.Ctx, offer))
-	}
-	assert.NoError(t, batch.Exec(tt.Ctx))
+	assert.NoError(t, q.UpsertOffers(tt.Ctx, offers))
 
 	assert.NoError(t, q.BeginTx(&sql.TxOptions{
 		Isolation: sql.LevelRepeatableRead,
