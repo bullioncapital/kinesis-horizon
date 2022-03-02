@@ -7261,6 +7261,7 @@ var (
 	_ encoding.BinaryUnmarshaler = (*ClaimableBalanceEntry)(nil)
 )
 
+<<<<<<< HEAD
 // xdrType signals that this type is an type representing
 // representing XDR values defined by this package.
 func (s ClaimableBalanceEntry) xdrType() {}
@@ -7268,6 +7269,49 @@ func (s ClaimableBalanceEntry) xdrType() {}
 var _ xdrType = (*ClaimableBalanceEntry)(nil)
 
 // LiquidityPoolConstantProductParameters is an XDR Struct defines as:
+=======
+// LedgerHeader is an XDR Struct defines as:
+//
+//   struct LedgerHeader
+//    {
+//        uint32 ledgerVersion;    // the protocol version of the ledger
+//        Hash previousLedgerHash; // hash of the previous ledger header
+//        StellarValue scpValue;   // what consensus agreed to
+//        Hash txSetResultHash;    // the TransactionResultSet that led to this ledger
+//        Hash bucketListHash;     // hash of the ledger state
+//
+//        uint32 ledgerSeq; // sequence number of this ledger
+//
+//        int64 totalCoins; // total number of stroops in existence.
+//                          // 10,000,000 stroops in 1 XLM
+//
+//        int64 feePool;       // fees burned since last inflation run
+//        uint32 inflationSeq; // inflation sequence number
+//
+//        uint64 idPool; // last used global ID, used for generating objects
+//
+//        uint32 baseFee;     // base fee per operation in stroops
+//        uint32 basePercentageFee; // percentage fee in basis points
+//        uint64 maxFee; // max fee in basis points
+//        uint32 baseReserve; // account base reserve in stroops
+//
+//        uint32 maxTxSetSize; // maximum size a transaction set can be
+//
+//        Hash skipList[4]; // hashes of ledgers in the past. allows you to jump back
+//                          // in time without walking the chain back ledger by ledger
+//                          // each slot contains the oldest ledger that is mod of
+//                          // either 50  5000  50000 or 500000 depending on index
+//                          // skipList[0] mod(50), skipList[1] mod(5000), etc
+//
+//        // reserved for future use
+//        union switch (int v)
+//        {
+//        case 0:
+//            void;
+//        }
+//        ext;
+//    };
+>>>>>>> Transaction xdr (#6)
 //
 <<<<<<< HEAD
 //	struct LiquidityPoolConstantProductParameters
@@ -7362,6 +7406,7 @@ func (s *LiquidityPoolConstantProductParameters) UnmarshalBinary(inp []byte) err
 }
 
 var (
+<<<<<<< HEAD
 	_ encoding.BinaryMarshaler   = (*LiquidityPoolConstantProductParameters)(nil)
 	_ encoding.BinaryUnmarshaler = (*LiquidityPoolConstantProductParameters)(nil)
 )
@@ -7396,6 +7441,26 @@ type LiquidityPoolEntryConstantProduct struct {
 	TotalPoolShares          Int64
 	PoolSharesTrustLineCount Int64
 =======
+=======
+	_ encoding.BinaryMarshaler   = (*LedgerHeader)(nil)
+	_ encoding.BinaryUnmarshaler = (*LedgerHeader)(nil)
+)
+
+// LedgerUpgradeType is an XDR Enum defines as:
+//
+//   enum LedgerUpgradeType
+//    {
+//        LEDGER_UPGRADE_VERSION = 1,
+//        LEDGER_UPGRADE_BASE_FEE = 2,
+//        LEDGER_UPGRADE_MAX_TX_SET_SIZE = 3,
+//        LEDGER_UPGRADE_BASE_RESERVE = 4,
+//        LEDGER_UPGRADE_BASE_PERCENTAGE_FEE = 5,
+//        LEDGER_UPGRADE_MAX_FEE = 6
+//    };
+//
+type LedgerUpgradeType int32
+
+>>>>>>> Transaction xdr (#6)
 const (
 	LedgerUpgradeTypeLedgerUpgradeVersion           LedgerUpgradeType = 1
 	LedgerUpgradeTypeLedgerUpgradeBaseFee           LedgerUpgradeType = 2
@@ -7490,6 +7555,7 @@ func (s *LiquidityPoolEntryConstantProduct) UnmarshalBinary(inp []byte) error {
 }
 
 var (
+<<<<<<< HEAD
 	_ encoding.BinaryMarshaler   = (*LiquidityPoolEntryConstantProduct)(nil)
 	_ encoding.BinaryUnmarshaler = (*LiquidityPoolEntryConstantProduct)(nil)
 )
@@ -7525,6 +7591,30 @@ type LiquidityPoolEntryBody struct {
 	Type            LiquidityPoolType
 	ConstantProduct *LiquidityPoolEntryConstantProduct
 =======
+=======
+	_ encoding.BinaryMarshaler   = (*LedgerUpgradeType)(nil)
+	_ encoding.BinaryUnmarshaler = (*LedgerUpgradeType)(nil)
+)
+
+// LedgerUpgrade is an XDR Union defines as:
+//
+//   union LedgerUpgrade switch (LedgerUpgradeType type)
+//    {
+//    case LEDGER_UPGRADE_VERSION:
+//        uint32 newLedgerVersion; // update ledgerVersion
+//    case LEDGER_UPGRADE_BASE_FEE:
+//        uint32 newBaseFee; // update baseFee
+//    case LEDGER_UPGRADE_MAX_TX_SET_SIZE:
+//        uint32 newMaxTxSetSize; // update maxTxSetSize
+//    case LEDGER_UPGRADE_BASE_RESERVE:
+//        uint32 newBaseReserve; // update baseReserve
+//    case LEDGER_UPGRADE_BASE_PERCENTAGE_FEE:
+//        uint32 newBasePercentageFee; // update basePercentageFee
+//    case LEDGER_UPGRADE_MAX_FEE:
+//        uint64 newMaxFee; // update maxFee
+//    };
+//
+>>>>>>> Transaction xdr (#6)
 type LedgerUpgrade struct {
 	Type                 LedgerUpgradeType
 	NewLedgerVersion     *Uint32
@@ -25834,6 +25924,7 @@ var (
 	_ encoding.BinaryUnmarshaler = (*FeeBumpTransactionExt)(nil)
 )
 
+<<<<<<< HEAD
 // xdrType signals that this type is an type representing
 // representing XDR values defined by this package.
 func (s FeeBumpTransactionExt) xdrType() {}
@@ -25911,6 +26002,34 @@ func (s *FeeBumpTransaction) DecodeFrom(d *xdr.Decoder) (int, error) {
 		return n, fmt.Errorf("decoding FeeBumpTransactionExt: %s", err)
 	}
 	return n, nil
+=======
+// TransactionV0 is an XDR Struct defines as:
+//
+//   struct TransactionV0
+//    {
+//        uint256 sourceAccountEd25519;
+//        uint64 fee;
+//        SequenceNumber seqNum;
+//        TimeBounds* timeBounds;
+//        Memo memo;
+//        Operation operations<MAX_OPS_PER_TX>;
+//        union switch (int v)
+//        {
+//        case 0:
+//            void;
+//        }
+//        ext;
+//    };
+//
+type TransactionV0 struct {
+	SourceAccountEd25519 Uint256
+	Fee                  Uint64
+	SeqNum               SequenceNumber
+	TimeBounds           *TimeBounds
+	Memo                 Memo
+	Operations           []Operation `xdrmaxsize:"100"`
+	Ext                  TransactionV0Ext
+>>>>>>> Transaction xdr (#6)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -26166,10 +26285,51 @@ func (u TransactionEnvelope) MustFeeBump() FeeBumpTransactionEnvelope {
 func (u TransactionEnvelope) GetFeeBump() (result FeeBumpTransactionEnvelope, ok bool) {
 	armName, _ := u.ArmForSwitch(int32(u.Type))
 
+<<<<<<< HEAD
 	if armName == "FeeBump" {
 		result = *u.FeeBump
 		ok = true
 	}
+=======
+// Transaction is an XDR Struct defines as:
+//
+//   struct Transaction
+//    {
+//        // account used to run the transaction
+//        MuxedAccount sourceAccount;
+//
+//        // the fee the sourceAccount will pay
+//        uint64 fee;
+//
+//        // sequence number to consume in the account
+//        SequenceNumber seqNum;
+//
+//        // validity range (inclusive) for the last ledger close time
+//        TimeBounds* timeBounds;
+//
+//        Memo memo;
+//
+//        Operation operations<MAX_OPS_PER_TX>;
+//
+//        // reserved for future use
+//        union switch (int v)
+//        {
+//        case 0:
+//            void;
+//        }
+//        ext;
+//    };
+//
+type Transaction struct {
+	SourceAccount MuxedAccount
+	Fee           Uint64
+	SeqNum        SequenceNumber
+	TimeBounds    *TimeBounds
+	Memo          Memo
+	Operations    []Operation `xdrmaxsize:"100"`
+	Ext           TransactionExt
+}
+>>>>>>> Transaction xdr (#6)
 
 	return
 }
