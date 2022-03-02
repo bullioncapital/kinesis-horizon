@@ -28,7 +28,7 @@ var XdrFilesSHA256 = map[string]string{
 	"xdr/Stellar-ledger-entries.x": "3aa135c309c2d67883f165961739b4940c90df59240d8aeef55deced8d7708b5",
 	"xdr/Stellar-ledger.x":         "d239a67821cd237a1ecac7363c98884e10e49eeb852f0859795c8a0b9ed0af86",
 	"xdr/Stellar-overlay.x":        "de3957c58b96ae07968b3d3aebea84f83603e95322d1fa336360e13e3aba737a",
-	"xdr/Stellar-transaction.x":    "45fdeb428e68d6b07e3e3157b6404567e0efb712c9d4c90a61a1035854c32b90",
+	"xdr/Stellar-transaction.x":    "89d3c16597cafa4d69ef7787b9b9607e423e918aa84b30c02ae536f59d5b44b1",
 	"xdr/Stellar-types.x":          "60b7588e573f5e5518766eb5e6b6ea42f0e53144663cbe557e485cceb6306c85",
 }
 
@@ -24967,7 +24967,7 @@ var _ xdrType = (*TransactionV0Ext)(nil)
 //	struct TransactionV0
 //	 {
 //	     uint256 sourceAccountEd25519;
-//	     uint32 fee;
+//	     uint64 fee;
 //	     SequenceNumber seqNum;
 //	     TimeBounds* timeBounds;
 //	     Memo memo;
@@ -24981,7 +24981,7 @@ var _ xdrType = (*TransactionV0Ext)(nil)
 //	 };
 type TransactionV0 struct {
 	SourceAccountEd25519 Uint256
-	Fee                  Uint32
+	Fee                  Uint64
 	SeqNum               SequenceNumber
 	TimeBounds           *TimeBounds
 	Memo                 Memo
@@ -25040,7 +25040,7 @@ func (s *TransactionV0) DecodeFrom(d *xdr.Decoder) (int, error) {
 	nTmp, err = s.Fee.DecodeFrom(d)
 	n += nTmp
 	if err != nil {
-		return n, fmt.Errorf("decoding Uint32: %s", err)
+		return n, fmt.Errorf("decoding Uint64: %s", err)
 	}
 	nTmp, err = s.SeqNum.DecodeFrom(d)
 	n += nTmp
@@ -25319,7 +25319,7 @@ var _ xdrType = (*TransactionExt)(nil)
 //	     MuxedAccount sourceAccount;
 //
 //	     // the fee the sourceAccount will pay
-//	     uint32 fee;
+//	     uint64 fee;
 //
 //	     // sequence number to consume in the account
 //	     SequenceNumber seqNum;
@@ -25341,7 +25341,7 @@ var _ xdrType = (*TransactionExt)(nil)
 //	 };
 type Transaction struct {
 	SourceAccount MuxedAccount
-	Fee           Uint32
+	Fee           Uint64
 	SeqNum        SequenceNumber
 	Cond          Preconditions
 	Memo          Memo
@@ -25395,7 +25395,7 @@ func (s *Transaction) DecodeFrom(d *xdr.Decoder) (int, error) {
 	nTmp, err = s.Fee.DecodeFrom(d)
 	n += nTmp
 	if err != nil {
-		return n, fmt.Errorf("decoding Uint32: %s", err)
+		return n, fmt.Errorf("decoding Uint64: %s", err)
 	}
 	nTmp, err = s.SeqNum.DecodeFrom(d)
 	n += nTmp

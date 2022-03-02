@@ -98,7 +98,7 @@ func buildLedgerCloseMeta(header testLedgerHeader) xdr.LedgerCloseMeta {
 						V1: &xdr.TransactionV1Envelope{
 							Tx: xdr.Transaction{
 								SourceAccount: source.ToMuxedAccount(),
-								Fee:           xdr.Uint32(header.sequence),
+								Fee:           xdr.Uint64(header.sequence),
 							},
 						},
 					},
