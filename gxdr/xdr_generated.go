@@ -1892,7 +1892,7 @@ const MAX_OPS_PER_TX = 100
 // containing a TransactionV0.
 type TransactionV0 struct {
 	SourceAccountEd25519 Uint256
-	Fee                  Uint32
+	Fee                  Uint64
 	SeqNum               SequenceNumber
 	TimeBounds           *TimeBounds
 	Memo                 Memo
@@ -1926,7 +1926,7 @@ type Transaction struct {
 	// account used to run the transaction
 	SourceAccount MuxedAccount
 	// the fee the sourceAccount will pay
-	Fee Uint32
+	Fee Uint64
 	// sequence number to consume in the account
 	SeqNum SequenceNumber
 	// validity range (inclusive) for the last ledger close time
@@ -13166,7 +13166,7 @@ func (v *TransactionV0) XdrRecurse(x XDR, name string) {
 		name = x.Sprintf("%s.", name)
 	}
 	x.Marshal(x.Sprintf("%ssourceAccountEd25519", name), XDR_Uint256(&v.SourceAccountEd25519))
-	x.Marshal(x.Sprintf("%sfee", name), XDR_Uint32(&v.Fee))
+	x.Marshal(x.Sprintf("%sfee", name), XDR_Uint64(&v.Fee))
 	x.Marshal(x.Sprintf("%sseqNum", name), XDR_SequenceNumber(&v.SeqNum))
 	x.Marshal(x.Sprintf("%stimeBounds", name), _XdrPtr_TimeBounds{&v.TimeBounds})
 	x.Marshal(x.Sprintf("%smemo", name), XDR_Memo(&v.Memo))
@@ -13312,7 +13312,7 @@ func (v *Transaction) XdrRecurse(x XDR, name string) {
 		name = x.Sprintf("%s.", name)
 	}
 	x.Marshal(x.Sprintf("%ssourceAccount", name), XDR_MuxedAccount(&v.SourceAccount))
-	x.Marshal(x.Sprintf("%sfee", name), XDR_Uint32(&v.Fee))
+	x.Marshal(x.Sprintf("%sfee", name), XDR_Uint64(&v.Fee))
 	x.Marshal(x.Sprintf("%sseqNum", name), XDR_SequenceNumber(&v.SeqNum))
 	x.Marshal(x.Sprintf("%stimeBounds", name), _XdrPtr_TimeBounds{&v.TimeBounds})
 	x.Marshal(x.Sprintf("%smemo", name), XDR_Memo(&v.Memo))

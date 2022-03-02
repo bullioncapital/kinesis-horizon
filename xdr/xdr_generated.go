@@ -22316,7 +22316,7 @@ var _ xdrType = (*TransactionV0Ext)(nil)
 //	struct TransactionV0
 //	 {
 //	     uint256 sourceAccountEd25519;
-//	     uint32 fee;
+//	     uint64 fee;
 //	     SequenceNumber seqNum;
 //	     TimeBounds* timeBounds;
 //	     Memo memo;
@@ -22330,7 +22330,7 @@ var _ xdrType = (*TransactionV0Ext)(nil)
 //	 };
 type TransactionV0 struct {
 	SourceAccountEd25519 Uint256
-	Fee                  Uint32
+	Fee                  Uint64
 	SeqNum               SequenceNumber
 	TimeBounds           *TimeBounds
 	Memo                 Memo
@@ -22389,7 +22389,7 @@ func (s *TransactionV0) DecodeFrom(d *xdr.Decoder) (int, error) {
 	nTmp, err = s.Fee.DecodeFrom(d)
 	n += nTmp
 	if err != nil {
-		return n, fmt.Errorf("decoding Uint32: %s", err)
+		return n, fmt.Errorf("decoding Uint64: %s", err)
 	}
 	nTmp, err = s.SeqNum.DecodeFrom(d)
 	n += nTmp
@@ -22668,7 +22668,7 @@ var _ xdrType = (*TransactionExt)(nil)
 //	     MuxedAccount sourceAccount;
 //
 //	     // the fee the sourceAccount will pay
-//	     uint32 fee;
+//	     uint64 fee;
 //
 //	     // sequence number to consume in the account
 //	     SequenceNumber seqNum;
@@ -22690,7 +22690,7 @@ var _ xdrType = (*TransactionExt)(nil)
 //	 };
 type Transaction struct {
 	SourceAccount MuxedAccount
-	Fee           Uint32
+	Fee           Uint64
 	SeqNum        SequenceNumber
 	TimeBounds    *TimeBounds
 	Memo          Memo
@@ -22749,7 +22749,7 @@ func (s *Transaction) DecodeFrom(d *xdr.Decoder) (int, error) {
 	nTmp, err = s.Fee.DecodeFrom(d)
 	n += nTmp
 	if err != nil {
-		return n, fmt.Errorf("decoding Uint32: %s", err)
+		return n, fmt.Errorf("decoding Uint64: %s", err)
 	}
 	nTmp, err = s.SeqNum.DecodeFrom(d)
 	n += nTmp
