@@ -18,7 +18,6 @@ type OffersProcessor struct {
 	sequence uint32
 
 	cache       *ingest.ChangeCompactor
-	insertBatch history.OffersBatchInsertBuilder
 	removeBatch []int64
 }
 
@@ -30,7 +29,6 @@ func NewOffersProcessor(offersQ history.QOffers, sequence uint32) *OffersProcess
 
 func (p *OffersProcessor) reset() {
 	p.cache = ingest.NewChangeCompactor()
-	p.insertBatch = p.offersQ.NewOffersBatchInsertBuilder(maxBatchSize)
 	p.removeBatch = []int64{}
 }
 
@@ -71,58 +69,42 @@ func (p *OffersProcessor) ledgerEntryToRow(entry *xdr.LedgerEntry) history.Offer
 }
 
 func (p *OffersProcessor) flushCache(ctx context.Context) error {
+	batchUpsertOffers := []history.Offer{}
 	changes := p.cache.GetChanges()
 	for _, change := range changes {
-		var rowsAffected int64
-		var err error
-		var action string
-		var offerID xdr.Int64
-
 		switch {
-		case change.Pre == nil && change.Post != nil:
-			// Created
-			action = "inserting"
+		case change.Post != nil:
+			// Created and updated
 			row := p.ledgerEntryToRow(change.Post)
-			err = p.insertBatch.Add(ctx, row)
-			rowsAffected = 1 // We don't track this when batch inserting
+			batchUpsertOffers = append(batchUpsertOffers, row)
 		case change.Pre != nil && change.Post == nil:
 			// Removed
-			action = "removing"
 			offer := change.Pre.Data.MustOffer()
 			p.removeBatch = append(p.removeBatch, int64(offer.OfferId))
-			rowsAffected = 1 // We don't track this when batch removing
 		default:
-			// Updated
-			action = "updating"
-			offer := change.Post.Data.MustOffer()
-			offerID = offer.OfferId
-			row := p.ledgerEntryToRow(change.Post)
-			rowsAffected, err = p.offersQ.UpdateOffer(ctx, row)
-		}
-
-		if err != nil {
-			return err
-		}
-
-		if rowsAffected != 1 {
-			return ingest.NewStateError(errors.Errorf(
-				"%d rows affected when %s offer %d",
-				rowsAffected,
-				action,
-				offerID,
-			))
+			return errors.New("Invalid io.Change: change.Pre == nil && change.Post == nil")
 		}
 	}
 
-	err := p.insertBatch.Exec(ctx)
-	if err != nil {
-		return errors.Wrap(err, "error executing batch")
+	if len(batchUpsertOffers) > 0 {
+		err := p.offersQ.UpsertOffers(ctx, batchUpsertOffers)
+		if err != nil {
+			return errors.Wrap(err, "errors in UpsertOffers")
+		}
 	}
 
 	if len(p.removeBatch) > 0 {
-		_, err = p.offersQ.RemoveOffers(ctx, p.removeBatch, p.sequence)
+		rowsAffected, err := p.offersQ.RemoveOffers(ctx, p.removeBatch, p.sequence)
 		if err != nil {
 			return errors.Wrap(err, "error in RemoveOffers")
+		}
+
+		if rowsAffected != int64(len(p.removeBatch)) {
+			return ingest.NewStateError(errors.Errorf(
+				"%d rows affected when removing %d offers",
+				rowsAffected,
+				len(p.removeBatch),
+			))
 		}
 	}
 
