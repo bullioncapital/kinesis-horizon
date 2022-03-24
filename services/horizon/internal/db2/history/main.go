@@ -8,12 +8,14 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/guregu/null"
 	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 
 	"github.com/stellar/go/services/horizon/internal/db2"
 	"github.com/stellar/go/support/db"
@@ -520,10 +522,12 @@ type Ledger struct {
 	TotalCoins                 int64       `db:"total_coins"`
 	FeePool                    int64       `db:"fee_pool"`
 	BaseFee                    int32       `db:"base_fee"`
+	BasePercentageFee          int32       `db:"base_percentage_fee"`
 	BaseReserve                int32       `db:"base_reserve"`
 	MaxTxSetSize               int32       `db:"max_tx_set_size"`
 	ProtocolVersion            int32       `db:"protocol_version"`
 	LedgerHeaderXDR            null.String `db:"ledger_header"`
+	MaxFee					   int64       `db:"max_fee"`
 }
 
 // LedgerCapacityUsageStats contains ledgers fullness stats.
@@ -573,6 +577,14 @@ type ManageOffer struct {
 	OfferID int64 `json:"offer_id"`
 }
 
+// upsertField is used in upsertRows function generating upsert query for
+// different tables.
+type upsertField struct {
+	name    string
+	dbType  string
+	objects []interface{}
+}
+
 // Offer is row of data from the `offers` table from horizon DB
 type Offer struct {
 	SellerID string `db:"seller_id"`
@@ -589,16 +601,6 @@ type Offer struct {
 	Deleted            bool        `db:"deleted"`
 	LastModifiedLedger uint32      `db:"last_modified_ledger"`
 	Sponsor            null.String `db:"sponsor"`
-}
-
-type OffersBatchInsertBuilder interface {
-	Add(ctx context.Context, offer Offer) error
-	Exec(ctx context.Context) error
-}
-
-// offersBatchInsertBuilder is a simple wrapper around db.BatchInsertBuilder
-type offersBatchInsertBuilder struct {
-	builder db.BatchInsertBuilder
 }
 
 // OperationsQ is a helper struct to aid in configuring queries that loads
@@ -765,15 +767,6 @@ func (q *Q) NewAccountDataBatchInsertBuilder(maxBatchSize int) AccountDataBatchI
 	}
 }
 
-func (q *Q) NewOffersBatchInsertBuilder(maxBatchSize int) OffersBatchInsertBuilder {
-	return &offersBatchInsertBuilder{
-		builder: db.BatchInsertBuilder{
-			Table:        q.GetTable("offers"),
-			MaxBatchSize: maxBatchSize,
-		},
-	}
-}
-
 func (q *Q) NewTrustLinesBatchInsertBuilder(maxBatchSize int) TrustLinesBatchInsertBuilder {
 	return &trustLinesBatchInsertBuilder{
 		builder: db.BatchInsertBuilder{
@@ -852,4 +845,68 @@ func (q *Q) DeleteRangeAll(ctx context.Context, start, end int64) error {
 		}
 	}
 	return nil
+}
+
+// upsertRows builds and executes an upsert query that allows very fast upserts
+// to a given table. The final query is of form:
+//
+// WITH r AS
+// 		(SELECT
+//			/* unnestPart */
+// 			unnest(?::type1[]), /* field1 */
+// 			unnest(?::type2[]), /* field2 */
+//			...
+// 		)
+// 	INSERT INTO table (
+//		/* insertFieldsPart */
+// 		field1,
+// 		field2,
+//		...
+// 	)
+// 	SELECT * from r
+// 	ON CONFLICT (conflictField) DO UPDATE SET
+//		/* onConflictPart */
+// 		field1 = excluded.field1,
+// 		field2 = excluded.field2,
+//		...
+func (q *Q) upsertRows(ctx context.Context, table string, conflictField string, fields []upsertField) error {
+	unnestPart := make([]string, 0, len(fields))
+	insertFieldsPart := make([]string, 0, len(fields))
+	onConflictPart := make([]string, 0, len(fields))
+	pqArrays := make([]interface{}, 0, len(fields))
+
+	for _, field := range fields {
+		unnestPart = append(
+			unnestPart,
+			fmt.Sprintf("unnest(?::%s[]) /* %s */", field.dbType, field.name),
+		)
+		insertFieldsPart = append(
+			insertFieldsPart,
+			field.name,
+		)
+		onConflictPart = append(
+			onConflictPart,
+			fmt.Sprintf("%s = excluded.%s", field.name, field.name),
+		)
+		pqArrays = append(
+			pqArrays,
+			pq.Array(field.objects),
+		)
+	}
+
+	sql := `
+	WITH r AS
+		(SELECT ` + strings.Join(unnestPart, ",") + `)
+	INSERT INTO ` + table + `
+		(` + strings.Join(insertFieldsPart, ",") + `)
+	SELECT * from r
+	ON CONFLICT (` + conflictField + `) DO UPDATE SET
+		` + strings.Join(onConflictPart, ",")
+
+	_, err := q.ExecRaw(
+		context.WithValue(ctx, &db.QueryTypeContextKey, db.UpsertQueryType),
+		sql,
+		pqArrays...,
+	)
+	return err
 }

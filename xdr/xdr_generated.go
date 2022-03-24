@@ -4784,6 +4784,8 @@ var (
 //        uint64 idPool; // last used global ID, used for generating objects
 //
 //        uint32 baseFee;     // base fee per operation in stroops
+//        uint32 basePercentageFee; // percentage fee in basis points
+//        uint64 maxFee; // max fee in basis points
 //        uint32 baseReserve; // account base reserve in stroops
 //
 //        uint32 maxTxSetSize; // maximum size a transaction set can be
@@ -4815,6 +4817,8 @@ type LedgerHeader struct {
 	InflationSeq       Uint32
 	IdPool             Uint64
 	BaseFee            Uint32
+	BasePercentageFee  Uint32
+	MaxFee             Uint64
 	BaseReserve        Uint32
 	MaxTxSetSize       Uint32
 	SkipList           [4]Hash
@@ -4846,16 +4850,20 @@ var (
 //        LEDGER_UPGRADE_VERSION = 1,
 //        LEDGER_UPGRADE_BASE_FEE = 2,
 //        LEDGER_UPGRADE_MAX_TX_SET_SIZE = 3,
-//        LEDGER_UPGRADE_BASE_RESERVE = 4
+//        LEDGER_UPGRADE_BASE_RESERVE = 4,
+//        LEDGER_UPGRADE_BASE_PERCENTAGE_FEE = 5,
+//        LEDGER_UPGRADE_MAX_FEE = 6
 //    };
 //
 type LedgerUpgradeType int32
 
 const (
-	LedgerUpgradeTypeLedgerUpgradeVersion      LedgerUpgradeType = 1
-	LedgerUpgradeTypeLedgerUpgradeBaseFee      LedgerUpgradeType = 2
-	LedgerUpgradeTypeLedgerUpgradeMaxTxSetSize LedgerUpgradeType = 3
-	LedgerUpgradeTypeLedgerUpgradeBaseReserve  LedgerUpgradeType = 4
+	LedgerUpgradeTypeLedgerUpgradeVersion           LedgerUpgradeType = 1
+	LedgerUpgradeTypeLedgerUpgradeBaseFee           LedgerUpgradeType = 2
+	LedgerUpgradeTypeLedgerUpgradeMaxTxSetSize      LedgerUpgradeType = 3
+	LedgerUpgradeTypeLedgerUpgradeBaseReserve       LedgerUpgradeType = 4
+	LedgerUpgradeTypeLedgerUpgradeBasePercentageFee LedgerUpgradeType = 5
+	LedgerUpgradeTypeLedgerUpgradeMaxFee            LedgerUpgradeType = 6
 )
 
 var ledgerUpgradeTypeMap = map[int32]string{
@@ -4863,6 +4871,8 @@ var ledgerUpgradeTypeMap = map[int32]string{
 	2: "LedgerUpgradeTypeLedgerUpgradeBaseFee",
 	3: "LedgerUpgradeTypeLedgerUpgradeMaxTxSetSize",
 	4: "LedgerUpgradeTypeLedgerUpgradeBaseReserve",
+	5: "LedgerUpgradeTypeLedgerUpgradeBasePercentageFee",
+	6: "LedgerUpgradeTypeLedgerUpgradeMaxFee",
 }
 
 // ValidEnum validates a proposed value for this enum.  Implements
@@ -4908,14 +4918,20 @@ var (
 //        uint32 newMaxTxSetSize; // update maxTxSetSize
 //    case LEDGER_UPGRADE_BASE_RESERVE:
 //        uint32 newBaseReserve; // update baseReserve
+//    case LEDGER_UPGRADE_BASE_PERCENTAGE_FEE:
+//        uint32 newBasePercentageFee; // update basePercentageFee
+//    case LEDGER_UPGRADE_MAX_FEE:
+//        uint64 newMaxFee; // update maxFee
 //    };
 //
 type LedgerUpgrade struct {
-	Type             LedgerUpgradeType
-	NewLedgerVersion *Uint32
-	NewBaseFee       *Uint32
-	NewMaxTxSetSize  *Uint32
-	NewBaseReserve   *Uint32
+	Type                 LedgerUpgradeType
+	NewLedgerVersion     *Uint32
+	NewBaseFee           *Uint32
+	NewMaxTxSetSize      *Uint32
+	NewBaseReserve       *Uint32
+	NewBasePercentageFee *Uint32
+	NewMaxFee            *Uint64
 }
 
 // SwitchFieldName returns the field name in which this union's
@@ -4936,6 +4952,10 @@ func (u LedgerUpgrade) ArmForSwitch(sw int32) (string, bool) {
 		return "NewMaxTxSetSize", true
 	case LedgerUpgradeTypeLedgerUpgradeBaseReserve:
 		return "NewBaseReserve", true
+	case LedgerUpgradeTypeLedgerUpgradeBasePercentageFee:
+		return "NewBasePercentageFee", true
+	case LedgerUpgradeTypeLedgerUpgradeMaxFee:
+		return "NewMaxFee", true
 	}
 	return "-", false
 }
@@ -4972,6 +4992,20 @@ func NewLedgerUpgrade(aType LedgerUpgradeType, value interface{}) (result Ledger
 			return
 		}
 		result.NewBaseReserve = &tv
+	case LedgerUpgradeTypeLedgerUpgradeBasePercentageFee:
+		tv, ok := value.(Uint32)
+		if !ok {
+			err = fmt.Errorf("invalid value, must be Uint32")
+			return
+		}
+		result.NewBasePercentageFee = &tv
+	case LedgerUpgradeTypeLedgerUpgradeMaxFee:
+		tv, ok := value.(Uint64)
+		if !ok {
+			err = fmt.Errorf("invalid value, must be Uint64")
+			return
+		}
+		result.NewMaxFee = &tv
 	}
 	return
 }
@@ -5075,6 +5109,56 @@ func (u LedgerUpgrade) GetNewBaseReserve() (result Uint32, ok bool) {
 
 	return
 }
+
+// MustNewBasePercentageFee retrieves the NewBasePercentageFee value from the union,
+// panicing if the value is not set.
+func (u LedgerUpgrade) MustNewBasePercentageFee() Uint32 {
+	val, ok := u.GetNewBasePercentageFee()
+
+	if !ok {
+		panic("arm NewBasePercentageFee is not set")
+	}
+
+	return val
+}
+
+// GetNewBasePercentageFee retrieves the NewBasePercentageFee value from the union,
+// returning ok if the union's switch indicated the value is valid.
+func (u LedgerUpgrade) GetNewBasePercentageFee() (result Uint32, ok bool) {
+	armName, _ := u.ArmForSwitch(int32(u.Type))
+
+	if armName == "NewBasePercentageFee" {
+		result = *u.NewBasePercentageFee
+		ok = true
+	}
+
+	return
+}
+
+// // MustNewMaxFee retrieves the NewMaxFee value from the union,
+// // panicing if the value is not set.
+// func (u LedgerUpgrade) MustNewMaxFee() Uint64 {
+// 	val, ok := u.GetNewMaxFee()
+
+// 	if !ok {
+// 		panic("arm NewMaxFee is not set")
+// 	}
+
+// 	return val
+// }
+
+// // GetNewMaxFee retrieves the NewMaxFee value from the union,
+// // returning ok if the union's switch indicated the value is valid.
+// func (u LedgerUpgrade) GetNewMaxFee() (result Uint32, ok bool) {
+// 	armName, _ := u.ArmForSwitch(int32(u.Type))
+
+// 	if armName == "NewMaxFee" {
+// 		result = *u.NewMaxFee
+// 		ok = true
+// 	}
+
+// 	return
+// }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
 func (s LedgerUpgrade) MarshalBinary() ([]byte, error) {
@@ -10871,7 +10955,7 @@ var (
 //   struct TransactionV0
 //    {
 //        uint256 sourceAccountEd25519;
-//        uint32 fee;
+//        uint64 fee;
 //        SequenceNumber seqNum;
 //        TimeBounds* timeBounds;
 //        Memo memo;
@@ -10886,7 +10970,7 @@ var (
 //
 type TransactionV0 struct {
 	SourceAccountEd25519 Uint256
-	Fee                  Uint32
+	Fee                  Uint64
 	SeqNum               SequenceNumber
 	TimeBounds           *TimeBounds
 	Memo                 Memo
@@ -11009,7 +11093,7 @@ var (
 //        MuxedAccount sourceAccount;
 //
 //        // the fee the sourceAccount will pay
-//        uint32 fee;
+//        uint64 fee;
 //
 //        // sequence number to consume in the account
 //        SequenceNumber seqNum;
@@ -11032,7 +11116,7 @@ var (
 //
 type Transaction struct {
 	SourceAccount MuxedAccount
-	Fee           Uint32
+	Fee           Uint64
 	SeqNum        SequenceNumber
 	TimeBounds    *TimeBounds
 	Memo          Memo

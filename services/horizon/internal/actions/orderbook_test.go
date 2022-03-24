@@ -575,12 +575,7 @@ func TestOrderbookGetResource(t *testing.T) {
 	}
 
 	assert.NoError(t, q.TruncateTables(tt.Ctx, []string{"offers"}))
-
-	batch := q.NewOffersBatchInsertBuilder(0)
-	for _, offer := range offers {
-		assert.NoError(t, batch.Add(tt.Ctx, offer))
-	}
-	assert.NoError(t, batch.Exec(tt.Ctx))
+	assert.NoError(t, q.UpsertOffers(tt.Ctx, offers))
 
 	assert.NoError(t, q.BeginTx(&sql.TxOptions{
 		Isolation: sql.LevelRepeatableRead,

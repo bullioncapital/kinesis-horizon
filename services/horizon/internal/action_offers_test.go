@@ -68,12 +68,8 @@ func TestOfferActions_Show(t *testing.T) {
 		LastModifiedLedger: uint32(4),
 	}
 
-	batch := q.NewOffersBatchInsertBuilder(3)
-	err = batch.Add(ctx, eurOffer)
+	err = q.UpsertOffers(ctx, []history.Offer{eurOffer, usdOffer})
 	ht.Assert.NoError(err)
-	err = batch.Add(ctx, usdOffer)
-	ht.Assert.NoError(err)
-	ht.Assert.NoError(batch.Exec(ctx))
 
 	w := ht.Get("/offers")
 	if ht.Assert.Equal(200, w.Code) {

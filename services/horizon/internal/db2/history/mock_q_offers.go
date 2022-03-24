@@ -2,6 +2,7 @@ package history
 
 import (
 	"context"
+
 	"github.com/stretchr/testify/mock"
 )
 
@@ -30,14 +31,9 @@ func (m *MockQOffers) CountOffers(ctx context.Context) (int, error) {
 	return a.Get(0).(int), a.Error(1)
 }
 
-func (m *MockQOffers) NewOffersBatchInsertBuilder(maxBatchSize int) OffersBatchInsertBuilder {
-	a := m.Called(maxBatchSize)
-	return a.Get(0).(OffersBatchInsertBuilder)
-}
-
-func (m *MockQOffers) UpdateOffer(ctx context.Context, row Offer) (int64, error) {
-	a := m.Called(ctx, row)
-	return a.Get(0).(int64), a.Error(1)
+func (m *MockQOffers) UpsertOffers(ctx context.Context, rows []Offer) error {
+	a := m.Called(ctx, rows)
+	return a.Error(0)
 }
 
 func (m *MockQOffers) RemoveOffers(ctx context.Context, offerIDs []int64, lastModifiedLedger uint32) (int64, error) {

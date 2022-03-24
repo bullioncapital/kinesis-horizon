@@ -168,6 +168,7 @@ func ledgerHeaderToMap(
 		"total_coins":                  ledger.Header.TotalCoins,
 		"fee_pool":                     ledger.Header.FeePool,
 		"base_fee":                     ledger.Header.BaseFee,
+		"base_percentage_fee":          ledger.Header.BasePercentageFee,
 		"base_reserve":                 ledger.Header.BaseReserve,
 		"max_tx_set_size":              ledger.Header.MaxTxSetSize,
 		"closed_at":                    closeTime,
@@ -180,6 +181,7 @@ func ledgerHeaderToMap(
 		"tx_set_operation_count":       txSetOpCount,
 		"protocol_version":             ledger.Header.LedgerVersion,
 		"ledger_header":                ledgerHeaderBase64,
+		"max_fee":                      ledger.Header.MaxFee,
 	}, nil
 }
 
@@ -200,8 +202,10 @@ var selectLedger = sq.Select(
 	"hl.total_coins",
 	"hl.fee_pool",
 	"hl.base_fee",
+	"hl.base_percentage_fee",
 	"hl.base_reserve",
 	"hl.max_tx_set_size",
 	"hl.protocol_version",
 	"hl.ledger_header",
+	"hl.max_fee",
 ).From("history_ledgers hl")

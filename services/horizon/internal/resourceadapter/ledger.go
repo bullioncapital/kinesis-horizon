@@ -30,6 +30,7 @@ func PopulateLedger(ctx context.Context, dest *protocol.Ledger, row history.Ledg
 	dest.TotalCoins = amount.String(xdr.Int64(row.TotalCoins))
 	dest.FeePool = amount.String(xdr.Int64(row.FeePool))
 	dest.BaseFee = row.BaseFee
+	dest.BasePercentageFee = row.BasePercentageFee
 	dest.BaseReserve = row.BaseReserve
 	dest.MaxTxSetSize = row.MaxTxSetSize
 	dest.ProtocolVersion = row.ProtocolVersion
@@ -47,4 +48,5 @@ func PopulateLedger(ctx context.Context, dest *protocol.Ledger, row history.Ledg
 	dest.Links.Operations = lb.PagedLink(self, "operations")
 	dest.Links.Payments = lb.PagedLink(self, "payments")
 	dest.Links.Effects = lb.PagedLink(self, "effects")
+	dest.MaxFee = row.MaxFee
 }

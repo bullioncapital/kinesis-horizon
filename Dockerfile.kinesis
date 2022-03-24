@@ -1,0 +1,33 @@
+ARG HORIZON_IMAGE=stellar/horizon:2.8.3
+ARG KINESIS_CORE_IMAGE=abxit/kinesis-core:v17-beta-d579bda
+
+FROM golang:1.16.5 as builder
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get upgrade -y && apt-get clean
+
+# install PGSQL for integration testing
+RUN apt-get install -y --no-install-suggests --no-install-recommends postgresql && apt-get clean
+COPY pg_hba.conf /etc/postgresql/11/main/pg_hba.conf
+
+# install modules
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+# skip tests
+# RUN /etc/init.d/postgresql start 11 && \
+#     go test -race -cover ./...
+
+RUN go install ./...
+
+FROM ${KINESIS_CORE_IMAGE} as core
+FROM ${HORIZON_IMAGE}
+
+RUN apt-get update && apt-get upgrade -y && apt-get clean
+RUN apt-get install jq -y && apt-get clean
+
+# remove original
+RUN rm captivecore horizon
+COPY --from=core /usr/bin/stellar-core /usr/bin/stellar-core
+COPY --from=builder /go/bin/ /usr/bin

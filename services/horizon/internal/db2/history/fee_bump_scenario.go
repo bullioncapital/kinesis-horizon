@@ -28,6 +28,7 @@ func ledgerToMap(ledger Ledger) map[string]interface{} {
 		"total_coins":                  ledger.TotalCoins,
 		"fee_pool":                     ledger.FeePool,
 		"base_fee":                     ledger.BaseFee,
+		"base_percentage_fee":          ledger.BasePercentageFee,
 		"base_reserve":                 ledger.BaseReserve,
 		"max_tx_set_size":              ledger.MaxTxSetSize,
 		"closed_at":                    ledger.ClosedAt,
@@ -237,11 +238,11 @@ func FeeBumpScenario(tt *test.T, q *Q, successful bool) FeeBumpFixture {
 	})
 	normalTransaction := buildLedgerTransaction(tt.T, testTransaction{
 		index:         2,
-		envelopeXDR:   "AAAAACiSTRmpH6bHC6Ekna5e82oiGY5vKDEEUgkq9CB//t+rAAAAyAEXUhsAADDRAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAABAAAACXRlc3QgbWVtbwAAAAAAAAEAAAAAAAAACwEXUhsAAFfhAAAAAAAAAAA=",
+		envelopeXDR:   "AAAAAgAAAAAokk0ZqR+mxwuhJJ2uXvNqIhmObygxBFIJKvQgf/7fqwAAAAAAAABkARdSGwAAMNEAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAAJdGVzdCBtZW1vAAAAAAAAAQAAAAAAAAALARdSGwAAV+EAAAAAAAAAAA==",
 		resultXDR:     "AAAAAAAAASwAAAAAAAAAAwAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAFAAAAAAAAAAA=",
 		feeChangesXDR: "AAAAAA==",
 		metaXDR:       "AAAAAQAAAAAAAAAA",
-		hash:          "edba3051b2f2d9b713e8a08709d631eccb72c59864ff3c564c68792271bb24a7",
+		hash:          "5823b7fec5eef128b895e80b143042d89c64c5e10b7776b2ea204c48387dffbb",
 	})
 	ctx := context.Background()
 	insertBuilder := q.NewTransactionBatchInsertBuilder(2)
@@ -321,7 +322,7 @@ func FeeBumpScenario(tt *test.T, q *Q, successful bool) FeeBumpFixture {
 	fixture.NormalTransaction = Transaction{
 		TransactionWithoutLedger: TransactionWithoutLedger{
 			TotalOrderID:     TotalOrderID{528280981504},
-			TransactionHash:  "edba3051b2f2d9b713e8a08709d631eccb72c59864ff3c564c68792271bb24a7",
+			TransactionHash:  "e949d96bc5d720a43afa4a9d400ea23938d4fe31b30932fda46b4549fdb2e22a",
 			LedgerSequence:   fixture.Ledger.Sequence,
 			ApplicationOrder: 1,
 			Account:          "GAUJETIZVEP2NRYLUESJ3LS66NVCEGMON4UDCBCSBEVPIID773P2W6AY",
@@ -329,7 +330,7 @@ func FeeBumpScenario(tt *test.T, q *Q, successful bool) FeeBumpFixture {
 			MaxFee:           200,
 			FeeCharged:       300,
 			OperationCount:   1,
-			TxEnvelope:       "AAAAACiSTRmpH6bHC6Ekna5e82oiGY5vKDEEUgkq9CB//t+rAAAAyAEXUhsAADDRAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAABAAAACXRlc3QgbWVtbwAAAAAAAAEAAAAAAAAACwEXUhsAAFfhAAAAAAAAAAA=",
+			TxEnvelope:       "AAAAAgAAAAAokk0ZqR+mxwuhJJ2uXvNqIhmObygxBFIJKvQgf/7fqwAAAAAAAADIARdSGwAAMNEAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAAJdGVzdCBtZW1vAAAAAAAAAQAAAAAAAAALARdSGwAAV+EAAAAAAAAAAA==",
 			TxResult:         "AAAAAAAAASwAAAAAAAAAAwAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAFAAAAAAAAAAA=",
 			TxFeeMeta:        "AAAAAA==",
 			TxMeta:           "AAAAAQAAAAAAAAAA",
