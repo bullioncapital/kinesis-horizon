@@ -1,5 +1,4 @@
-ARG HORIZON_IMAGE=stellar/horizon:latest
-ARG KINESIS_CORE_IMAGE=kinesis-core:v18.5.0-kinesis.patch-1
+ARG KINESIS_CORE_IMAGE=charug/kinesis-core:v18.5.0-kinesis.patch-1
 
 FROM golang:1.17 as builder
 ENV DEBIAN_FRONTEND=noninteractive
@@ -26,12 +25,14 @@ ENV GOFLAGS="-ldflags=$HORIZON_VERSION"
 RUN go install ./...
 
 FROM ${KINESIS_CORE_IMAGE} as core
-FROM ${HORIZON_IMAGE}
 
-RUN apt-get update && apt-get upgrade -y && apt-get clean
-RUN apt-get install jq -y && apt-get clean
+FROM ubuntu:20.04
+ENV DEBIAN_FRONTEND=noninteractive
+# ca-certificates are required to make tls connections
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl wget gnupg apt-utils
+RUN apt-get upgrade -y && apt-get install jq -y && apt-get clean
 
-# remove original
-RUN rm captivecore horizon
 COPY --from=core /usr/bin/stellar-core /usr/bin/stellar-core
 COPY --from=builder /go/bin/ /usr/bin
+
+ENTRYPOINT ["horizon"]
