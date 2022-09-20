@@ -29,8 +29,9 @@ FROM ${KINESIS_CORE_IMAGE} as core
 FROM ubuntu:20.04
 ENV DEBIAN_FRONTEND=noninteractive
 # ca-certificates are required to make tls connections
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl wget gnupg apt-utils
-RUN apt-get upgrade -y && apt-get install jq -y && apt-get clean
+RUN apt-get update && apt-get upgrade -y \
+  && apt-get install -y --no-install-recommends ca-certificates curl wget gnupg apt-utils jq \
+  && apt-get clean
 
 COPY --from=core /usr/bin/stellar-core /usr/bin/stellar-core
 COPY --from=builder /go/bin/ /usr/bin
