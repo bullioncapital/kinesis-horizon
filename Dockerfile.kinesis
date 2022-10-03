@@ -1,4 +1,4 @@
-ARG KINESIS_CORE_IMAGE=abxit/kinesis-core:b98683c
+ARG KINESIS_CORE_IMAGE=abxit/kinesis-core:1e83585
 
 FROM golang:1.17 as builder
 ENV DEBIAN_FRONTEND=noninteractive
