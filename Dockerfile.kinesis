@@ -28,12 +28,21 @@ FROM ${KINESIS_CORE_IMAGE} as core
 
 FROM ubuntu:20.04
 ENV DEBIAN_FRONTEND=noninteractive
+
+EXPOSE 8000
+EXPOSE 9473
+
 # ca-certificates are required to make tls connections
 RUN apt-get update && apt-get upgrade -y \
   && apt-get install -y --no-install-recommends ca-certificates curl wget gnupg apt-utils jq \
   && apt-get clean
 
 COPY --from=core /usr/bin/stellar-core /usr/bin/stellar-core
-COPY --from=builder /go/bin/ /usr/bin
+COPY --from=builder /go/bin/horizon \
+  /go/bin/captivecore \
+  /go/bin/friendbot \
+  /go/bin/stellar-archivist \
+  /go/bin/stellar-hd-wallet \
+  /usr/bin/
 
 ENTRYPOINT ["horizon"]
