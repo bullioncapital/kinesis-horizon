@@ -324,6 +324,7 @@ type Root struct {
 		Assets              hal.Link  `json:"assets"`
 		Effects             hal.Link  `json:"effects"`
 		FeeStats            hal.Link  `json:"fee_stats"`
+		CoinInCirculation   hal.Link  `json:"coin_in_circulation"`
 		Friendbot           *hal.Link `json:"friendbot,omitempty"`
 		Ledger              hal.Link  `json:"ledger"`
 		Ledgers             hal.Link  `json:"ledgers"`
@@ -818,4 +819,16 @@ type LiquidityPoolsPage struct {
 type LiquidityPoolReserve struct {
 	Asset  string `json:"asset"`
 	Amount string `json:"amount"`
+}
+
+// Kinesis Coin-in-Circulation
+type KinesisCoinInCirculation struct {
+	Echo  string                   `json:"echo"`
+	State string                   `json:"state"`
+	Daily []DailyCoinInCirculation `json:"daily"`
+}
+
+type DailyCoinInCirculation struct {
+	Amount string `json:"amount"`
+	Date   string `json:"date"`
 }
