@@ -323,7 +323,9 @@ func (r *Router) addRoutes(config *RouterConfig, rateLimiter *throttled.HTTPRate
 	r.Method(http.MethodGet, "/fee_stats", ObjectActionHandler{actions.FeeStatsHandler{}})
 
 	// Kinesis Coin-in-Circulation dataset
-	r.Method(http.MethodGet, "/coin_in_circulation", ObjectActionHandler{actions.KinesisCoinInCirculationHandler{}})
+	r.Method(http.MethodGet, "/coin_in_circulation", ObjectActionHandler{actions.KinesisCoinInCirculationHandler{
+		NetworkPassphrase: config.NetworkPassphrase,
+	}})
 
 	// friendbot
 	if config.FriendbotURL != nil {
