@@ -19,11 +19,6 @@ type KinesisCoinInCirculationQuery struct {
 	From string `schema:"from"`
 }
 
-// URITemplate returns a rfc6570 URI template the query struct
-func (q KinesisCoinInCirculationQuery) URITemplate() string {
-	return getURITemplate(&q, "coin_in_circulation", true)
-}
-
 type KinesisCoinInCirculationHandler struct {
 	LedgerState       *ledger.State
 	NetworkPassphrase string
