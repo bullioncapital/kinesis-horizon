@@ -47,7 +47,7 @@ func PopulateRoot(
 	dest.Links.Ledger = lb.Link("/ledger/{sequence}")
 	dest.Links.Ledgers = lb.Link("/ledgers{?cursor,limit,order}")
 	dest.Links.FeeStats = lb.Link("/fee_stats")
-	dest.Links.CoinInCirculation = lb.Link("/coin_in_circulation")
+	dest.Links.CoinInCirculation = lb.Link("/coin_in_circulation{?from}")
 	dest.Links.Operation = lb.Link("/operations/{id}")
 	dest.Links.Operations = lb.Link("/operations{?cursor,limit,order,include_failed}")
 	dest.Links.Payments = lb.Link("/payments{?cursor,limit,order,include_failed}")
