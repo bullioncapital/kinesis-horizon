@@ -13,6 +13,7 @@ type KinesisCoinInCirculationQuery struct {
 	EmissionAccount  string
 	HotWalletAccount string
 	FeepoolAccount   string
+	FromDate         string
 }
 
 func (q *Q) KinesisCoinInCirculation(ctx context.Context, criteria KinesisCoinInCirculationQuery) ([]KinesisCoinInCirculation, error) {
@@ -21,20 +22,18 @@ func (q *Q) KinesisCoinInCirculation(ctx context.Context, criteria KinesisCoinIn
 		criteria.EmissionAccount,
 		criteria.HotWalletAccount,
 		criteria.FeepoolAccount)
-	sql := sq.Select(`
+
+	selectQuery := sq.Select(`
 		tx_date,
 		circulation,
 		mint,
 		redemption
-	`).From(fn)
+	`).From(fn).Where(sq.GtOrEq{"tx_date": criteria.FromDate})
 
-	raw, _, _ := sql.ToSql()
-
-	fmt.Printf("%s\n", raw)
 	var results []KinesisCoinInCirculation
-	if err := q.Select(ctx, &results, sql); err != nil {
+	if err := q.Select(ctx, &results, selectQuery); err != nil {
 		return nil, errors.Wrap(err, "could not run select query")
 	}
-	fmt.Printf("%+v\n", results)
+
 	return results, nil
 }

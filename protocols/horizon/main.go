@@ -823,9 +823,11 @@ type LiquidityPoolReserve struct {
 
 // Kinesis Coin-in-Circulation
 type KinesisCoinInCirculation struct {
-	CurrentLedger uint32                          `json:"currentLedger"`
-	State         string                          `json:"state"`
-	Records       []KinesisDailyCoinInCirculation `json:"records"`
+	IngestSequence        uint32                          `json:"ingest_latest_ledger"`
+	HorizonSequence       int32                           `json:"history_latest_ledger"`
+	HorizonLatestClosedAt time.Time                       `json:"history_latest_ledger_closed_at"`
+	HistoryElderSequence  int32                           `json:"history_elder_ledger"`
+	Records               []KinesisDailyCoinInCirculation `json:"records"`
 }
 
 type KinesisDailyCoinInCirculation struct {
