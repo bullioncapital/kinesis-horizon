@@ -823,12 +823,14 @@ type LiquidityPoolReserve struct {
 
 // Kinesis Coin-in-Circulation
 type KinesisCoinInCirculation struct {
-	Echo  string                   `json:"echo"`
-	State string                   `json:"state"`
-	Daily []DailyCoinInCirculation `json:"daily"`
+	CurrentLedger uint32                          `json:"currentLedger"`
+	State         string                          `json:"state"`
+	Records       []KinesisDailyCoinInCirculation `json:"records"`
 }
 
-type DailyCoinInCirculation struct {
-	Amount string `json:"amount"`
-	Date   string `json:"date"`
+type KinesisDailyCoinInCirculation struct {
+	Circulation string `json:"circulation"`
+	Mint        string `json:"mint"`
+	Redemption  string `json:"redemption"`
+	Date        string `json:"date"`
 }

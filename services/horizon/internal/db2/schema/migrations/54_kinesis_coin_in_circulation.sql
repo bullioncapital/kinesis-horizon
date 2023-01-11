@@ -50,8 +50,8 @@ CREATE OR REPLACE FUNCTION kinesis_coin_in_circulation(
 )
 RETURNS TABLE(
     tx_date DATE,
-    total_coins  NUMERIC(18, 7),
-    minted NUMERIC(18, 7),
+    circulation  NUMERIC(18, 7),
+    mint NUMERIC(18, 7),
     redemption NUMERIC(18, 7)
 )
 LANGUAGE 'plpgsql'
@@ -117,11 +117,11 @@ BEGIN
     )
 
     SELECT 
-        tx_date,
-        sum(total_coins) over (order by tx_date asc rows between unbounded preceding and current row) circulation,
-        sum(minted) over (order by tx_date asc rows between unbounded preceding and current row) minted,
-        sum(redemption) over (order by tx_date asc rows between unbounded preceding and current row) redemption
-    FROM data ORDER BY tx_date ASC;
+        d.tx_date,
+        sum(d.total_coins) over (order by d.tx_date asc rows between unbounded preceding and current row) circulation,
+        sum(d.minted) over (order by d.tx_date asc rows between unbounded preceding and current row) minted,
+        sum(d.redemption) over (order by d.tx_date asc rows between unbounded preceding and current row) redemption
+    FROM data d ORDER BY d.tx_date ASC;
 END;
 $$
 -- +migrate StatementEnd
