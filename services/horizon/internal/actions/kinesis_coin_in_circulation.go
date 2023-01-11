@@ -1,7 +1,6 @@
 package actions
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/stellar/go/keypair"
@@ -9,6 +8,7 @@ import (
 	"github.com/stellar/go/services/horizon/internal/context"
 	"github.com/stellar/go/services/horizon/internal/db2/history"
 	"github.com/stellar/go/services/horizon/internal/ledger"
+	horizonProblem "github.com/stellar/go/services/horizon/internal/render/problem"
 )
 
 type KinesisCoinInCirculationQuery struct {
@@ -30,7 +30,7 @@ func (handler KinesisCoinInCirculationHandler) GetResource(w HeaderWriter, r *ht
 	cic := horizon.KinesisCoinInCirculation{}
 
 	if handler.LedgerState.CurrentStatus().HorizonStatus.HistoryElder > 2 {
-		fmt.Println("Ledger is too high")
+		return nil, horizonProblem.PartialLedgerIngested
 	}
 
 	historyQ, err := context.HistoryQFromRequest(r)
