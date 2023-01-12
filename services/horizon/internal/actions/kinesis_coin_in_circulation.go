@@ -43,10 +43,6 @@ func (handler KinesisCoinInCirculationHandler) GetResource(w HeaderWriter, r *ht
 			)
 		}
 		criteria.FromDate = date.Format("2006-01-02")
-	} else {
-		// 7 days
-		date := time.Now().AddDate(0, 0, -7)
-		criteria.FromDate = date.Format("2006-01-02")
 	}
 
 	// known accounts
