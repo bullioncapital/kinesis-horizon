@@ -19,6 +19,9 @@ COPY . .
 # RUN /etc/init.d/postgresql start 11 && \
 #     go test -race -cover ./...
 
+ENV CGO_ENABLED=0
+ENV HORIZON_VERSION="-X=github.com/stellar/go/support/app.version=$VERSION"
+ENV GOFLAGS="-ldflags=$HORIZON_VERSION"
 RUN go install ./...
 
 FROM ${KINESIS_CORE_IMAGE} as core
