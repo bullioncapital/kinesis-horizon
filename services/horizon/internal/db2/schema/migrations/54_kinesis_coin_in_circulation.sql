@@ -4,8 +4,8 @@ CREATE OR REPLACE VIEW v_create_account_merge_and_payment_ops
 AS
 SELECT
     tx.transaction_hash,
-    tx.created_at::date as tx_date,
-    tx.created_at,
+    l.closed_at::date as tx_date,
+    l.closed_at as created_at,
     tx.fee_charged/10000000.0 fee_paid,
     case 
         WHEN ops.type = 0 THEN 'create_account' 
@@ -35,6 +35,7 @@ FROM history_transactions tx
     0, -- account_created
     2  -- account_credited
   )
+  INNER JOIN history_ledgers l ON tx.ledger_sequence = l.sequence
 WHERE ops.type IN (
     0, -- CREATE_ACCOUNT6
     1, -- PAYMENT

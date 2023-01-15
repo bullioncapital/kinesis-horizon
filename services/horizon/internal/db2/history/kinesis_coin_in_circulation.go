@@ -28,8 +28,21 @@ func (q *Q) KinesisCoinInCirculation(ctx context.Context, criteria KinesisCoinIn
 		circulation,
 		mint,
 		redemption
-	`).From(fn).Where(sq.GtOrEq{"tx_date": criteria.FromDate})
+	`).From(fn)
 
+	if criteria.FromDate != "" {
+		selectFromDate := selectQuery.Where(sq.GtOrEq{"tx_date": criteria.FromDate})
+		return q.queryKinesisCoinInCirculation(ctx, selectFromDate)
+	}
+
+	// last 7 records
+	subQ := selectQuery.Limit(7).OrderBy("tx_date DESC")
+	reverseOrderQuery := sq.Select("*").FromSelect(subQ, "cic").OrderBy("tx_date ASC")
+
+	return q.queryKinesisCoinInCirculation(ctx, reverseOrderQuery)
+}
+
+func (q *Q) queryKinesisCoinInCirculation(ctx context.Context, selectQuery sq.SelectBuilder) ([]KinesisCoinInCirculation, error) {
 	var results []KinesisCoinInCirculation
 	if err := q.Select(ctx, &results, selectQuery); err != nil {
 		return nil, errors.Wrap(err, "could not run select query")
