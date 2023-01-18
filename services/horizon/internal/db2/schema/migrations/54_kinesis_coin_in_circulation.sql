@@ -76,13 +76,6 @@ BEGIN
                 t.source_account,
                 t.dest_account,
                 (CASE
-                    WHEN t.source_account IN (
-						emission_account 	-- emission
-                        ,root_account 	-- root
-                    ) THEN 0.0 -- exclude fee
-                    ELSE t.fee_paid
-                END) fee_paid,
-                (CASE
                     WHEN t.tx_type = 'Minting' THEN t.amount
                     ELSE 0.0
                 END)::decimal(18,7) as minting,
