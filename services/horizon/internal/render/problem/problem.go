@@ -124,4 +124,12 @@ var (
 		Detail: "Data cannot be presented because it's still being ingested. Please " +
 			"wait for several minutes before trying your request again.",
 	}
+
+	PartialLedgerIngested = problem.P{
+		Type:   "partial_ledger_ingested",
+		Title:  "Partial Ledger Ingested",
+		Status: http.StatusServiceUnavailable,
+		Detail: "This horizon service did not ingested full ledger." +
+			" Coin-in-circulation can only generate from full node.",
+	}
 )

@@ -460,6 +460,13 @@ type QCreateAccountsHistory interface {
 	CreateAccounts(ctx context.Context, addresses []string, maxBatchSize int) (map[string]int64, error)
 }
 
+type KinesisCoinInCirculation struct {
+	TxDate      string `db:"tx_date"`
+	Circulation string `db:"circulation"`
+	Mint        string `db:"mint"`
+	Redemption  string `db:"redemption"`
+}
+
 // Effect is a row of data from the `history_effects` table
 type Effect struct {
 	HistoryAccountID   int64       `db:"history_account_id"`
@@ -569,7 +576,7 @@ type Ledger struct {
 	MaxTxSetSize               int32       `db:"max_tx_set_size"`
 	ProtocolVersion            int32       `db:"protocol_version"`
 	LedgerHeaderXDR            null.String `db:"ledger_header"`
-	MaxFee					   int64       `db:"max_fee"`
+	MaxFee                     int64       `db:"max_fee"`
 }
 
 // LedgerCapacityUsageStats contains ledgers fullness stats.

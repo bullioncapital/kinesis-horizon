@@ -319,6 +319,7 @@ type Root struct {
 		Assets              hal.Link  `json:"assets"`
 		Effects             hal.Link  `json:"effects"`
 		FeeStats            hal.Link  `json:"fee_stats"`
+		CoinInCirculation   hal.Link  `json:"coin_in_circulation"`
 		Friendbot           *hal.Link `json:"friendbot,omitempty"`
 		Ledger              hal.Link  `json:"ledger"`
 		Ledgers             hal.Link  `json:"ledgers"`
@@ -889,4 +890,18 @@ func (f *AssetFilterConfig) UnmarshalJSON(data []byte) error {
 
 	*f = AssetFilterConfig(config)
 	return nil
+// Kinesis Coin-in-Circulation
+type KinesisCoinInCirculation struct {
+	IngestSequence        uint32                          `json:"ingest_latest_ledger"`
+	HorizonSequence       int32                           `json:"history_latest_ledger"`
+	HorizonLatestClosedAt time.Time                       `json:"history_latest_ledger_closed_at"`
+	HistoryElderSequence  int32                           `json:"history_elder_ledger"`
+	Records               []KinesisDailyCoinInCirculation `json:"records"`
+}
+
+type KinesisDailyCoinInCirculation struct {
+	Circulation string `json:"circulation"`
+	Mint        string `json:"mint"`
+	Redemption  string `json:"redemption"`
+	Date        string `json:"date"`
 }
