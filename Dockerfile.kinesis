@@ -34,7 +34,7 @@ EXPOSE 9473
 
 # ca-certificates are required to make tls connections
 RUN apt-get update && apt-get upgrade -y \
-  && apt-get install -y --no-install-recommends ca-certificates curl wget gnupg apt-utils jq \
+  && apt-get install -y --no-install-recommends ca-certificates curl wget gnupg apt-utils jq libpq5 \
   && apt-get clean
 
 COPY --from=core /usr/bin/stellar-core /usr/bin/stellar-core
