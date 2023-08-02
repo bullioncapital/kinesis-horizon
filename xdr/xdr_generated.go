@@ -26,9 +26,9 @@ import (
 var XdrFilesSHA256 = map[string]string{
 	"xdr/Stellar-SCP.x":            "8f32b04d008f8bc33b8843d075e69837231a673691ee41d8b821ca229a6e802a",
 	"xdr/Stellar-ledger-entries.x": "3aa135c309c2d67883f165961739b4940c90df59240d8aeef55deced8d7708b5",
-	"xdr/Stellar-ledger.x":         "96ac88de23d2b0f2f23a0495527c8aefb8623b4db0e39ba34f357d10a211c214",
-	"xdr/Stellar-overlay.x":        "de3957c58b96ae07968b3d3aebea84f83603e95322d1fa336360e13e3aba737a",
-	"xdr/Stellar-transaction.x":    "45fdeb428e68d6b07e3e3157b6404567e0efb712c9d4c90a61a1035854c32b90",
+	"xdr/Stellar-ledger.x":         "12e39f8679d332000b776fe2983d076586f10fdf696bb22783150e502cbcf951",
+	"xdr/Stellar-overlay.x":        "3093b425866f34b32702d80d5298f9f2dc00736b0fdaac7efa653490a39fb231",
+	"xdr/Stellar-transaction.x":    "89d3c16597cafa4d69ef7787b9b9607e423e918aa84b30c02ae536f59d5b44b1",
 	"xdr/Stellar-types.x":          "60b7588e573f5e5518766eb5e6b6ea42f0e53144663cbe557e485cceb6306c85",
 }
 
@@ -10299,6 +10299,8 @@ var _ xdrType = (*LedgerHeaderExt)(nil)
 //	     uint64 idPool; // last used global ID, used for generating objects
 //
 //	     uint32 baseFee;     // base fee per operation in stroops
+//	     uint32 basePercentageFee;     // base percentage fee per create account and payment operation, in basis points
+//	     uint64 maxFee;     // max fee  transactions like per create account and payment operation
 //	     uint32 baseReserve; // account base reserve in stroops
 //
 //	     uint32 maxTxSetSize; // maximum size a transaction set can be
@@ -10331,6 +10333,8 @@ type LedgerHeader struct {
 	InflationSeq       Uint32
 	IdPool             Uint64
 	BaseFee            Uint32
+	BasePercentageFee  Uint32
+	MaxFee             Uint64
 	BaseReserve        Uint32
 	MaxTxSetSize       Uint32
 	SkipList           [4]Hash
@@ -10371,6 +10375,12 @@ func (s *LedgerHeader) EncodeTo(e *xdr.Encoder) error {
 		return err
 	}
 	if err = s.BaseFee.EncodeTo(e); err != nil {
+		return err
+	}
+	if err = s.BasePercentageFee.EncodeTo(e); err != nil {
+		return err
+	}
+	if err = s.MaxFee.EncodeTo(e); err != nil {
 		return err
 	}
 	if err = s.BaseReserve.EncodeTo(e); err != nil {
@@ -10451,6 +10461,16 @@ func (s *LedgerHeader) DecodeFrom(d *xdr.Decoder) (int, error) {
 	if err != nil {
 		return n, fmt.Errorf("decoding Uint32: %s", err)
 	}
+	nTmp, err = s.BasePercentageFee.DecodeFrom(d)
+	n += nTmp
+	if err != nil {
+		return n, fmt.Errorf("decoding Uint32: %s", err)
+	}
+	nTmp, err = s.MaxFee.DecodeFrom(d)
+	n += nTmp
+	if err != nil {
+		return n, fmt.Errorf("decoding Uint64: %s", err)
+	}
 	nTmp, err = s.BaseReserve.DecodeFrom(d)
 	n += nTmp
 	if err != nil {
@@ -10511,16 +10531,20 @@ var _ xdrType = (*LedgerHeader)(nil)
 //	     LEDGER_UPGRADE_BASE_FEE = 2,
 //	     LEDGER_UPGRADE_MAX_TX_SET_SIZE = 3,
 //	     LEDGER_UPGRADE_BASE_RESERVE = 4,
-//	     LEDGER_UPGRADE_FLAGS = 5
+//	     LEDGER_UPGRADE_BASE_PERCENTAGE_FEE = 5,
+//	     LEDGER_UPGRADE_MAX_FEE = 6,
+//	     LEDGER_UPGRADE_FLAGS = 7
 //	 };
 type LedgerUpgradeType int32
 
 const (
-	LedgerUpgradeTypeLedgerUpgradeVersion      LedgerUpgradeType = 1
-	LedgerUpgradeTypeLedgerUpgradeBaseFee      LedgerUpgradeType = 2
-	LedgerUpgradeTypeLedgerUpgradeMaxTxSetSize LedgerUpgradeType = 3
-	LedgerUpgradeTypeLedgerUpgradeBaseReserve  LedgerUpgradeType = 4
-	LedgerUpgradeTypeLedgerUpgradeFlags        LedgerUpgradeType = 5
+	LedgerUpgradeTypeLedgerUpgradeVersion           LedgerUpgradeType = 1
+	LedgerUpgradeTypeLedgerUpgradeBaseFee           LedgerUpgradeType = 2
+	LedgerUpgradeTypeLedgerUpgradeMaxTxSetSize      LedgerUpgradeType = 3
+	LedgerUpgradeTypeLedgerUpgradeBaseReserve       LedgerUpgradeType = 4
+	LedgerUpgradeTypeLedgerUpgradeBasePercentageFee LedgerUpgradeType = 5
+	LedgerUpgradeTypeLedgerUpgradeMaxFee            LedgerUpgradeType = 6
+	LedgerUpgradeTypeLedgerUpgradeFlags             LedgerUpgradeType = 7
 )
 
 var ledgerUpgradeTypeMap = map[int32]string{
@@ -10528,7 +10552,9 @@ var ledgerUpgradeTypeMap = map[int32]string{
 	2: "LedgerUpgradeTypeLedgerUpgradeBaseFee",
 	3: "LedgerUpgradeTypeLedgerUpgradeMaxTxSetSize",
 	4: "LedgerUpgradeTypeLedgerUpgradeBaseReserve",
-	5: "LedgerUpgradeTypeLedgerUpgradeFlags",
+	5: "LedgerUpgradeTypeLedgerUpgradeBasePercentageFee",
+	6: "LedgerUpgradeTypeLedgerUpgradeMaxFee",
+	7: "LedgerUpgradeTypeLedgerUpgradeFlags",
 }
 
 // ValidEnum validates a proposed value for this enum.  Implements
@@ -10607,16 +10633,22 @@ var _ xdrType = (*LedgerUpgradeType)(nil)
 //	     uint32 newMaxTxSetSize; // update maxTxSetSize
 //	 case LEDGER_UPGRADE_BASE_RESERVE:
 //	     uint32 newBaseReserve; // update baseReserve
+//	 case LEDGER_UPGRADE_BASE_PERCENTAGE_FEE:
+//	     uint32 newBasePercentageFee; // update basePercentageFee
+//	 case LEDGER_UPGRADE_MAX_FEE:
+//	     uint64 newMaxFee; // update maxFee
 //	 case LEDGER_UPGRADE_FLAGS:
 //	     uint32 newFlags; // update flags
 //	 };
 type LedgerUpgrade struct {
-	Type             LedgerUpgradeType
-	NewLedgerVersion *Uint32
-	NewBaseFee       *Uint32
-	NewMaxTxSetSize  *Uint32
-	NewBaseReserve   *Uint32
-	NewFlags         *Uint32
+	Type                 LedgerUpgradeType
+	NewLedgerVersion     *Uint32
+	NewBaseFee           *Uint32
+	NewMaxTxSetSize      *Uint32
+	NewBaseReserve       *Uint32
+	NewBasePercentageFee *Uint32
+	NewMaxFee            *Uint64
+	NewFlags             *Uint32
 }
 
 // SwitchFieldName returns the field name in which this union's
@@ -10637,6 +10669,10 @@ func (u LedgerUpgrade) ArmForSwitch(sw int32) (string, bool) {
 		return "NewMaxTxSetSize", true
 	case LedgerUpgradeTypeLedgerUpgradeBaseReserve:
 		return "NewBaseReserve", true
+	case LedgerUpgradeTypeLedgerUpgradeBasePercentageFee:
+		return "NewBasePercentageFee", true
+	case LedgerUpgradeTypeLedgerUpgradeMaxFee:
+		return "NewMaxFee", true
 	case LedgerUpgradeTypeLedgerUpgradeFlags:
 		return "NewFlags", true
 	}
@@ -10675,6 +10711,20 @@ func NewLedgerUpgrade(aType LedgerUpgradeType, value interface{}) (result Ledger
 			return
 		}
 		result.NewBaseReserve = &tv
+	case LedgerUpgradeTypeLedgerUpgradeBasePercentageFee:
+		tv, ok := value.(Uint32)
+		if !ok {
+			err = fmt.Errorf("invalid value, must be Uint32")
+			return
+		}
+		result.NewBasePercentageFee = &tv
+	case LedgerUpgradeTypeLedgerUpgradeMaxFee:
+		tv, ok := value.(Uint64)
+		if !ok {
+			err = fmt.Errorf("invalid value, must be Uint64")
+			return
+		}
+		result.NewMaxFee = &tv
 	case LedgerUpgradeTypeLedgerUpgradeFlags:
 		tv, ok := value.(Uint32)
 		if !ok {
@@ -10786,6 +10836,56 @@ func (u LedgerUpgrade) GetNewBaseReserve() (result Uint32, ok bool) {
 	return
 }
 
+// MustNewBasePercentageFee retrieves the NewBasePercentageFee value from the union,
+// panicing if the value is not set.
+func (u LedgerUpgrade) MustNewBasePercentageFee() Uint32 {
+	val, ok := u.GetNewBasePercentageFee()
+
+	if !ok {
+		panic("arm NewBasePercentageFee is not set")
+	}
+
+	return val
+}
+
+// GetNewBasePercentageFee retrieves the NewBasePercentageFee value from the union,
+// returning ok if the union's switch indicated the value is valid.
+func (u LedgerUpgrade) GetNewBasePercentageFee() (result Uint32, ok bool) {
+	armName, _ := u.ArmForSwitch(int32(u.Type))
+
+	if armName == "NewBasePercentageFee" {
+		result = *u.NewBasePercentageFee
+		ok = true
+	}
+
+	return
+}
+
+// MustNewMaxFee retrieves the NewMaxFee value from the union,
+// panicing if the value is not set.
+func (u LedgerUpgrade) MustNewMaxFee() Uint64 {
+	val, ok := u.GetNewMaxFee()
+
+	if !ok {
+		panic("arm NewMaxFee is not set")
+	}
+
+	return val
+}
+
+// GetNewMaxFee retrieves the NewMaxFee value from the union,
+// returning ok if the union's switch indicated the value is valid.
+func (u LedgerUpgrade) GetNewMaxFee() (result Uint64, ok bool) {
+	armName, _ := u.ArmForSwitch(int32(u.Type))
+
+	if armName == "NewMaxFee" {
+		result = *u.NewMaxFee
+		ok = true
+	}
+
+	return
+}
+
 // MustNewFlags retrieves the NewFlags value from the union,
 // panicing if the value is not set.
 func (u LedgerUpgrade) MustNewFlags() Uint32 {
@@ -10835,6 +10935,16 @@ func (u LedgerUpgrade) EncodeTo(e *xdr.Encoder) error {
 		return nil
 	case LedgerUpgradeTypeLedgerUpgradeBaseReserve:
 		if err = (*u.NewBaseReserve).EncodeTo(e); err != nil {
+			return err
+		}
+		return nil
+	case LedgerUpgradeTypeLedgerUpgradeBasePercentageFee:
+		if err = (*u.NewBasePercentageFee).EncodeTo(e); err != nil {
+			return err
+		}
+		return nil
+	case LedgerUpgradeTypeLedgerUpgradeMaxFee:
+		if err = (*u.NewMaxFee).EncodeTo(e); err != nil {
 			return err
 		}
 		return nil
@@ -10889,6 +10999,22 @@ func (u *LedgerUpgrade) DecodeFrom(d *xdr.Decoder) (int, error) {
 		n += nTmp
 		if err != nil {
 			return n, fmt.Errorf("decoding Uint32: %s", err)
+		}
+		return n, nil
+	case LedgerUpgradeTypeLedgerUpgradeBasePercentageFee:
+		u.NewBasePercentageFee = new(Uint32)
+		nTmp, err = (*u.NewBasePercentageFee).DecodeFrom(d)
+		n += nTmp
+		if err != nil {
+			return n, fmt.Errorf("decoding Uint32: %s", err)
+		}
+		return n, nil
+	case LedgerUpgradeTypeLedgerUpgradeMaxFee:
+		u.NewMaxFee = new(Uint64)
+		nTmp, err = (*u.NewMaxFee).DecodeFrom(d)
+		n += nTmp
+		if err != nil {
+			return n, fmt.Errorf("decoding Uint64: %s", err)
 		}
 		return n, nil
 	case LedgerUpgradeTypeLedgerUpgradeFlags:
@@ -15117,76 +15243,6 @@ func (s SendMore) xdrType() {}
 
 var _ xdrType = (*SendMore)(nil)
 
-// SendMoreExtended is an XDR Struct defines as:
-//
-//	struct SendMoreExtended
-//	 {
-//	     uint32 numMessages;
-//	     uint32 numBytes;
-//	 };
-type SendMoreExtended struct {
-	NumMessages Uint32
-	NumBytes    Uint32
-}
-
-// EncodeTo encodes this value using the Encoder.
-func (s *SendMoreExtended) EncodeTo(e *xdr.Encoder) error {
-	var err error
-	if err = s.NumMessages.EncodeTo(e); err != nil {
-		return err
-	}
-	if err = s.NumBytes.EncodeTo(e); err != nil {
-		return err
-	}
-	return nil
-}
-
-var _ decoderFrom = (*SendMoreExtended)(nil)
-
-// DecodeFrom decodes this value using the Decoder.
-func (s *SendMoreExtended) DecodeFrom(d *xdr.Decoder) (int, error) {
-	var err error
-	var n, nTmp int
-	nTmp, err = s.NumMessages.DecodeFrom(d)
-	n += nTmp
-	if err != nil {
-		return n, fmt.Errorf("decoding Uint32: %s", err)
-	}
-	nTmp, err = s.NumBytes.DecodeFrom(d)
-	n += nTmp
-	if err != nil {
-		return n, fmt.Errorf("decoding Uint32: %s", err)
-	}
-	return n, nil
-}
-
-// MarshalBinary implements encoding.BinaryMarshaler.
-func (s SendMoreExtended) MarshalBinary() ([]byte, error) {
-	b := bytes.Buffer{}
-	e := xdr.NewEncoder(&b)
-	err := s.EncodeTo(e)
-	return b.Bytes(), err
-}
-
-// UnmarshalBinary implements encoding.BinaryUnmarshaler.
-func (s *SendMoreExtended) UnmarshalBinary(inp []byte) error {
-	r := bytes.NewReader(inp)
-	d := xdr.NewDecoder(r)
-	_, err := s.DecodeFrom(d)
-	return err
-}
-
-var (
-	_ encoding.BinaryMarshaler   = (*SendMoreExtended)(nil)
-	_ encoding.BinaryUnmarshaler = (*SendMoreExtended)(nil)
-)
-
-// xdrType signals that this type is an type representing
-// representing XDR values defined by this package.
-func (s SendMoreExtended) xdrType() {}
-
-var _ xdrType = (*SendMoreExtended)(nil)
-
 // AuthCert is an XDR Struct defines as:
 //
 //	struct AuthCert
@@ -15407,10 +15463,10 @@ func (s Hello) xdrType() {}
 
 var _ xdrType = (*Hello)(nil)
 
-// AuthMsgFlagFlowControlBytesRequested is an XDR Const defines as:
+// AuthMsgFlagPullModeRequested is an XDR Const defines as:
 //
-//	const AUTH_MSG_FLAG_FLOW_CONTROL_BYTES_REQUESTED = 200;
-const AuthMsgFlagFlowControlBytesRequested = 200
+//	const AUTH_MSG_FLAG_PULL_MODE_REQUESTED = 100;
+const AuthMsgFlagPullModeRequested = 100
 
 // Auth is an XDR Struct defines as:
 //
@@ -15857,8 +15913,6 @@ var _ xdrType = (*PeerAddress)(nil)
 //	     SURVEY_RESPONSE = 15,
 //
 //	     SEND_MORE = 16,
-//	     SEND_MORE_EXTENDED = 20,
-//
 //	     FLOOD_ADVERT = 18,
 //	     FLOOD_DEMAND = 19
 //	 };
@@ -15882,7 +15936,6 @@ const (
 	MessageTypeSurveyRequest    MessageType = 14
 	MessageTypeSurveyResponse   MessageType = 15
 	MessageTypeSendMore         MessageType = 16
-	MessageTypeSendMoreExtended MessageType = 20
 	MessageTypeFloodAdvert      MessageType = 18
 	MessageTypeFloodDemand      MessageType = 19
 )
@@ -15905,7 +15958,6 @@ var messageTypeMap = map[int32]string{
 	14: "MessageTypeSurveyRequest",
 	15: "MessageTypeSurveyResponse",
 	16: "MessageTypeSendMore",
-	20: "MessageTypeSendMoreExtended",
 	18: "MessageTypeFloodAdvert",
 	19: "MessageTypeFloodDemand",
 }
@@ -16123,89 +16175,6 @@ var (
 func (s SurveyMessageCommandType) xdrType() {}
 
 var _ xdrType = (*SurveyMessageCommandType)(nil)
-
-// SurveyMessageResponseType is an XDR Enum defines as:
-//
-//	enum SurveyMessageResponseType
-//	 {
-//	     SURVEY_TOPOLOGY_RESPONSE_V0 = 0,
-//	     SURVEY_TOPOLOGY_RESPONSE_V1 = 1
-//	 };
-type SurveyMessageResponseType int32
-
-const (
-	SurveyMessageResponseTypeSurveyTopologyResponseV0 SurveyMessageResponseType = 0
-	SurveyMessageResponseTypeSurveyTopologyResponseV1 SurveyMessageResponseType = 1
-)
-
-var surveyMessageResponseTypeMap = map[int32]string{
-	0: "SurveyMessageResponseTypeSurveyTopologyResponseV0",
-	1: "SurveyMessageResponseTypeSurveyTopologyResponseV1",
-}
-
-// ValidEnum validates a proposed value for this enum.  Implements
-// the Enum interface for SurveyMessageResponseType
-func (e SurveyMessageResponseType) ValidEnum(v int32) bool {
-	_, ok := surveyMessageResponseTypeMap[v]
-	return ok
-}
-
-// String returns the name of `e`
-func (e SurveyMessageResponseType) String() string {
-	name, _ := surveyMessageResponseTypeMap[int32(e)]
-	return name
-}
-
-// EncodeTo encodes this value using the Encoder.
-func (e SurveyMessageResponseType) EncodeTo(enc *xdr.Encoder) error {
-	if _, ok := surveyMessageResponseTypeMap[int32(e)]; !ok {
-		return fmt.Errorf("'%d' is not a valid SurveyMessageResponseType enum value", e)
-	}
-	_, err := enc.EncodeInt(int32(e))
-	return err
-}
-
-var _ decoderFrom = (*SurveyMessageResponseType)(nil)
-
-// DecodeFrom decodes this value using the Decoder.
-func (e *SurveyMessageResponseType) DecodeFrom(d *xdr.Decoder) (int, error) {
-	v, n, err := d.DecodeInt()
-	if err != nil {
-		return n, fmt.Errorf("decoding SurveyMessageResponseType: %s", err)
-	}
-	if _, ok := surveyMessageResponseTypeMap[v]; !ok {
-		return n, fmt.Errorf("'%d' is not a valid SurveyMessageResponseType enum value", v)
-	}
-	*e = SurveyMessageResponseType(v)
-	return n, nil
-}
-
-// MarshalBinary implements encoding.BinaryMarshaler.
-func (s SurveyMessageResponseType) MarshalBinary() ([]byte, error) {
-	b := bytes.Buffer{}
-	e := xdr.NewEncoder(&b)
-	err := s.EncodeTo(e)
-	return b.Bytes(), err
-}
-
-// UnmarshalBinary implements encoding.BinaryUnmarshaler.
-func (s *SurveyMessageResponseType) UnmarshalBinary(inp []byte) error {
-	r := bytes.NewReader(inp)
-	d := xdr.NewDecoder(r)
-	_, err := s.DecodeFrom(d)
-	return err
-}
-
-var (
-	_ encoding.BinaryMarshaler   = (*SurveyMessageResponseType)(nil)
-	_ encoding.BinaryUnmarshaler = (*SurveyMessageResponseType)(nil)
-)
-
-// xdrType signals that this type is an type representing
-// representing XDR values defined by this package.
-func (s SurveyMessageResponseType) xdrType() {}
-
-var _ xdrType = (*SurveyMessageResponseType)(nil)
 
 // SurveyRequestMessage is an XDR Struct defines as:
 //
@@ -16889,9 +16858,9 @@ func (s PeerStatList) xdrType() {}
 
 var _ xdrType = (*PeerStatList)(nil)
 
-// TopologyResponseBodyV0 is an XDR Struct defines as:
+// TopologyResponseBody is an XDR Struct defines as:
 //
-//	struct TopologyResponseBodyV0
+//	struct TopologyResponseBody
 //	 {
 //	     PeerStatList inboundPeers;
 //	     PeerStatList outboundPeers;
@@ -16899,7 +16868,7 @@ var _ xdrType = (*PeerStatList)(nil)
 //	     uint32 totalInboundPeerCount;
 //	     uint32 totalOutboundPeerCount;
 //	 };
-type TopologyResponseBodyV0 struct {
+type TopologyResponseBody struct {
 	InboundPeers           PeerStatList
 	OutboundPeers          PeerStatList
 	TotalInboundPeerCount  Uint32
@@ -16907,7 +16876,7 @@ type TopologyResponseBodyV0 struct {
 }
 
 // EncodeTo encodes this value using the Encoder.
-func (s *TopologyResponseBodyV0) EncodeTo(e *xdr.Encoder) error {
+func (s *TopologyResponseBody) EncodeTo(e *xdr.Encoder) error {
 	var err error
 	if err = s.InboundPeers.EncodeTo(e); err != nil {
 		return err
@@ -16924,10 +16893,10 @@ func (s *TopologyResponseBodyV0) EncodeTo(e *xdr.Encoder) error {
 	return nil
 }
 
-var _ decoderFrom = (*TopologyResponseBodyV0)(nil)
+var _ decoderFrom = (*TopologyResponseBody)(nil)
 
 // DecodeFrom decodes this value using the Decoder.
-func (s *TopologyResponseBodyV0) DecodeFrom(d *xdr.Decoder) (int, error) {
+func (s *TopologyResponseBody) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
 	nTmp, err = s.InboundPeers.DecodeFrom(d)
@@ -16954,7 +16923,7 @@ func (s *TopologyResponseBodyV0) DecodeFrom(d *xdr.Decoder) (int, error) {
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
-func (s TopologyResponseBodyV0) MarshalBinary() ([]byte, error) {
+func (s TopologyResponseBody) MarshalBinary() ([]byte, error) {
 	b := bytes.Buffer{}
 	e := xdr.NewEncoder(&b)
 	err := s.EncodeTo(e)
@@ -16962,7 +16931,7 @@ func (s TopologyResponseBodyV0) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler.
-func (s *TopologyResponseBodyV0) UnmarshalBinary(inp []byte) error {
+func (s *TopologyResponseBody) UnmarshalBinary(inp []byte) error {
 	r := bytes.NewReader(inp)
 	d := xdr.NewDecoder(r)
 	_, err := s.DecodeFrom(d)
@@ -16970,141 +16939,26 @@ func (s *TopologyResponseBodyV0) UnmarshalBinary(inp []byte) error {
 }
 
 var (
-	_ encoding.BinaryMarshaler   = (*TopologyResponseBodyV0)(nil)
-	_ encoding.BinaryUnmarshaler = (*TopologyResponseBodyV0)(nil)
+	_ encoding.BinaryMarshaler   = (*TopologyResponseBody)(nil)
+	_ encoding.BinaryUnmarshaler = (*TopologyResponseBody)(nil)
 )
 
 // xdrType signals that this type is an type representing
 // representing XDR values defined by this package.
-func (s TopologyResponseBodyV0) xdrType() {}
+func (s TopologyResponseBody) xdrType() {}
 
-var _ xdrType = (*TopologyResponseBodyV0)(nil)
-
-// TopologyResponseBodyV1 is an XDR Struct defines as:
-//
-//	struct TopologyResponseBodyV1
-//	 {
-//	     PeerStatList inboundPeers;
-//	     PeerStatList outboundPeers;
-//
-//	     uint32 totalInboundPeerCount;
-//	     uint32 totalOutboundPeerCount;
-//
-//	     uint32 maxInboundPeerCount;
-//	     uint32 maxOutboundPeerCount;
-//	 };
-type TopologyResponseBodyV1 struct {
-	InboundPeers           PeerStatList
-	OutboundPeers          PeerStatList
-	TotalInboundPeerCount  Uint32
-	TotalOutboundPeerCount Uint32
-	MaxInboundPeerCount    Uint32
-	MaxOutboundPeerCount   Uint32
-}
-
-// EncodeTo encodes this value using the Encoder.
-func (s *TopologyResponseBodyV1) EncodeTo(e *xdr.Encoder) error {
-	var err error
-	if err = s.InboundPeers.EncodeTo(e); err != nil {
-		return err
-	}
-	if err = s.OutboundPeers.EncodeTo(e); err != nil {
-		return err
-	}
-	if err = s.TotalInboundPeerCount.EncodeTo(e); err != nil {
-		return err
-	}
-	if err = s.TotalOutboundPeerCount.EncodeTo(e); err != nil {
-		return err
-	}
-	if err = s.MaxInboundPeerCount.EncodeTo(e); err != nil {
-		return err
-	}
-	if err = s.MaxOutboundPeerCount.EncodeTo(e); err != nil {
-		return err
-	}
-	return nil
-}
-
-var _ decoderFrom = (*TopologyResponseBodyV1)(nil)
-
-// DecodeFrom decodes this value using the Decoder.
-func (s *TopologyResponseBodyV1) DecodeFrom(d *xdr.Decoder) (int, error) {
-	var err error
-	var n, nTmp int
-	nTmp, err = s.InboundPeers.DecodeFrom(d)
-	n += nTmp
-	if err != nil {
-		return n, fmt.Errorf("decoding PeerStatList: %s", err)
-	}
-	nTmp, err = s.OutboundPeers.DecodeFrom(d)
-	n += nTmp
-	if err != nil {
-		return n, fmt.Errorf("decoding PeerStatList: %s", err)
-	}
-	nTmp, err = s.TotalInboundPeerCount.DecodeFrom(d)
-	n += nTmp
-	if err != nil {
-		return n, fmt.Errorf("decoding Uint32: %s", err)
-	}
-	nTmp, err = s.TotalOutboundPeerCount.DecodeFrom(d)
-	n += nTmp
-	if err != nil {
-		return n, fmt.Errorf("decoding Uint32: %s", err)
-	}
-	nTmp, err = s.MaxInboundPeerCount.DecodeFrom(d)
-	n += nTmp
-	if err != nil {
-		return n, fmt.Errorf("decoding Uint32: %s", err)
-	}
-	nTmp, err = s.MaxOutboundPeerCount.DecodeFrom(d)
-	n += nTmp
-	if err != nil {
-		return n, fmt.Errorf("decoding Uint32: %s", err)
-	}
-	return n, nil
-}
-
-// MarshalBinary implements encoding.BinaryMarshaler.
-func (s TopologyResponseBodyV1) MarshalBinary() ([]byte, error) {
-	b := bytes.Buffer{}
-	e := xdr.NewEncoder(&b)
-	err := s.EncodeTo(e)
-	return b.Bytes(), err
-}
-
-// UnmarshalBinary implements encoding.BinaryUnmarshaler.
-func (s *TopologyResponseBodyV1) UnmarshalBinary(inp []byte) error {
-	r := bytes.NewReader(inp)
-	d := xdr.NewDecoder(r)
-	_, err := s.DecodeFrom(d)
-	return err
-}
-
-var (
-	_ encoding.BinaryMarshaler   = (*TopologyResponseBodyV1)(nil)
-	_ encoding.BinaryUnmarshaler = (*TopologyResponseBodyV1)(nil)
-)
-
-// xdrType signals that this type is an type representing
-// representing XDR values defined by this package.
-func (s TopologyResponseBodyV1) xdrType() {}
-
-var _ xdrType = (*TopologyResponseBodyV1)(nil)
+var _ xdrType = (*TopologyResponseBody)(nil)
 
 // SurveyResponseBody is an XDR Union defines as:
 //
-//	union SurveyResponseBody switch (SurveyMessageResponseType type)
+//	union SurveyResponseBody switch (SurveyMessageCommandType type)
 //	 {
-//	 case SURVEY_TOPOLOGY_RESPONSE_V0:
-//	     TopologyResponseBodyV0 topologyResponseBodyV0;
-//	 case SURVEY_TOPOLOGY_RESPONSE_V1:
-//	     TopologyResponseBodyV1 topologyResponseBodyV1;
+//	 case SURVEY_TOPOLOGY:
+//	     TopologyResponseBody topologyResponseBody;
 //	 };
 type SurveyResponseBody struct {
-	Type                   SurveyMessageResponseType
-	TopologyResponseBodyV0 *TopologyResponseBodyV0
-	TopologyResponseBodyV1 *TopologyResponseBodyV1
+	Type                 SurveyMessageCommandType
+	TopologyResponseBody *TopologyResponseBody
 }
 
 // SwitchFieldName returns the field name in which this union's
@@ -17116,81 +16970,47 @@ func (u SurveyResponseBody) SwitchFieldName() string {
 // ArmForSwitch returns which field name should be used for storing
 // the value for an instance of SurveyResponseBody
 func (u SurveyResponseBody) ArmForSwitch(sw int32) (string, bool) {
-	switch SurveyMessageResponseType(sw) {
-	case SurveyMessageResponseTypeSurveyTopologyResponseV0:
-		return "TopologyResponseBodyV0", true
-	case SurveyMessageResponseTypeSurveyTopologyResponseV1:
-		return "TopologyResponseBodyV1", true
+	switch SurveyMessageCommandType(sw) {
+	case SurveyMessageCommandTypeSurveyTopology:
+		return "TopologyResponseBody", true
 	}
 	return "-", false
 }
 
 // NewSurveyResponseBody creates a new  SurveyResponseBody.
-func NewSurveyResponseBody(aType SurveyMessageResponseType, value interface{}) (result SurveyResponseBody, err error) {
+func NewSurveyResponseBody(aType SurveyMessageCommandType, value interface{}) (result SurveyResponseBody, err error) {
 	result.Type = aType
-	switch SurveyMessageResponseType(aType) {
-	case SurveyMessageResponseTypeSurveyTopologyResponseV0:
-		tv, ok := value.(TopologyResponseBodyV0)
+	switch SurveyMessageCommandType(aType) {
+	case SurveyMessageCommandTypeSurveyTopology:
+		tv, ok := value.(TopologyResponseBody)
 		if !ok {
-			err = fmt.Errorf("invalid value, must be TopologyResponseBodyV0")
+			err = fmt.Errorf("invalid value, must be TopologyResponseBody")
 			return
 		}
-		result.TopologyResponseBodyV0 = &tv
-	case SurveyMessageResponseTypeSurveyTopologyResponseV1:
-		tv, ok := value.(TopologyResponseBodyV1)
-		if !ok {
-			err = fmt.Errorf("invalid value, must be TopologyResponseBodyV1")
-			return
-		}
-		result.TopologyResponseBodyV1 = &tv
+		result.TopologyResponseBody = &tv
 	}
 	return
 }
 
-// MustTopologyResponseBodyV0 retrieves the TopologyResponseBodyV0 value from the union,
+// MustTopologyResponseBody retrieves the TopologyResponseBody value from the union,
 // panicing if the value is not set.
-func (u SurveyResponseBody) MustTopologyResponseBodyV0() TopologyResponseBodyV0 {
-	val, ok := u.GetTopologyResponseBodyV0()
+func (u SurveyResponseBody) MustTopologyResponseBody() TopologyResponseBody {
+	val, ok := u.GetTopologyResponseBody()
 
 	if !ok {
-		panic("arm TopologyResponseBodyV0 is not set")
+		panic("arm TopologyResponseBody is not set")
 	}
 
 	return val
 }
 
-// GetTopologyResponseBodyV0 retrieves the TopologyResponseBodyV0 value from the union,
+// GetTopologyResponseBody retrieves the TopologyResponseBody value from the union,
 // returning ok if the union's switch indicated the value is valid.
-func (u SurveyResponseBody) GetTopologyResponseBodyV0() (result TopologyResponseBodyV0, ok bool) {
+func (u SurveyResponseBody) GetTopologyResponseBody() (result TopologyResponseBody, ok bool) {
 	armName, _ := u.ArmForSwitch(int32(u.Type))
 
-	if armName == "TopologyResponseBodyV0" {
-		result = *u.TopologyResponseBodyV0
-		ok = true
-	}
-
-	return
-}
-
-// MustTopologyResponseBodyV1 retrieves the TopologyResponseBodyV1 value from the union,
-// panicing if the value is not set.
-func (u SurveyResponseBody) MustTopologyResponseBodyV1() TopologyResponseBodyV1 {
-	val, ok := u.GetTopologyResponseBodyV1()
-
-	if !ok {
-		panic("arm TopologyResponseBodyV1 is not set")
-	}
-
-	return val
-}
-
-// GetTopologyResponseBodyV1 retrieves the TopologyResponseBodyV1 value from the union,
-// returning ok if the union's switch indicated the value is valid.
-func (u SurveyResponseBody) GetTopologyResponseBodyV1() (result TopologyResponseBodyV1, ok bool) {
-	armName, _ := u.ArmForSwitch(int32(u.Type))
-
-	if armName == "TopologyResponseBodyV1" {
-		result = *u.TopologyResponseBodyV1
+	if armName == "TopologyResponseBody" {
+		result = *u.TopologyResponseBody
 		ok = true
 	}
 
@@ -17203,19 +17023,14 @@ func (u SurveyResponseBody) EncodeTo(e *xdr.Encoder) error {
 	if err = u.Type.EncodeTo(e); err != nil {
 		return err
 	}
-	switch SurveyMessageResponseType(u.Type) {
-	case SurveyMessageResponseTypeSurveyTopologyResponseV0:
-		if err = (*u.TopologyResponseBodyV0).EncodeTo(e); err != nil {
-			return err
-		}
-		return nil
-	case SurveyMessageResponseTypeSurveyTopologyResponseV1:
-		if err = (*u.TopologyResponseBodyV1).EncodeTo(e); err != nil {
+	switch SurveyMessageCommandType(u.Type) {
+	case SurveyMessageCommandTypeSurveyTopology:
+		if err = (*u.TopologyResponseBody).EncodeTo(e); err != nil {
 			return err
 		}
 		return nil
 	}
-	return fmt.Errorf("Type (SurveyMessageResponseType) switch value '%d' is not valid for union SurveyResponseBody", u.Type)
+	return fmt.Errorf("Type (SurveyMessageCommandType) switch value '%d' is not valid for union SurveyResponseBody", u.Type)
 }
 
 var _ decoderFrom = (*SurveyResponseBody)(nil)
@@ -17227,27 +17042,19 @@ func (u *SurveyResponseBody) DecodeFrom(d *xdr.Decoder) (int, error) {
 	nTmp, err = u.Type.DecodeFrom(d)
 	n += nTmp
 	if err != nil {
-		return n, fmt.Errorf("decoding SurveyMessageResponseType: %s", err)
+		return n, fmt.Errorf("decoding SurveyMessageCommandType: %s", err)
 	}
-	switch SurveyMessageResponseType(u.Type) {
-	case SurveyMessageResponseTypeSurveyTopologyResponseV0:
-		u.TopologyResponseBodyV0 = new(TopologyResponseBodyV0)
-		nTmp, err = (*u.TopologyResponseBodyV0).DecodeFrom(d)
+	switch SurveyMessageCommandType(u.Type) {
+	case SurveyMessageCommandTypeSurveyTopology:
+		u.TopologyResponseBody = new(TopologyResponseBody)
+		nTmp, err = (*u.TopologyResponseBody).DecodeFrom(d)
 		n += nTmp
 		if err != nil {
-			return n, fmt.Errorf("decoding TopologyResponseBodyV0: %s", err)
-		}
-		return n, nil
-	case SurveyMessageResponseTypeSurveyTopologyResponseV1:
-		u.TopologyResponseBodyV1 = new(TopologyResponseBodyV1)
-		nTmp, err = (*u.TopologyResponseBodyV1).DecodeFrom(d)
-		n += nTmp
-		if err != nil {
-			return n, fmt.Errorf("decoding TopologyResponseBodyV1: %s", err)
+			return n, fmt.Errorf("decoding TopologyResponseBody: %s", err)
 		}
 		return n, nil
 	}
-	return n, fmt.Errorf("union SurveyResponseBody has invalid Type (SurveyMessageResponseType) switch value '%d'", u.Type)
+	return n, fmt.Errorf("union SurveyResponseBody has invalid Type (SurveyMessageCommandType) switch value '%d'", u.Type)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -17611,8 +17418,7 @@ var _ xdrType = (*FloodDemand)(nil)
 //	     uint32 getSCPLedgerSeq; // ledger seq requested ; if 0, requests the latest
 //	 case SEND_MORE:
 //	     SendMore sendMoreMessage;
-//	 case SEND_MORE_EXTENDED:
-//	     SendMoreExtended sendMoreExtendedMessage;
+//
 //	 // Pull mode
 //	 case FLOOD_ADVERT:
 //	      FloodAdvert floodAdvert;
@@ -17637,7 +17443,6 @@ type StellarMessage struct {
 	Envelope                    *ScpEnvelope
 	GetScpLedgerSeq             *Uint32
 	SendMoreMessage             *SendMore
-	SendMoreExtendedMessage     *SendMoreExtended
 	FloodAdvert                 *FloodAdvert
 	FloodDemand                 *FloodDemand
 }
@@ -17686,8 +17491,6 @@ func (u StellarMessage) ArmForSwitch(sw int32) (string, bool) {
 		return "GetScpLedgerSeq", true
 	case MessageTypeSendMore:
 		return "SendMoreMessage", true
-	case MessageTypeSendMoreExtended:
-		return "SendMoreExtendedMessage", true
 	case MessageTypeFloodAdvert:
 		return "FloodAdvert", true
 	case MessageTypeFloodDemand:
@@ -17814,13 +17617,6 @@ func NewStellarMessage(aType MessageType, value interface{}) (result StellarMess
 			return
 		}
 		result.SendMoreMessage = &tv
-	case MessageTypeSendMoreExtended:
-		tv, ok := value.(SendMoreExtended)
-		if !ok {
-			err = fmt.Errorf("invalid value, must be SendMoreExtended")
-			return
-		}
-		result.SendMoreExtendedMessage = &tv
 	case MessageTypeFloodAdvert:
 		tv, ok := value.(FloodAdvert)
 		if !ok {
@@ -18239,31 +18035,6 @@ func (u StellarMessage) GetSendMoreMessage() (result SendMore, ok bool) {
 	return
 }
 
-// MustSendMoreExtendedMessage retrieves the SendMoreExtendedMessage value from the union,
-// panicing if the value is not set.
-func (u StellarMessage) MustSendMoreExtendedMessage() SendMoreExtended {
-	val, ok := u.GetSendMoreExtendedMessage()
-
-	if !ok {
-		panic("arm SendMoreExtendedMessage is not set")
-	}
-
-	return val
-}
-
-// GetSendMoreExtendedMessage retrieves the SendMoreExtendedMessage value from the union,
-// returning ok if the union's switch indicated the value is valid.
-func (u StellarMessage) GetSendMoreExtendedMessage() (result SendMoreExtended, ok bool) {
-	armName, _ := u.ArmForSwitch(int32(u.Type))
-
-	if armName == "SendMoreExtendedMessage" {
-		result = *u.SendMoreExtendedMessage
-		ok = true
-	}
-
-	return
-}
-
 // MustFloodAdvert retrieves the FloodAdvert value from the union,
 // panicing if the value is not set.
 func (u StellarMessage) MustFloodAdvert() FloodAdvert {
@@ -18406,11 +18177,6 @@ func (u StellarMessage) EncodeTo(e *xdr.Encoder) error {
 		return nil
 	case MessageTypeSendMore:
 		if err = (*u.SendMoreMessage).EncodeTo(e); err != nil {
-			return err
-		}
-		return nil
-	case MessageTypeSendMoreExtended:
-		if err = (*u.SendMoreExtendedMessage).EncodeTo(e); err != nil {
 			return err
 		}
 		return nil
@@ -18584,14 +18350,6 @@ func (u *StellarMessage) DecodeFrom(d *xdr.Decoder) (int, error) {
 		n += nTmp
 		if err != nil {
 			return n, fmt.Errorf("decoding SendMore: %s", err)
-		}
-		return n, nil
-	case MessageTypeSendMoreExtended:
-		u.SendMoreExtendedMessage = new(SendMoreExtended)
-		nTmp, err = (*u.SendMoreExtendedMessage).DecodeFrom(d)
-		n += nTmp
-		if err != nil {
-			return n, fmt.Errorf("decoding SendMoreExtended: %s", err)
 		}
 		return n, nil
 	case MessageTypeFloodAdvert:
@@ -24841,7 +24599,7 @@ var _ xdrType = (*TransactionV0Ext)(nil)
 //	struct TransactionV0
 //	 {
 //	     uint256 sourceAccountEd25519;
-//	     uint32 fee;
+//	     uint64 fee;
 //	     SequenceNumber seqNum;
 //	     TimeBounds* timeBounds;
 //	     Memo memo;
@@ -24855,7 +24613,7 @@ var _ xdrType = (*TransactionV0Ext)(nil)
 //	 };
 type TransactionV0 struct {
 	SourceAccountEd25519 Uint256
-	Fee                  Uint32
+	Fee                  Uint64
 	SeqNum               SequenceNumber
 	TimeBounds           *TimeBounds
 	Memo                 Memo
@@ -24914,7 +24672,7 @@ func (s *TransactionV0) DecodeFrom(d *xdr.Decoder) (int, error) {
 	nTmp, err = s.Fee.DecodeFrom(d)
 	n += nTmp
 	if err != nil {
-		return n, fmt.Errorf("decoding Uint32: %s", err)
+		return n, fmt.Errorf("decoding Uint64: %s", err)
 	}
 	nTmp, err = s.SeqNum.DecodeFrom(d)
 	n += nTmp
@@ -25193,7 +24951,7 @@ var _ xdrType = (*TransactionExt)(nil)
 //	     MuxedAccount sourceAccount;
 //
 //	     // the fee the sourceAccount will pay
-//	     uint32 fee;
+//	     uint64 fee;
 //
 //	     // sequence number to consume in the account
 //	     SequenceNumber seqNum;
@@ -25215,7 +24973,7 @@ var _ xdrType = (*TransactionExt)(nil)
 //	 };
 type Transaction struct {
 	SourceAccount MuxedAccount
-	Fee           Uint32
+	Fee           Uint64
 	SeqNum        SequenceNumber
 	Cond          Preconditions
 	Memo          Memo
@@ -25269,7 +25027,7 @@ func (s *Transaction) DecodeFrom(d *xdr.Decoder) (int, error) {
 	nTmp, err = s.Fee.DecodeFrom(d)
 	n += nTmp
 	if err != nil {
-		return n, fmt.Errorf("decoding Uint32: %s", err)
+		return n, fmt.Errorf("decoding Uint64: %s", err)
 	}
 	nTmp, err = s.SeqNum.DecodeFrom(d)
 	n += nTmp

@@ -35,11 +35,11 @@ gxdr/xdr_generated.go: $(XDRS)
 	go fmt $@
 
 xdr/%.x:
-	curl -Lsf -o $@ https://raw.githubusercontent.com/stellar/stellar-core/master/src/protocol-curr/$@
+	curl -Lsf -o $@ https://raw.githubusercontent.com/bullioncapital/kinesis-core/patch-v19.4.0/src/protocol-curr/$@
 
 xdr/xdr_generated.go: $(XDRS)
 	docker run -it --rm -v $$PWD:/wd -w /wd ruby /bin/bash -c '\
-		gem install specific_install && \
+		gem install specific_install -v 0.3.8 && \
 		gem specific_install https://github.com/stellar/xdrgen.git -b $(XDRGEN_COMMIT) && \
 		xdrgen \
 			--language go \
