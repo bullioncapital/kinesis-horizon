@@ -889,7 +889,8 @@ func (f *AssetFilterConfig) UnmarshalJSON(data []byte) error {
 	}
 
 	*f = AssetFilterConfig(config)
-	return nil
+	return nil;
+}
 // Kinesis Coin-in-Circulation
 type KinesisCoinInCirculation struct {
 	IngestSequence        uint32                          `json:"ingest_latest_ledger"`
