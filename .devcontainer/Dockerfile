@@ -76,7 +76,10 @@ COPY ../pg_hba.conf /etc/postgresql/12/main/pg_hba.conf
 RUN wget https://go.dev/dl/go1.19.linux-amd64.tar.gz && \
    rm -rf /usr/local/go && tar -C /usr/local -xzf go1.19.linux-amd64.tar.gz 
 
-RUN rm go1.19.linux-amd64.tar.gz
+RUN rm go1.19.linux-amd64.tar.gz 
+
+ENV PATH $PATH:/usr/local/go/bin    
+
 
 # install base container packages and prep for VSCode
   # Verify process tools, lsb-release (common in install instructions for CLIs) installed
@@ -110,7 +113,6 @@ RUN go mod download
 COPY ../ .
 RUN go mod download
 
-ENV PATH $PATH:/usr/local/go/bin    
 
 ENV CGO_ENABLED=0
 ENV HORIZON_VERSION="-X=github.com/stellar/go/support/app.version=$VERSION"
