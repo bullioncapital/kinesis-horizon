@@ -20,6 +20,8 @@ docker build --build-arg VERSION=$VERSION -t $IMAGE . -f Dockerfile.kinesis
 
 ## To run tests
 
-In Dockerfile.kinesis, uncomment skip test section and build docker image
-
-Setup dev container for horizon
+In vscode, open code as dev container. 
+```
+sudo service postgresql start
+go test ./...
+```
