@@ -41,7 +41,7 @@ RUN apt-get install -y --no-install-recommends vim && apt-get update
 
 # install PGSQL for integration testing
 RUN apt-get update && apt-get install -y --no-install-suggests --no-install-recommends postgresql && apt-get clean
-# COPY ../pg_hba.conf /etc/postgresql/12/main/pg_hba.conf
+COPY ../pg_hba.conf /etc/postgresql/15/main/pg_hba.conf
 
 # Set up locale
 RUN sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen \
@@ -52,11 +52,4 @@ ENV LANGUAGE en_US:en
 ENV LC_ALL en_US.UTF-8
 
 COPY --from=core /usr/bin/stellar-core /usr/bin/stellar-core
-# RUN ls
-# RUN chmod +x ./pgupdate.sh && ./pgupdate.sh
 
-# RUN ver=`psql --version | sed -n 's/.* \([0-9]\+\.[0-9]\+\).*/\1/p' | cut -d'.' -f1` &&\
-#    cp ../pg_hba.conf /etc/postgresql/${ver}/main/pg_hba.conf
-
-# RUN ver=`psql --version | sed -n 's/.* \([0-9]\+\.[0-9]\+\).*/\1/p' | cut -d'.' -f1` && export PGCONFPATH=/etc/postgresql/${ver}/main
-COPY ../pg_hba.conf /etc/postgresql/15/main/pg_hba.conf
