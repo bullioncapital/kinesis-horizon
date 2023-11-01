@@ -408,13 +408,13 @@ func TestOperationIncludeTransactions(t *testing.T) {
 func TestValidateTransactionForOperation(t *testing.T) {
 	tt := test.Start(t)
 	tt.Scenario("failed_transactions")
-	selectTransactionCopy := selectTransaction
+	selectTransactionCopy := selectTransactionHistory
 	defer func() {
-		selectTransaction = selectTransactionCopy
+		selectTransactionHistory = selectTransactionCopy
 		tt.Finish()
 	}()
 
-	selectTransaction = sq.Select(
+	selectTransactionHistory = sq.Select(
 		"ht.transaction_hash, " +
 			"ht.tx_result, " +
 			"COALESCE(ht.successful, true) as successful").
@@ -435,7 +435,7 @@ func TestValidateTransactionForOperation(t *testing.T) {
 	tt.Assert.Error(err)
 	tt.Assert.EqualError(err, "transaction id 0 does not match transaction id in operation 17179877376")
 
-	selectTransaction = sq.Select(
+	selectTransactionHistory = sq.Select(
 		"ht.id, " +
 			"ht.transaction_hash, " +
 			"COALESCE(ht.successful, true) as successful").
@@ -452,7 +452,7 @@ func TestValidateTransactionForOperation(t *testing.T) {
 	tt.Assert.Error(err)
 	tt.Assert.EqualError(err, "transaction result  does not match transaction result in operation AAAAAAAAAGQAAAAAAAAAAQAAAAAAAAABAAAAAAAAAAA=")
 
-	selectTransaction = sq.Select(
+	selectTransactionHistory = sq.Select(
 		"ht.id, " +
 			"ht.tx_result, " +
 			"COALESCE(ht.successful, true) as successful").
@@ -469,7 +469,7 @@ func TestValidateTransactionForOperation(t *testing.T) {
 	tt.Assert.Error(err)
 	tt.Assert.EqualError(err, "transaction hash  does not match transaction hash in operation 1c454630267aa8767ec8c8e30450cea6ba660145e9c924abb75d7a6669b6c28a")
 
-	selectTransaction = sq.Select(
+	selectTransactionHistory = sq.Select(
 		"ht.id, " +
 			"ht.tx_result, " +
 			"ht.transaction_hash").

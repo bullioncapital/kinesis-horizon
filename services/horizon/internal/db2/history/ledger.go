@@ -11,6 +11,7 @@ import (
 	"github.com/guregu/null"
 	"github.com/stellar/go/services/horizon/internal/db2"
 	"github.com/stellar/go/support/errors"
+	"github.com/stellar/go/support/ordered"
 	"github.com/stellar/go/toid"
 	"github.com/stellar/go/xdr"
 )
@@ -153,20 +154,6 @@ func (q *Q) GetLedgerGaps(ctx context.Context) ([]LedgerRange, error) {
 	return gaps, nil
 }
 
-func max(a, b uint32) uint32 {
-	if a > b {
-		return a
-	}
-	return b
-}
-
-func min(a, b uint32) uint32 {
-	if a > b {
-		return b
-	}
-	return a
-}
-
 // GetLedgerGapsInRange obtains ingestion gaps in the history_ledgers table within the given range.
 // Returns the gaps and error.
 func (q *Q) GetLedgerGapsInRange(ctx context.Context, start, end uint32) ([]LedgerRange, error) {
@@ -189,7 +176,7 @@ func (q *Q) GetLedgerGapsInRange(ctx context.Context, start, end uint32) ([]Ledg
 	if start < oldestLedger {
 		result = append(result, LedgerRange{
 			StartSequence: start,
-			EndSequence:   min(end, oldestLedger-1),
+			EndSequence:   ordered.Min(end, oldestLedger-1),
 		})
 	}
 	if end <= oldestLedger {
@@ -209,14 +196,14 @@ func (q *Q) GetLedgerGapsInRange(ctx context.Context, start, end uint32) ([]Ledg
 			break
 		}
 		result = append(result, LedgerRange{
-			StartSequence: max(gap.StartSequence, start),
-			EndSequence:   min(gap.EndSequence, end),
+			StartSequence: ordered.Max(gap.StartSequence, start),
+			EndSequence:   ordered.Min(gap.EndSequence, end),
 		})
 	}
 
 	if latestLedger < end {
 		result = append(result, LedgerRange{
-			StartSequence: max(latestLedger+1, start),
+			StartSequence: ordered.Max(latestLedger+1, start),
 			EndSequence:   end,
 		})
 	}

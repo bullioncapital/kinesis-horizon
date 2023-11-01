@@ -56,7 +56,7 @@ func (ce *ClientExpectation) ReturnJSON(
 
 // ReturnNotFound is a simple helper that causes this expectation to resolve to
 // a 404 error.  If a customized body is needed, use something like
-// `ReturnString`` instead.
+// `ReturnString“ instead.
 func (ce *ClientExpectation) ReturnNotFound() *ClientExpectation {
 	return ce.ReturnString(http.StatusNotFound, "not found")
 }

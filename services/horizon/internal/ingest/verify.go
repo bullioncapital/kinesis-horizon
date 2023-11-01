@@ -11,10 +11,10 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/stellar/go/ingest"
+	"github.com/stellar/go/ingest/verify"
 	"github.com/stellar/go/services/horizon/internal/db2"
 	"github.com/stellar/go/services/horizon/internal/db2/history"
 	"github.com/stellar/go/services/horizon/internal/ingest/processors"
-	"github.com/stellar/go/services/horizon/internal/ingest/verify"
 	"github.com/stellar/go/support/errors"
 	logpkg "github.com/stellar/go/support/log"
 	"github.com/stellar/go/xdr"
@@ -29,7 +29,7 @@ const assetStatsBatchSize = 500
 // check them.
 // There is a test that checks it, to fix it: update the actual `verifyState`
 // method instead of just updating this value!
-const stateVerifierExpectedIngestionVersion = 15
+const stateVerifierExpectedIngestionVersion = 16
 
 // verifyState is called as a go routine from pipeline post hook every 64
 // ledgers. It checks if the state is correct. If another go routine is already
@@ -82,7 +82,7 @@ func (s *system) verifyState(verifyAgainstLatestCheckpoint bool) error {
 	})
 
 	if !s.checkpointManager.IsCheckpoint(ledgerSequence) {
-		localLog.Info("Current ledger is not a checkpoint ledger. Cancelling...")
+		localLog.Info("Current ledger is not a checkpoint ledger. Canceling...")
 		return nil
 	}
 
@@ -101,7 +101,7 @@ func (s *system) verifyState(verifyAgainstLatestCheckpoint bool) error {
 			}
 
 			if ledgerSequence < historyLatestSequence {
-				localLog.Info("Current ledger is old. Cancelling...")
+				localLog.Info("Current ledger is old. Canceling...")
 				return nil
 			}
 
@@ -118,7 +118,7 @@ func (s *system) verifyState(verifyAgainstLatestCheckpoint bool) error {
 				// Wait for stellar-core to publish HAS
 				retries++
 				if retries == 12 {
-					localLog.Info("Checkpoint not published. Cancelling...")
+					localLog.Info("Checkpoint not published. Canceling...")
 					return nil
 				}
 			}
@@ -131,7 +131,7 @@ func (s *system) verifyState(verifyAgainstLatestCheckpoint bool) error {
 	defer func() {
 		duration := time.Since(startTime).Seconds()
 		if updateMetrics {
-			// Don't update metrics if context cancelled.
+			// Don't update metrics if context canceled.
 			if s.ctx.Err() != context.Canceled {
 				s.Metrics().StateVerifyDuration.Observe(float64(duration))
 				for typ, tot := range totalByType {
@@ -394,6 +394,18 @@ func addAccountsToStateVerifier(ctx context.Context, verifier *verify.StateVerif
 			}
 		}
 
+		// Accounts that haven't done anything since Protocol 19 will not have a
+		// V3 extension, so we need to check whether or not this extension needs
+		// to be filled out.
+		v3extension := xdr.AccountEntryExtensionV2Ext{V: 0}
+		if row.SequenceLedger.Valid && row.SequenceTime.Valid {
+			v3extension.V = 3
+			v3extension.V3 = &xdr.AccountEntryExtensionV3{
+				SeqLedger: xdr.Uint32(row.SequenceLedger.Int64),
+				SeqTime:   xdr.TimePoint(row.SequenceTime.Int64),
+			}
+		}
+
 		account := &xdr.AccountEntry{
 			AccountId:     xdr.MustAddress(row.AccountID),
 			Balance:       xdr.Int64(row.Balance),
@@ -422,6 +434,7 @@ func addAccountsToStateVerifier(ctx context.Context, verifier *verify.StateVerif
 							NumSponsored:        xdr.Uint32(row.NumSponsored),
 							NumSponsoring:       xdr.Uint32(row.NumSponsoring),
 							SignerSponsoringIDs: signerSponsoringIDs,
+							Ext:                 v3extension,
 						},
 					},
 				},
@@ -659,6 +672,11 @@ func addClaimableBalanceToStateVerifier(
 		return errors.Wrap(err, "Error running history.Q.GetClaimableBalancesByID")
 	}
 
+	cBalancesClaimants, err := q.GetClaimantsByClaimableBalances(ctx, idStrings)
+	if err != nil {
+		return errors.Wrap(err, "Error running history.Q.GetClaimantsByClaimableBalances")
+	}
+
 	for _, row := range cBalances {
 		claimants := []xdr.Claimant{}
 		for _, claimant := range row.Claimants {
@@ -671,6 +689,31 @@ func addClaimableBalanceToStateVerifier(
 			})
 		}
 		claimants = xdr.SortClaimantsByDestination(claimants)
+
+		// Check if balances in claimable_balance_claimants table match.
+		if len(claimants) != len(cBalancesClaimants[row.BalanceID]) {
+			return ingest.NewStateError(
+				fmt.Errorf(
+					"claimable_balance_claimants length (%d) for claimants doesn't match claimable_balance table (%d)",
+					len(cBalancesClaimants[row.BalanceID]), len(claimants),
+				),
+			)
+		}
+
+		for i, claimant := range claimants {
+			if claimant.MustV0().Destination.Address() != cBalancesClaimants[row.BalanceID][i].Destination ||
+				row.LastModifiedLedger != cBalancesClaimants[row.BalanceID][i].LastModifiedLedger {
+				return fmt.Errorf(
+					"claimable_balance_claimants table for balance %s does not match. expectedDestination=%s actualDestination=%s, expectedLastModifiedLedger=%d actualLastModifiedLedger=%d",
+					row.BalanceID,
+					claimant.MustV0().Destination.Address(),
+					cBalancesClaimants[row.BalanceID][i].Destination,
+					row.LastModifiedLedger,
+					cBalancesClaimants[row.BalanceID][i].LastModifiedLedger,
+				)
+			}
+		}
+
 		var balanceID xdr.ClaimableBalanceId
 		if err := xdr.SafeUnmarshalHex(row.BalanceID, &balanceID); err != nil {
 			return err

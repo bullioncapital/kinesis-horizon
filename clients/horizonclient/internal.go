@@ -8,19 +8,24 @@ import (
 	"strings"
 	"time"
 
+	"github.com/stellar/go/support/clock"
 	"github.com/stellar/go/support/errors"
 )
 
 // decodeResponse decodes the response from a request to a horizon server
-func decodeResponse(resp *http.Response, object interface{}, hc *Client) (err error) {
+func decodeResponse(resp *http.Response, object interface{}, horizonUrl string, clock *clock.Clock) (err error) {
 	defer resp.Body.Close()
+	if object == nil {
+		// Nothing to decode
+		return nil
+	}
 	decoder := json.NewDecoder(resp.Body)
 
-	u, err := url.Parse(hc.HorizonURL)
+	u, err := url.Parse(horizonUrl)
 	if err != nil {
-		return errors.Errorf("unable to parse the provided horizon url: %s", hc.HorizonURL)
+		return errors.Errorf("unable to parse the provided horizon url: %s", horizonUrl)
 	}
-	setCurrentServerTime(u.Hostname(), resp.Header["Date"], hc)
+	setCurrentServerTime(u.Hostname(), resp.Header["Date"], clock)
 
 	if !(resp.StatusCode >= 200 && resp.StatusCode < 300) {
 		horizonError := &Error{
@@ -32,7 +37,6 @@ func decodeResponse(resp *http.Response, object interface{}, hc *Client) (err er
 		}
 		return horizonError
 	}
-
 	err = decoder.Decode(&object)
 	if err != nil {
 		return errors.Wrap(err, "error decoding response")
@@ -120,7 +124,7 @@ func addQueryParams(params ...interface{}) string {
 }
 
 // setCurrentServerTime saves the current time returned by a horizon server
-func setCurrentServerTime(host string, serverDate []string, hc *Client) {
+func setCurrentServerTime(host string, serverDate []string, clock *clock.Clock) {
 	if len(serverDate) == 0 {
 		return
 	}
@@ -129,16 +133,16 @@ func setCurrentServerTime(host string, serverDate []string, hc *Client) {
 		return
 	}
 	serverTimeMapMutex.Lock()
-	ServerTimeMap[host] = ServerTimeRecord{ServerTime: st.UTC().Unix(), LocalTimeRecorded: hc.clock.Now().UTC().Unix()}
+	ServerTimeMap[host] = ServerTimeRecord{ServerTime: st.UTC().Unix(), LocalTimeRecorded: clock.Now().UTC().Unix()}
 	serverTimeMapMutex.Unlock()
 }
 
 // currentServerTime returns the current server time for a given horizon server
 func currentServerTime(host string, currentTimeUTC int64) int64 {
 	serverTimeMapMutex.Lock()
-	st := ServerTimeMap[host]
+	st, has := ServerTimeMap[host]
 	serverTimeMapMutex.Unlock()
-	if &st == nil {
+	if !has {
 		return 0
 	}
 

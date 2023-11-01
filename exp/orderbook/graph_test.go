@@ -463,22 +463,26 @@ func TestAddOffersOrderBook(t *testing.T) {
 				{
 					assetStringToID[usdAsset.String()],
 					makeVenues(quarterOffer, fiftyCentsOffer, dollarOffer),
+					false,
 				},
 				{
 					assetStringToID[eurAsset.String()],
 					makeVenues(eurOffer, twoEurOffer, threeEurOffer),
+					false,
 				},
 			},
 			{
 				{
 					assetStringToID[eurAsset.String()],
 					makeVenues(eurUsdOffer, otherEurUsdOffer),
+					false,
 				},
 			},
 			{
 				{
 					assetStringToID[usdAsset.String()],
 					makeVenues(usdEurOffer),
+					false,
 				},
 			},
 		},
@@ -488,20 +492,24 @@ func TestAddOffersOrderBook(t *testing.T) {
 				{
 					assetStringToID[eurAsset.String()],
 					makeVenues(usdEurOffer),
+					false,
 				},
 				{
 					assetStringToID[nativeAsset.String()],
 					makeVenues(quarterOffer, fiftyCentsOffer, dollarOffer),
+					false,
 				},
 			},
 			{
 				{
 					assetStringToID[usdAsset.String()],
 					makeVenues(eurUsdOffer, otherEurUsdOffer),
+					false,
 				},
 				{
 					assetStringToID[nativeAsset.String()],
 					makeVenues(eurOffer, twoEurOffer, threeEurOffer),
+					false,
 				},
 			},
 		},
@@ -705,22 +713,26 @@ func TestUpdateOfferOrderBook(t *testing.T) {
 				{
 					assetStringToID[usdAsset.String()],
 					makeVenues(quarterOffer, fiftyCentsOffer, dollarOffer),
+					false,
 				},
 				{
 					assetStringToID[eurAsset.String()],
 					makeVenues(eurOffer, twoEurOffer, threeEurOffer),
+					false,
 				},
 			},
 			{
 				{
 					assetStringToID[eurAsset.String()],
 					makeVenues(otherEurUsdOffer, eurUsdOffer),
+					false,
 				},
 			},
 			{
 				{
 					assetStringToID[usdAsset.String()],
 					makeVenues(usdEurOffer),
+					false,
 				},
 			},
 		},
@@ -730,20 +742,24 @@ func TestUpdateOfferOrderBook(t *testing.T) {
 				{
 					assetStringToID[nativeAsset.String()],
 					makeVenues(quarterOffer, fiftyCentsOffer, dollarOffer),
+					false,
 				},
 				{
 					assetStringToID[eurAsset.String()],
 					makeVenues(usdEurOffer),
+					false,
 				},
 			},
 			{
 				{
 					assetStringToID[nativeAsset.String()],
 					makeVenues(eurOffer, twoEurOffer, threeEurOffer),
+					false,
 				},
 				{
 					assetStringToID[usdAsset.String()],
 					makeVenues(otherEurUsdOffer, eurUsdOffer),
+					false,
 				},
 			},
 		},
@@ -876,16 +892,19 @@ func TestRemoveOfferOrderBook(t *testing.T) {
 				{
 					assetStringToID[usdAsset.String()],
 					makeVenues(quarterOffer, fiftyCentsOffer),
+					false,
 				},
 				{
 					assetStringToID[eurAsset.String()],
 					makeVenues(eurOffer, twoEurOffer, threeEurOffer),
+					false,
 				},
 			},
 			{
 				{
 					assetStringToID[eurAsset.String()],
 					makeVenues(eurUsdOffer),
+					false,
 				},
 			},
 			{},
@@ -896,16 +915,19 @@ func TestRemoveOfferOrderBook(t *testing.T) {
 				{
 					assetStringToID[nativeAsset.String()],
 					makeVenues(quarterOffer, fiftyCentsOffer),
+					false,
 				},
 			},
 			{
 				{
 					assetStringToID[nativeAsset.String()],
 					makeVenues(eurOffer, twoEurOffer, threeEurOffer),
+					false,
 				},
 				{
 					assetStringToID[usdAsset.String()],
 					makeVenues(eurUsdOffer),
+					false,
 				},
 			},
 		},

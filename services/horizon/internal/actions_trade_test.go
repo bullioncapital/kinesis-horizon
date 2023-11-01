@@ -341,7 +341,7 @@ func unsetAssetQuery(q *url.Values, prefix string) {
 	q.Del(prefix + "asset_issuer")
 }
 
-//testPrice ensures that the price float string is equal to the rational price
+// testPrice ensures that the price float string is equal to the rational price
 func testPrice(t *HTTPT, priceStr string, priceR horizon.TradePrice) {
 	price, err := strconv.ParseFloat(priceStr, 64)
 	if t.Assert.NoError(err) {
@@ -757,7 +757,7 @@ func TestTradeActions_AggregationOffset(t *testing.T) {
 	}
 }
 
-//GetTestAsset generates an issuer on the fly and creates a CreditAlphanum4 Asset with given code
+// GetTestAsset generates an issuer on the fly and creates a CreditAlphanum4 Asset with given code
 func GetTestAsset(code string) xdr.Asset {
 	var codeBytes [4]byte
 	copy(codeBytes[:], []byte(code))
@@ -765,7 +765,7 @@ func GetTestAsset(code string) xdr.Asset {
 	return xdr.Asset{Type: xdr.AssetTypeAssetTypeCreditAlphanum4, AlphaNum4: &ca4, AlphaNum12: nil}
 }
 
-//Get generates and returns an account on the fly
+// Get generates and returns an account on the fly
 func GetTestAccount() xdr.AccountId {
 	var key xdr.Uint256
 	kp, _ := keypair.Random()
@@ -781,7 +781,7 @@ func abs(a xdr.Int32) xdr.Int32 {
 	return a
 }
 
-//IngestTestTrade mock ingests a trade
+// IngestTestTrade mock ingests a trade
 func IngestTestTrade(
 	q *history.Q,
 	assetSold xdr.Asset,
@@ -852,7 +852,7 @@ func IngestTestTrade(
 	return nil
 }
 
-//PopulateTestTrades generates and ingests trades between two assets according to given parameters
+// PopulateTestTrades generates and ingests trades between two assets according to given parameters
 func PopulateTestTrades(
 	q *history.Q,
 	startTs int64,

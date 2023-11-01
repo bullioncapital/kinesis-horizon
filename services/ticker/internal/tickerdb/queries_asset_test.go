@@ -7,13 +7,12 @@ import (
 
 	_ "github.com/lib/pq"
 	migrate "github.com/rubenv/sql-migrate"
-	"github.com/stellar/go/support/db/dbtest"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestInsertOrUpdateAsset(t *testing.T) {
-	db := dbtest.Postgres(t)
+	db := OpenTestDBConnection(t)
 	defer db.Close()
 
 	var session TickerSession
@@ -157,7 +156,7 @@ func TestInsertOrUpdateAsset(t *testing.T) {
 }
 
 func TestGetAssetByCodeAndIssuerAccount(t *testing.T) {
-	db := dbtest.Postgres(t)
+	db := OpenTestDBConnection(t)
 	defer db.Close()
 
 	var session TickerSession

@@ -136,7 +136,6 @@ func (o *OrderBookStream) update(ctx context.Context, status ingestionStatus) (b
 			o.graph.AddOffers(offerToXDR(offer))
 			return nil
 		})
-
 		if err != nil {
 			return true, errors.Wrap(err, "Error loading offers into orderbook")
 		}

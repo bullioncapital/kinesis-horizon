@@ -84,7 +84,7 @@ func TestNewSystem(t *testing.T) {
 		CoreSession:              &db.Session{DB: &sqlx.DB{}},
 		HistorySession:           &db.Session{DB: &sqlx.DB{}},
 		DisableStateVerification: true,
-		HistoryArchiveURL:        "https://history.stellar.org/prd/core-live/core_live_001",
+		HistoryArchiveURLs:       []string{"https://history.stellar.org/prd/core-live/core_live_001"},
 		CheckpointFrequency:      64,
 	}
 
@@ -162,7 +162,7 @@ func TestStateMachineRunReturnsErrorWhenNextStateIsShutdownWithError(t *testing.
 	assert.EqualError(t, err, "invalid range: [0, 0]")
 }
 
-func TestMaybeVerifyStateGetExpStateInvalidDBErrCancelOrContextCanceled(t *testing.T) {
+func TestMaybeVerifyStateGetExpStateInvalidError(t *testing.T) {
 	historyQ := &mockDBQ{}
 	system := &system{
 		historyQ:          historyQ,
@@ -180,13 +180,21 @@ func TestMaybeVerifyStateGetExpStateInvalidDBErrCancelOrContextCanceled(t *testi
 	defer func() { log = oldLogger }()
 
 	historyQ.On("GetExpStateInvalid", system.ctx).Return(false, db.ErrCancelled).Once()
-	system.maybeVerifyState(0)
+	system.maybeVerifyState(63)
+	system.wg.Wait()
 
 	historyQ.On("GetExpStateInvalid", system.ctx).Return(false, context.Canceled).Once()
-	system.maybeVerifyState(0)
+	system.maybeVerifyState(63)
+	system.wg.Wait()
 
 	logged := done()
 	assert.Len(t, logged, 0)
+
+	// Ensure state verifier does not start also for any other error
+	historyQ.On("GetExpStateInvalid", system.ctx).Return(false, errors.New("my error")).Once()
+	system.maybeVerifyState(63)
+	system.wg.Wait()
+
 	historyQ.AssertExpectations(t)
 }
 func TestMaybeVerifyInternalDBErrCancelOrContextCanceled(t *testing.T) {
@@ -230,6 +238,7 @@ type mockDBQ struct {
 	mock.Mock
 
 	history.MockQAccounts
+	history.MockQFilter
 	history.MockQClaimableBalances
 	history.MockQHistoryClaimableBalances
 	history.MockQLiquidityPools
@@ -261,6 +270,11 @@ func (m *mockDBQ) CloneIngestionQ() history.IngestionQ {
 }
 
 func (m *mockDBQ) Commit() error {
+	args := m.Called()
+	return args.Error(0)
+}
+
+func (m *mockDBQ) Close() error {
 	args := m.Called()
 	return args.Error(0)
 }
@@ -360,6 +374,18 @@ func (m *mockDBQ) NewTradeBatchInsertBuilder(maxBatchSize int) history.TradeBatc
 	return args.Get(0).(history.TradeBatchInsertBuilder)
 }
 
+func (m *mockDBQ) ReapLookupTables(ctx context.Context, offsets map[string]int64) (map[string]int64, map[string]int64, error) {
+	args := m.Called(ctx, offsets)
+	var r1, r2 map[string]int64
+	if args.Get(0) != nil {
+		r1 = args.Get(0).(map[string]int64)
+	}
+	if args.Get(1) != nil {
+		r1 = args.Get(1).(map[string]int64)
+	}
+	return r1, r2, args.Error(2)
+}
+
 func (m *mockDBQ) RebuildTradeAggregationTimes(ctx context.Context, from, to strtime.Millis, roundingSlippageFilter int) error {
 	args := m.Called(ctx, from, to, roundingSlippageFilter)
 	return args.Error(0)
@@ -373,6 +399,11 @@ func (m *mockDBQ) RebuildTradeAggregationBuckets(ctx context.Context, fromLedger
 func (m *mockDBQ) CreateAssets(ctx context.Context, assets []xdr.Asset, batchSize int) (map[string]history.Asset, error) {
 	args := m.Called(ctx, assets)
 	return args.Get(0).(map[string]history.Asset), args.Error(1)
+}
+
+func (m *mockDBQ) DeleteTransactionsFilteredTmpOlderThan(ctx context.Context, howOldInSeconds uint64) (int64, error) {
+	args := m.Called(ctx, howOldInSeconds)
+	return args.Get(0).(int64), args.Error(1)
 }
 
 type mockLedgerBackend struct {
@@ -427,10 +458,11 @@ func (m *mockProcessorsRunner) RunGenesisStateIngestion() (ingest.StatsChangePro
 
 func (m *mockProcessorsRunner) RunHistoryArchiveIngestion(
 	checkpointLedger uint32,
+	skipChecks bool,
 	ledgerProtocolVersion uint32,
 	bucketListHash xdr.Hash,
 ) (ingest.StatsChangeProcessorResults, error) {
-	args := m.Called(checkpointLedger, ledgerProtocolVersion, bucketListHash)
+	args := m.Called(checkpointLedger, skipChecks, ledgerProtocolVersion, bucketListHash)
 	return args.Get(0).(ingest.StatsChangeProcessorResults), args.Error(1)
 }
 
@@ -493,6 +525,11 @@ func (m *mockSystem) StressTest(numTransactions, changesPerTransaction int) erro
 
 func (m *mockSystem) VerifyRange(fromLedger, toLedger uint32, verifyState bool) error {
 	args := m.Called(fromLedger, toLedger, verifyState)
+	return args.Error(0)
+}
+
+func (m *mockSystem) BuildState(sequence uint32, skipChecks bool) error {
+	args := m.Called(sequence, skipChecks)
 	return args.Error(0)
 }
 

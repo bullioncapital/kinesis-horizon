@@ -32,10 +32,10 @@ func (c *CaptiveStellarCore) roundDownToFirstReplayAfterCheckpointStart(ledger u
 // than DatabaseBackend but requires some extra init time.
 //
 // It operates in two modes:
-//   * When a BoundedRange is prepared it starts Stellar-Core in catchup mode that
+//   - When a BoundedRange is prepared it starts Stellar-Core in catchup mode that
 //     replays ledgers in memory. This is very fast but requires Stellar-Core to
 //     keep ledger state in RAM. It requires around 3GB of RAM as of August 2020.
-//   * When a UnboundedRange is prepared it runs Stellar-Core catchup mode to
+//   - When a UnboundedRange is prepared it runs Stellar-Core catchup mode to
 //     sync with the first ledger and then runs it in a normal mode. This
 //     requires the configAppendPath to be provided because a quorum set needs to
 //     be selected.
@@ -52,9 +52,9 @@ func (c *CaptiveStellarCore) roundDownToFirstReplayAfterCheckpointStart(ledger u
 //
 // While using BoundedRanges is straightforward there are a few gotchas connected
 // to UnboundedRanges:
-//   * PrepareRange takes more time because all ledger entries must be stored on
+//   - PrepareRange takes more time because all ledger entries must be stored on
 //     disk instead of RAM.
-//   * If GetLedger is not called frequently (every 5 sec. on average) the
+//   - If GetLedger is not called frequently (every 5 sec. on average) the
 //     Stellar-Core process can go out of sync with the network. This happens
 //     because there is no buffering of communication pipe and CaptiveStellarCore
 //     has a very small internal buffer and Stellar-Core will not close the new
@@ -83,7 +83,7 @@ type CaptiveStellarCore struct {
 	stellarCoreLock sync.RWMutex
 
 	// For testing
-	stellarCoreRunnerFactory func(mode stellarCoreRunnerMode) (stellarCoreRunnerInterface, error)
+	stellarCoreRunnerFactory func() stellarCoreRunnerInterface
 
 	// cachedMeta keeps that ledger data of the last fetched ledger. Updated in GetLedger().
 	cachedMeta *xdr.LedgerCloseMeta
@@ -103,7 +103,9 @@ type CaptiveCoreConfig struct {
 	NetworkPassphrase string
 	// HistoryArchiveURLs are a list of history archive urls
 	HistoryArchiveURLs []string
-	Toml               *CaptiveCoreToml
+	// UserAgent is the value of `User-Agent` header that will be send along http archive requests.
+	UserAgent string
+	Toml      *CaptiveCoreToml
 
 	// Optional fields
 
@@ -173,8 +175,8 @@ func NewCaptive(config CaptiveCoreConfig) (*CaptiveStellarCore, error) {
 		checkpointManager: historyarchive.NewCheckpointManager(config.CheckpointFrequency),
 	}
 
-	c.stellarCoreRunnerFactory = func(mode stellarCoreRunnerMode) (stellarCoreRunnerInterface, error) {
-		return newStellarCoreRunner(config, mode)
+	c.stellarCoreRunnerFactory = func() stellarCoreRunnerInterface {
+		return newStellarCoreRunner(config)
 	}
 	return c, nil
 }
@@ -210,15 +212,7 @@ func (c *CaptiveStellarCore) openOfflineReplaySubprocess(from, to uint32) error 
 		)
 	}
 
-	var runner stellarCoreRunnerInterface
-	if runner, err = c.stellarCoreRunnerFactory(stellarCoreRunnerModeOffline); err != nil {
-		return errors.Wrap(err, "error creating stellar-core runner")
-	} else {
-		// only assign c.stellarCoreRunner if runner is not nil to avoid nil interface check
-		// see https://golang.org/doc/faq#nil_error
-		c.stellarCoreRunner = runner
-	}
-
+	c.stellarCoreRunner = c.stellarCoreRunnerFactory()
 	err = c.stellarCoreRunner.catchup(from, to)
 	if err != nil {
 		return errors.Wrap(err, "error running stellar-core")
@@ -254,12 +248,7 @@ func (c *CaptiveStellarCore) openOnlineReplaySubprocess(ctx context.Context, fro
 		)
 	}
 
-	var runner stellarCoreRunnerInterface
-	if runner, err = c.stellarCoreRunnerFactory(stellarCoreRunnerModeOnline); err != nil {
-		return errors.Wrap(err, "error creating stellar-core runner")
-	}
-	c.stellarCoreRunner = runner
-
+	c.stellarCoreRunner = c.stellarCoreRunnerFactory()
 	runFrom, ledgerHash, err := c.runFromParams(ctx, from)
 	if err != nil {
 		return errors.Wrap(err, "error calculating ledger and hash for stellar-core run")
@@ -373,9 +362,10 @@ func (c *CaptiveStellarCore) startPreparingRange(ctx context.Context, ledgerRang
 // Captive stellar-core backend needs to initialize Stellar-Core state to be
 // able to stream ledgers.
 // Stellar-Core mode depends on the provided ledgerRange:
-//   * For BoundedRange it will start Stellar-Core in catchup mode.
-//   * For UnboundedRange it will first catchup to starting ledger and then run
+//   - For BoundedRange it will start Stellar-Core in catchup mode.
+//   - For UnboundedRange it will first catchup to starting ledger and then run
 //     it normally (including connecting to the Stellar network).
+//
 // Please note that using a BoundedRange, currently, requires a full-trust on
 // history archive. This issue is being fixed in Stellar-Core.
 func (c *CaptiveStellarCore) PrepareRange(ctx context.Context, ledgerRange Range) error {
@@ -458,7 +448,7 @@ func (c *CaptiveStellarCore) isPrepared(ledgerRange Range) bool {
 // is less than the last requested sequence number, an error will be returned.
 //
 // This function behaves differently for bounded and unbounded ranges:
-//   * BoundedRange: After getting the last ledger in a range this method will
+//   - BoundedRange: After getting the last ledger in a range this method will
 //     also Close() the backend.
 func (c *CaptiveStellarCore) GetLedger(ctx context.Context, sequence uint32) (xdr.LedgerCloseMeta, error) {
 	c.stellarCoreLock.RLock()
@@ -594,7 +584,7 @@ func (c *CaptiveStellarCore) checkMetaPipeResult(result metaResult, ok bool) err
 			}
 		} else if !ok {
 			// This case should never happen because the ledger buffer channel can only be closed
-			// if and only if the process exits or the context is cancelled.
+			// if and only if the process exits or the context is canceled.
 			// However, we add this check for the sake of completeness
 			return errors.Errorf("meta pipe closed unexpectedly")
 		}

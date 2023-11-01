@@ -295,7 +295,7 @@ func TestFriendbotHandler_serveHTTP(t *testing.T) {
 		On("AccountDetail", horizonclient.AccountRequest{AccountID: "GDDIO6SFRD4SJEQFJOSKPIDYTDM7LM4METFBKN4NFGVR5DTGB7H75N5S"}).
 		Return(horizon.Account{
 			AccountID: "GDDIO6SFRD4SJEQFJOSKPIDYTDM7LM4METFBKN4NFGVR5DTGB7H75N5S",
-			Sequence:  "1",
+			Sequence:  1,
 		}, nil)
 	horizonMock.
 		On("SubmitTransaction", mock.AnythingOfType("*txnbuild.Transaction")).

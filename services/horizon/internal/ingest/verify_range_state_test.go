@@ -7,9 +7,11 @@ import (
 	"database/sql"
 	"fmt"
 	"io"
+	"math"
 	"testing"
 
 	"github.com/guregu/null"
+	"github.com/guregu/null/zero"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 
@@ -158,7 +160,7 @@ func (s *VerifyRangeStateTestSuite) TestRunHistoryArchiveIngestionReturnsError()
 		},
 	}
 	s.ledgerBackend.On("GetLedger", s.ctx, uint32(100)).Return(meta, nil).Once()
-	s.runner.On("RunHistoryArchiveIngestion", uint32(100), MaxSupportedProtocolVersion, xdr.Hash{1, 2, 3}).Return(ingest.StatsChangeProcessorResults{}, errors.New("my error")).Once()
+	s.runner.On("RunHistoryArchiveIngestion", uint32(100), false, MaxSupportedProtocolVersion, xdr.Hash{1, 2, 3}).Return(ingest.StatsChangeProcessorResults{}, errors.New("my error")).Once()
 
 	next, err := verifyRangeState{fromLedger: 100, toLedger: 200}.run(s.system)
 	s.Assert().Error(err)
@@ -186,7 +188,7 @@ func (s *VerifyRangeStateTestSuite) TestSuccess() {
 		},
 	}
 	s.ledgerBackend.On("GetLedger", s.ctx, uint32(100)).Return(meta, nil).Once()
-	s.runner.On("RunHistoryArchiveIngestion", uint32(100), MaxSupportedProtocolVersion, xdr.Hash{1, 2, 3}).Return(ingest.StatsChangeProcessorResults{}, nil).Once()
+	s.runner.On("RunHistoryArchiveIngestion", uint32(100), false, MaxSupportedProtocolVersion, xdr.Hash{1, 2, 3}).Return(ingest.StatsChangeProcessorResults{}, nil).Once()
 
 	s.historyQ.On("UpdateLastLedgerIngest", s.ctx, uint32(100)).Return(nil).Once()
 	s.historyQ.On("Commit").Return(nil).Once()
@@ -242,7 +244,7 @@ func (s *VerifyRangeStateTestSuite) TestSuccessWithVerify() {
 		},
 	}
 	s.ledgerBackend.On("GetLedger", s.ctx, uint32(100)).Return(meta, nil).Once()
-	s.runner.On("RunHistoryArchiveIngestion", uint32(100), MaxSupportedProtocolVersion, xdr.Hash{1, 2, 3}).Return(ingest.StatsChangeProcessorResults{}, nil).Once()
+	s.runner.On("RunHistoryArchiveIngestion", uint32(100), false, MaxSupportedProtocolVersion, xdr.Hash{1, 2, 3}).Return(ingest.StatsChangeProcessorResults{}, nil).Once()
 
 	s.historyQ.On("UpdateLastLedgerIngest", s.ctx, uint32(100)).Return(nil).Once()
 	s.historyQ.On("Commit").Return(nil).Once()
@@ -330,6 +332,13 @@ func (s *VerifyRangeStateTestSuite) TestSuccessWithVerify() {
 										nil,
 										xdr.MustAddressPtr(mockAccountID),
 										xdr.MustAddressPtr(sponsor),
+									},
+									Ext: xdr.AccountEntryExtensionV2Ext{
+										V: 3,
+										V3: &xdr.AccountEntryExtensionV3{
+											SeqTime:   xdr.TimePoint(math.MaxInt64),
+											SeqLedger: xdr.Uint32(12345678),
+										},
 									},
 								},
 							},
@@ -478,6 +487,8 @@ func (s *VerifyRangeStateTestSuite) TestSuccessWithVerify() {
 		AccountID:          mockAccountID,
 		Balance:            600,
 		LastModifiedLedger: 62,
+		SequenceTime:       zero.IntFrom(9223372036854775807),
+		SequenceLedger:     zero.IntFrom(12345678),
 		MasterWeight:       1,
 		NumSponsored:       0,
 		NumSponsoring:      2,
@@ -561,6 +572,18 @@ func (s *VerifyRangeStateTestSuite) TestSuccessWithVerify() {
 	clonedQ.MockQClaimableBalances.
 		On("GetClaimableBalancesByID", s.ctx, []string{balanceIDStr}).
 		Return([]history.ClaimableBalance{claimableBalance}, nil).Once()
+
+	clonedQ.MockQClaimableBalances.
+		On("GetClaimantsByClaimableBalances", s.ctx, []string{balanceIDStr}).
+		Return(map[string][]history.ClaimableBalanceClaimant{
+			claimableBalance.BalanceID: {
+				{
+					BalanceID:          claimableBalance.BalanceID,
+					Destination:        claimableBalance.Claimants[0].Destination,
+					LastModifiedLedger: claimableBalance.LastModifiedLedger,
+				},
+			},
+		}, nil).Once()
 
 	clonedQ.MockQLiquidityPools.On("CountLiquidityPools", s.ctx).Return(1, nil).Once()
 	clonedQ.MockQLiquidityPools.

@@ -127,6 +127,7 @@ func main() {
 			captiveCoreTomlParams.HistoryArchiveURLs = historyArchiveURLs
 			captiveCoreTomlParams.NetworkPassphrase = networkPassphrase
 			captiveCoreTomlParams.Strict = true
+			captiveCoreTomlParams.CoreBinaryPath = binaryPath
 			captiveCoreToml, err := ledgerbackend.NewCaptiveCoreTomlFromFile(configPath, captiveCoreTomlParams)
 			if err != nil {
 				logger.WithError(err).Fatal("Invalid captive core toml")
@@ -139,6 +140,7 @@ func main() {
 				CheckpointFrequency: checkpointFrequency,
 				Log:                 logger.WithField("subservice", "stellar-core"),
 				Toml:                captiveCoreToml,
+				UserAgent:           "captivecore",
 			}
 
 			var dbConn *db.Session
@@ -164,7 +166,7 @@ func main() {
 				},
 				OnStopping: func() {
 					// TODO: Check this aborts in-progress requests instead of letting
-					// them finish, to preserve existing behaviour.
+					// them finish, to preserve existing behavior.
 					api.Shutdown()
 					if dbConn != nil {
 						dbConn.Close()

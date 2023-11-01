@@ -17,36 +17,36 @@ import (
 //
 // It applies changes to the cache using the following algorithm:
 //
-// 1. If the change is CREATED it checks if any change connected to given entry
-//    is already in the cache. If not, it adds CREATED change. Otherwise, if
-//    existing change is:
-//    a. CREATED it returns error because we can't add an entry that already
-//       exists.
-//    b. UPDATED it returns error because we can't add an entry that already
-//       exists.
-//    c. REMOVED it means that due to previous transitions we want to remove
-//       this from a DB what means that it already exists in a DB so we need to
-//       update the type of change to UPDATED.
-// 2. If the change is UPDATE it checks if any change connected to given entry
-//    is already in the cache. If not, it adds UPDATE change. Otherwise, if
-//    existing change is:
-//    a. CREATED it means that due to previous transitions we want to create
-//       this in a DB what means that it doesn't exist in a DB so we need to
-//       update the entry but stay with CREATED type.
-//    b. UPDATED we simply update it with the new value.
-//    c. REMOVED it means that at this point in the ledger the entry is removed
-//       so updating it returns an error.
-// 3. If the change is REMOVE it checks if any change connected to given entry
-//    is already in the cache. If not, it adds REMOVE change. Otherwise, if
-//    existing change is:
-//    a. CREATED it means that due to previous transitions we want to create
-//       this in a DB what means that it doesn't exist in a DB. If it was
-//       created and removed in the same ledger it's a noop so we remove entry
-//       from the cache.
-//    b. UPDATED we simply update it to be a REMOVE change because the UPDATE
-//       change means the entry exists in a DB.
-//    c. REMOVED it returns error because we can't remove an entry that was
-//       already removed.
+//  1. If the change is CREATED it checks if any change connected to given entry
+//     is already in the cache. If not, it adds CREATED change. Otherwise, if
+//     existing change is:
+//     a. CREATED it returns error because we can't add an entry that already
+//     exists.
+//     b. UPDATED it returns error because we can't add an entry that already
+//     exists.
+//     c. REMOVED it means that due to previous transitions we want to remove
+//     this from a DB what means that it already exists in a DB so we need to
+//     update the type of change to UPDATED.
+//  2. If the change is UPDATE it checks if any change connected to given entry
+//     is already in the cache. If not, it adds UPDATE change. Otherwise, if
+//     existing change is:
+//     a. CREATED it means that due to previous transitions we want to create
+//     this in a DB what means that it doesn't exist in a DB so we need to
+//     update the entry but stay with CREATED type.
+//     b. UPDATED we simply update it with the new value.
+//     c. REMOVED it means that at this point in the ledger the entry is removed
+//     so updating it returns an error.
+//  3. If the change is REMOVE it checks if any change connected to given entry
+//     is already in the cache. If not, it adds REMOVE change. Otherwise, if
+//     existing change is:
+//     a. CREATED it means that due to previous transitions we want to create
+//     this in a DB what means that it doesn't exist in a DB. If it was
+//     created and removed in the same ledger it's a noop so we remove entry
+//     from the cache.
+//     b. UPDATED we simply update it to be a REMOVE change because the UPDATE
+//     change means the entry exists in a DB.
+//     c. REMOVED it returns error because we can't remove an entry that was
+//     already removed.
 type ChangeCompactor struct {
 	// ledger key => Change
 	cache          map[string]Change

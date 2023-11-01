@@ -336,7 +336,7 @@ func TestCalculatePoolPayoutRoundingSlippage(t *testing.T) {
 // CalculatePoolPayout calculates the amount of `reserveB` disbursed from the
 // pool for a `received` amount of `reserveA` . From CAP-38:
 //
-//      y = floor[(1 - F) Yx / (X + x - Fx)]
+//	y = floor[(1 - F) Yx / (X + x - Fx)]
 //
 // It returns false if the calculation overflows.
 func calculatePoolPayoutBig(reserveA, reserveB, received xdr.Int64, feeBips xdr.Int32) (xdr.Int64, xdr.Int64, bool) {
@@ -387,7 +387,7 @@ func calculatePoolPayoutBig(reserveA, reserveB, received xdr.Int64, feeBips xdr.
 // calculatePoolExpectation determines how much of `reserveA` you would need to
 // put into a pool to get the `disbursed` amount of `reserveB`.
 //
-//      x = ceil[Xy / ((Y - y)(1 - F))]
+//	x = ceil[Xy / ((Y - y)(1 - F))]
 //
 // It returns false if the calculation overflows.
 func calculatePoolExpectationBig(

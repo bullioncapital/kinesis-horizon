@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -18,6 +19,7 @@ import (
 	"github.com/stellar/go/keypair"
 	"github.com/stellar/go/network"
 	"github.com/stellar/go/protocols/horizon"
+	"github.com/stellar/go/strkey"
 	supportlog "github.com/stellar/go/support/log"
 	"github.com/stellar/go/support/render/problem"
 	"github.com/stellar/go/txnbuild"
@@ -46,6 +48,7 @@ func TestToken_formInputSuccess(t *testing.T) {
 		homeDomain,
 		network.TestNetworkPassphrase,
 		time.Minute,
+		nil,
 	)
 	require.NoError(t, err)
 
@@ -146,6 +149,7 @@ func TestToken_formInputSuccess_jwtHeaderAndPayloadAreDeterministic(t *testing.T
 		homeDomain,
 		network.TestNetworkPassphrase,
 		time.Minute,
+		nil,
 	)
 	require.NoError(t, err)
 
@@ -255,6 +259,7 @@ func TestToken_jsonInputSuccess(t *testing.T) {
 		homeDomain,
 		network.TestNetworkPassphrase,
 		time.Minute,
+		nil,
 	)
 	require.NoError(t, err)
 
@@ -412,6 +417,7 @@ func TestToken_jsonInputValidRotatingServerSigners(t *testing.T) {
 				homeDomain,
 				network.TestNetworkPassphrase,
 				time.Minute,
+				nil,
 			)
 			require.NoError(t, err)
 
@@ -497,6 +503,7 @@ func TestToken_jsonInputValidMultipleSigners(t *testing.T) {
 		homeDomain,
 		network.TestNetworkPassphrase,
 		time.Minute,
+		nil,
 	)
 	require.NoError(t, err)
 
@@ -605,6 +612,7 @@ func TestToken_jsonInputNotEnoughWeight(t *testing.T) {
 		homeDomain,
 		network.TestNetworkPassphrase,
 		time.Minute,
+		nil,
 	)
 	require.NoError(t, err)
 
@@ -691,6 +699,7 @@ func TestToken_jsonInputUnrecognizedSigner(t *testing.T) {
 		homeDomain,
 		network.TestNetworkPassphrase,
 		time.Minute,
+		nil,
 	)
 	require.NoError(t, err)
 
@@ -777,6 +786,7 @@ func TestToken_jsonInputAccountNotExistSuccess(t *testing.T) {
 		homeDomain,
 		network.TestNetworkPassphrase,
 		time.Minute,
+		nil,
 	)
 	require.NoError(t, err)
 
@@ -881,6 +891,7 @@ func TestToken_jsonInputAccountNotExistFail(t *testing.T) {
 		homeDomain,
 		network.TestNetworkPassphrase,
 		time.Minute,
+		nil,
 	)
 	require.NoError(t, err)
 
@@ -963,6 +974,7 @@ func TestToken_jsonInputAccountNotExistNotAllowed(t *testing.T) {
 		homeDomain,
 		network.TestNetworkPassphrase,
 		time.Minute,
+		nil,
 	)
 	require.NoError(t, err)
 
@@ -1047,6 +1059,7 @@ func TestToken_jsonInputUnrecognizedServerSigner(t *testing.T) {
 		homeDomain,
 		network.TestNetworkPassphrase,
 		time.Minute,
+		nil,
 	)
 	require.NoError(t, err)
 
@@ -1136,9 +1149,11 @@ func TestToken_jsonInputNoWebAuthDomainSuccess(t *testing.T) {
 					Value:         []byte("ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg"),
 				},
 			},
-			BaseFee:    txnbuild.MinBaseFee,
-			Memo:       nil,
-			Timebounds: txnbuild.NewTimebounds(txMinTimebounds, txMaxTimebounds),
+			BaseFee: txnbuild.MinBaseFee,
+			Memo:    nil,
+			Preconditions: txnbuild.Preconditions{
+				TimeBounds: txnbuild.NewTimebounds(txMinTimebounds, txMaxTimebounds),
+			},
 		},
 	)
 	require.NoError(t, err)
@@ -1246,6 +1261,7 @@ func TestToken_jsonInputInvalidWebAuthDomainFail(t *testing.T) {
 		homeDomain,
 		network.TestNetworkPassphrase,
 		time.Minute,
+		nil,
 	)
 	require.NoError(t, err)
 
@@ -1306,4 +1322,218 @@ func TestToken_jsonInputInvalidWebAuthDomainFail(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.JSONEq(t, `{"error":"The request was invalid in some way."}`, string(respBodyBytes))
+}
+
+func TestToken_successWithIdMemo(t *testing.T) {
+	serverKey := keypair.MustRandom()
+	t.Logf("Server signing key: %s", serverKey.Address())
+
+	jwtPrivateKey, err := jwtkey.GenerateKey()
+	require.NoError(t, err)
+	jwk := jose.JSONWebKey{Key: jwtPrivateKey, Algorithm: string(jose.ES256)}
+
+	account := keypair.MustRandom()
+	t.Logf("Client account: %s", account.Address())
+
+	domain := "webauth.example.com"
+	homeDomain := "example.com"
+
+	memo := txnbuild.MemoID(1)
+	tx, err := txnbuild.BuildChallengeTx(
+		serverKey.Seed(),
+		account.Address(),
+		domain,
+		homeDomain,
+		network.TestNetworkPassphrase,
+		time.Minute,
+		&memo,
+	)
+	require.NoError(t, err)
+
+	chTx, err := tx.Base64()
+	require.NoError(t, err)
+	t.Logf("Tx: %s", chTx)
+
+	tx, err = tx.Sign(network.TestNetworkPassphrase, account)
+	require.NoError(t, err)
+	txSigned, err := tx.Base64()
+	require.NoError(t, err)
+	t.Logf("Signed: %s", txSigned)
+
+	horizonClient := &horizonclient.MockClient{}
+	horizonClient.
+		On("AccountDetail", horizonclient.AccountRequest{AccountID: account.Address()}).
+		Return(
+			horizon.Account{
+				Thresholds: horizon.AccountThresholds{
+					LowThreshold:  1,
+					MedThreshold:  10,
+					HighThreshold: 100,
+				},
+				Signers: []horizon.Signer{
+					{
+						Key:    account.Address(),
+						Weight: 100,
+					},
+				}},
+			nil,
+		)
+
+	h := tokenHandler{
+		Logger:            supportlog.DefaultLogger,
+		HorizonClient:     horizonClient,
+		NetworkPassphrase: network.TestNetworkPassphrase,
+		SigningAddresses:  []*keypair.FromAddress{serverKey.FromAddress()},
+		JWK:               jwk,
+		JWTIssuer:         "https://example.com",
+		JWTExpiresIn:      time.Minute,
+		Domain:            domain,
+		HomeDomains:       []string{homeDomain},
+	}
+
+	body := struct {
+		Transaction string `json:"transaction"`
+	}{
+		Transaction: txSigned,
+	}
+	bodyBytes, err := json.Marshal(body)
+	require.NoError(t, err)
+	r := httptest.NewRequest("POST", "/", bytes.NewReader(bodyBytes))
+	r.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, r)
+	resp := w.Result()
+
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Equal(t, "application/json; charset=utf-8", resp.Header.Get("Content-Type"))
+
+	res := struct {
+		Token string `json:"token"`
+	}{}
+	err = json.NewDecoder(resp.Body).Decode(&res)
+	require.NoError(t, err)
+
+	t.Logf("JWT: %s", res.Token)
+
+	token, err := jwt.Parse(res.Token, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodECDSA); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return &jwtPrivateKey.PublicKey, nil
+	})
+	require.NoError(t, err)
+
+	claims := token.Claims.(jwt.MapClaims)
+
+	require.Equal(t, account.Address()+":"+strconv.FormatUint(uint64(memo), 10), claims["sub"])
+}
+
+func TestToken_successWithMuxedAccount(t *testing.T) {
+	serverKey := keypair.MustRandom()
+	t.Logf("Server signing key: %s", serverKey.Address())
+
+	jwtPrivateKey, err := jwtkey.GenerateKey()
+	require.NoError(t, err)
+	jwk := jose.JSONWebKey{Key: jwtPrivateKey, Algorithm: string(jose.ES256)}
+
+	account := keypair.MustRandom()
+	t.Logf("Stellar account: %s", account.Address())
+
+	muxedAccount := strkey.MuxedAccount{}
+	muxedAccount.SetAccountID(account.Address())
+	muxedAccount.SetID(1)
+	muxedAccountAddress, err := muxedAccount.Address()
+	require.NoError(t, err)
+	t.Logf("Muxed account: %s", muxedAccountAddress)
+
+	domain := "webauth.example.com"
+	homeDomain := "example.com"
+
+	tx, err := txnbuild.BuildChallengeTx(
+		serverKey.Seed(),
+		muxedAccountAddress,
+		domain,
+		homeDomain,
+		network.TestNetworkPassphrase,
+		time.Minute,
+		nil,
+	)
+	require.NoError(t, err)
+
+	chTx, err := tx.Base64()
+	require.NoError(t, err)
+	t.Logf("Tx: %s", chTx)
+
+	tx, err = tx.Sign(network.TestNetworkPassphrase, account)
+	require.NoError(t, err)
+	txSigned, err := tx.Base64()
+	require.NoError(t, err)
+	t.Logf("Signed: %s", txSigned)
+
+	horizonClient := &horizonclient.MockClient{}
+	horizonClient.
+		On("AccountDetail", horizonclient.AccountRequest{AccountID: account.Address()}).
+		Return(
+			horizon.Account{
+				Thresholds: horizon.AccountThresholds{
+					LowThreshold:  1,
+					MedThreshold:  10,
+					HighThreshold: 100,
+				},
+				Signers: []horizon.Signer{
+					{
+						Key:    account.Address(),
+						Weight: 100,
+					},
+				}},
+			nil,
+		)
+
+	h := tokenHandler{
+		Logger:            supportlog.DefaultLogger,
+		HorizonClient:     horizonClient,
+		NetworkPassphrase: network.TestNetworkPassphrase,
+		SigningAddresses:  []*keypair.FromAddress{serverKey.FromAddress()},
+		JWK:               jwk,
+		JWTIssuer:         "https://example.com",
+		JWTExpiresIn:      time.Minute,
+		Domain:            domain,
+		HomeDomains:       []string{homeDomain},
+	}
+
+	body := struct {
+		Transaction string `json:"transaction"`
+	}{
+		Transaction: txSigned,
+	}
+	bodyBytes, err := json.Marshal(body)
+	require.NoError(t, err)
+	r := httptest.NewRequest("POST", "/", bytes.NewReader(bodyBytes))
+	r.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, r)
+	resp := w.Result()
+
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Equal(t, "application/json; charset=utf-8", resp.Header.Get("Content-Type"))
+
+	res := struct {
+		Token string `json:"token"`
+	}{}
+	err = json.NewDecoder(resp.Body).Decode(&res)
+	require.NoError(t, err)
+
+	t.Logf("JWT: %s", res.Token)
+
+	token, err := jwt.Parse(res.Token, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodECDSA); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return &jwtPrivateKey.PublicKey, nil
+	})
+	require.NoError(t, err)
+
+	claims := token.Claims.(jwt.MapClaims)
+
+	require.Equal(t, muxedAccountAddress, claims["sub"])
 }

@@ -3,7 +3,6 @@ package resourceadapter
 import (
 	"context"
 	"fmt"
-	"strconv"
 
 	protocol "github.com/stellar/go/protocols/horizon"
 	horizonContext "github.com/stellar/go/services/horizon/internal/context"
@@ -26,7 +25,12 @@ func PopulateAccountEntry(
 	dest.ID = account.AccountID
 	dest.PT = account.AccountID
 	dest.AccountID = account.AccountID
-	dest.Sequence = strconv.FormatInt(account.SequenceNumber, 10)
+	dest.Sequence = account.SequenceNumber
+	if account.SequenceLedger.Valid && account.SequenceTime.Valid {
+		dest.SequenceLedger = uint32(account.SequenceLedger.Int64)
+		dest.SequenceTime = fmt.Sprintf("%d", account.SequenceTime.Int64)
+	}
+
 	dest.SubentryCount = int32(account.NumSubEntries)
 	dest.InflationDestination = account.InflationDestination
 	dest.HomeDomain = account.HomeDomain

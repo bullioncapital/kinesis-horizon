@@ -11,7 +11,9 @@ import (
 
 	"github.com/stellar/go/keypair"
 	"github.com/stellar/go/network"
+	"github.com/stellar/go/strkey"
 	supportlog "github.com/stellar/go/support/log"
+	"github.com/stellar/go/txnbuild"
 	"github.com/stellar/go/xdr"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -184,4 +186,108 @@ func TestChallenge_invalidHomeDomain(t *testing.T) {
 	body, err := ioutil.ReadAll(resp.Body)
 	require.NoError(t, err)
 	assert.JSONEq(t, `{"error":"The request was invalid in some way."}`, string(body))
+}
+
+func TestChallengeWithMemo(t *testing.T) {
+	serverKey := keypair.MustRandom()
+	account := keypair.MustRandom()
+
+	h := challengeHandler{
+		Logger:             supportlog.DefaultLogger,
+		NetworkPassphrase:  network.TestNetworkPassphrase,
+		SigningKey:         serverKey,
+		ChallengeExpiresIn: time.Minute,
+		Domain:             "webauthdomain",
+		HomeDomains:        []string{"testdomain"},
+	}
+
+	r := httptest.NewRequest("GET", "/?account="+account.Address()+"&memo=1", nil)
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, r)
+	resp := w.Result()
+
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Equal(t, "application/json; charset=utf-8", resp.Header.Get("Content-Type"))
+
+	res := struct {
+		Transaction       string `json:"transaction"`
+		NetworkPassphrase string `json:"network_passphrase"`
+	}{}
+	err := json.NewDecoder(resp.Body).Decode(&res)
+	require.NoError(t, err)
+
+	var tx xdr.TransactionEnvelope
+	err = xdr.SafeUnmarshalBase64(res.Transaction, &tx)
+	require.NoError(t, err)
+
+	memo, err := txnbuild.MemoID(1).ToXDR()
+	require.NoError(t, err)
+	require.Equal(t, tx.Memo(), memo)
+}
+
+func TestChallengeWithBadMemo(t *testing.T) {
+	serverKey := keypair.MustRandom()
+	account := keypair.MustRandom()
+
+	h := challengeHandler{
+		Logger:             supportlog.DefaultLogger,
+		NetworkPassphrase:  network.TestNetworkPassphrase,
+		SigningKey:         serverKey,
+		ChallengeExpiresIn: time.Minute,
+		Domain:             "webauthdomain",
+		HomeDomains:        []string{"testdomain"},
+	}
+
+	r := httptest.NewRequest("GET", "/?account="+account.Address()+"&memo=test", nil)
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, r)
+	resp := w.Result()
+
+	require.Equal(t, http.StatusBadRequest, resp.StatusCode)
+	assert.Equal(t, "application/json; charset=utf-8", resp.Header.Get("Content-Type"))
+
+	body, err := ioutil.ReadAll(resp.Body)
+	require.NoError(t, err)
+	assert.JSONEq(t, `{"error":"The request was invalid in some way."}`, string(body))
+}
+
+func TestChallengeWithMuxedAccount(t *testing.T) {
+	serverKey := keypair.MustRandom()
+	account := keypair.MustRandom()
+
+	muxedAccount := strkey.MuxedAccount{}
+	muxedAccount.SetAccountID(account.Address())
+	muxedAccount.SetID(1)
+	muxedAccountAddress, err := muxedAccount.Address()
+	require.NoError(t, err)
+
+	h := challengeHandler{
+		Logger:             supportlog.DefaultLogger,
+		NetworkPassphrase:  network.TestNetworkPassphrase,
+		SigningKey:         serverKey,
+		ChallengeExpiresIn: time.Minute,
+		Domain:             "webauthdomain",
+		HomeDomains:        []string{"testdomain"},
+	}
+
+	r := httptest.NewRequest("GET", "/?account="+muxedAccountAddress, nil)
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, r)
+	resp := w.Result()
+
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Equal(t, "application/json; charset=utf-8", resp.Header.Get("Content-Type"))
+
+	res := struct {
+		Transaction       string `json:"transaction"`
+		NetworkPassphrase string `json:"network_passphrase"`
+	}{}
+	err = json.NewDecoder(resp.Body).Decode(&res)
+	require.NoError(t, err)
+
+	var tx xdr.TransactionEnvelope
+	err = xdr.SafeUnmarshalBase64(res.Transaction, &tx)
+	require.NoError(t, err)
+
+	require.Equal(t, tx.Operations()[0].SourceAccount.Address(), muxedAccountAddress)
 }

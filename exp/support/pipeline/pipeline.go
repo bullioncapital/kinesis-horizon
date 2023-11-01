@@ -95,7 +95,7 @@ func (p *Pipeline) IsRunning() bool {
 
 // reset resets internal state of the pipeline and all the nodes and processors.
 func (p *Pipeline) reset() {
-	p.cancelled = false
+	p.canceled = false
 	p.resetNode(p.root)
 }
 
@@ -132,7 +132,7 @@ func (p *Pipeline) resetNode(node *PipelineNode) {
 	}
 }
 
-// Process starts pipeline. Return channel will return if an error occured in
+// Process starts pipeline. Return channel will return if an error occurred in
 // any of the processors or any of the pipeline hooks. Will return ErrShutdown
 // if the pipeline was shutdown.
 func (p *Pipeline) Process(reader Reader) <-chan error {
@@ -183,17 +183,17 @@ func (p *Pipeline) processStateNode(ctx context.Context, store *Store, node *Pip
 
 		err := node.Processor.Process(ctx, store, reader, writer)
 		if err != nil {
-			// Protects from cancelling twice and sending multiple errors to err channel
+			// Protects from canceling twice and sending multiple errors to err channel
 			p.mutex.Lock()
 			defer p.mutex.Unlock()
 
-			if p.cancelled {
+			if p.canceled {
 				return
 			}
 
 			wrappedErr := errors.Wrap(err, fmt.Sprintf("Processor %s errored", node.Processor.Name()))
 
-			p.cancelled = true
+			p.canceled = true
 			p.cancelFunc()
 			processingError = wrappedErr
 		}
@@ -257,11 +257,11 @@ func (p *Pipeline) Shutdown() {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
-	if p.cancelled {
+	if p.canceled {
 		return
 	}
 	p.shutDown = true
-	p.cancelled = true
+	p.canceled = true
 	// It's possible that Shutdown will be called before first run.
 	if p.cancelFunc != nil {
 		p.cancelFunc()

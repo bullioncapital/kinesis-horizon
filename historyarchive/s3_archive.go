@@ -7,10 +7,11 @@ package historyarchive
 import (
 	"bytes"
 	"context"
-	log "github.com/sirupsen/logrus"
 	"io"
 	"net/http"
 	"path"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -91,7 +92,7 @@ func (b *S3ArchiveBackend) Exists(pth string) (bool, error) {
 	} else if resp.StatusCode == http.StatusNotFound {
 		return false, nil
 	} else {
-		return false, errors.Errorf("Unkown status code=%d", resp.StatusCode)
+		return false, errors.Errorf("Unknown status code=%d", resp.StatusCode)
 	}
 }
 
@@ -105,7 +106,7 @@ func (b *S3ArchiveBackend) Size(pth string) (int64, error) {
 	} else if resp.StatusCode == http.StatusNotFound {
 		return 0, nil
 	} else {
-		return 0, errors.Errorf("Unkown status code=%d", resp.StatusCode)
+		return 0, errors.Errorf("Unknown status code=%d", resp.StatusCode)
 	}
 }
 

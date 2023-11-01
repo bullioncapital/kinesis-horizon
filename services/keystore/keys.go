@@ -42,7 +42,7 @@ func (s *Service) putKeys(ctx context.Context, in putKeysRequest) (*encryptedKey
 	if err != nil {
 		// TODO: we need to implement a helper function in the
 		// support/error package for keeping the stack trace from err
-		// and substitude the root error for the one we want for better
+		// and substitute the root error for the one we want for better
 		// debugging experience.
 		// Thowing away the original err makes it harder for debugging.
 		return nil, probInvalidKeysBlob

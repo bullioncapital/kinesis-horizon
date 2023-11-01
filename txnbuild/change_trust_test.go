@@ -21,7 +21,7 @@ func TestChangeTrustMaxLimit(t *testing.T) {
 			IncrementSequenceNum: true,
 			Operations:           []Operation{&changeTrust},
 			BaseFee:              MinBaseFee,
-			Timebounds:           NewInfiniteTimeout(),
+			Preconditions:        Preconditions{TimeBounds: NewInfiniteTimeout()},
 		},
 		network.TestNetworkPassphrase,
 		kp0,
@@ -46,7 +46,7 @@ func TestChangeTrustValidateInvalidAsset(t *testing.T) {
 			IncrementSequenceNum: true,
 			Operations:           []Operation{&changeTrust},
 			BaseFee:              MinBaseFee,
-			Timebounds:           NewInfiniteTimeout(),
+			Preconditions:        Preconditions{TimeBounds: NewInfiniteTimeout()},
 		},
 	)
 	if assert.Error(t, err) {
@@ -70,7 +70,7 @@ func TestChangeTrustValidateInvalidLimit(t *testing.T) {
 			IncrementSequenceNum: true,
 			Operations:           []Operation{&changeTrust},
 			BaseFee:              MinBaseFee,
-			Timebounds:           NewInfiniteTimeout(),
+			Preconditions:        Preconditions{TimeBounds: NewInfiniteTimeout()},
 		},
 	)
 	if assert.Error(t, err) {

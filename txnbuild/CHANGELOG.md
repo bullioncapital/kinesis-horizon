@@ -4,6 +4,41 @@ All notable changes to this project will be documented in this
 file.  This project adheres to [Semantic Versioning](http://semver.org/).
 
 
+## Unreleased
+
+### Breaking changes
+
+* Muxed accounts and ID memos can be used in the `BuildChallengeTx()` and `ReadChallengeTx()` SEP-10 utilitiy functions to identify users of shared Stellar accounts. ([#4746](https://github.com/stellar/go/pull/4746))
+  * `BuildChallengeTx()`:
+    * Muxed account addresses can be passed as the `clientAccountID`.
+    * Adds an additional parameter of type `*txnbuild.MemoID`. Memos cannot be specified if the `clientAccoutID` id a muxed account address.
+  * `ReadChallengeTx()`:
+    * Muxed account addresses may be returned as the `clientAccountID`.
+    * Adds an additional return value of type `*txnbuild.MemoID`.
+
+
+## [10.0.0](https://github.com/stellar/go/releases/tag/horizonclient-v9.0.0) - 2022-04-18
+
+* Adds support for Protocol 19 transaction preconditions ([CAP-21](https://stellar.org/protocol/cap-21)).
+
+### Breaking changes
+
+* There are many new ways for a transaction to be (in)valid (see the new `Preconditions` structure), and the corresponding breaking change is in how transactions are built:
+
+```diff
+ tx, err := NewTransaction(TransactionParams{
+     SourceAccount: someAccount,
+     // ... other parameters ...
+-    Timebounds:    NewTimeout(5),
++    Preconditions: Preconditions{TimeBounds: NewTimeout(5)},
+ })
+```
+
+* `Timebounds` has been renamed to `TimeBounds`, though a type alias remains.
+
+* A `*TimeBounds` structure is no longer considered valid (via `Validate()`) if it's `nil`. This further reinforces the fact that transactions need timebounds.
+
+
 ## [9.0.0](https://github.com/stellar/go/releases/tag/horizonclient-v9.0.0) - 2022-01-10
 
 * Enable Muxed Accounts ([SEP-23](https://github.com/stellar/stellar-protocol/blob/master/ecosystem/sep-0023.md)) by default ([#4169](https://github.com/stellar/go/pull/4169)):

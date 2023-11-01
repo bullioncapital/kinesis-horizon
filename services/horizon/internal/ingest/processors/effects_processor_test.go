@@ -2602,7 +2602,7 @@ func TestClaimClaimableBalanceEffectsTestSuite(t *testing.T) {
 	suite.Run(t, new(ClaimClaimableBalanceEffectsTestSuite))
 }
 
-func TestTrustlineSponsorhipEffects(t *testing.T) {
+func TestTrustlineSponsorshipEffects(t *testing.T) {
 	source := xdr.MustMuxedAddress("GAUJETIZVEP2NRYLUESJ3LS66NVCEGMON4UDCBCSBEVPIID773P2W6AY")
 	usdAsset := xdr.MustNewCreditAsset("USD", "GAUJETIZVEP2NRYLUESJ3LS66NVCEGMON4UDCBCSBEVPIID773P2W6AY")
 	poolIDStr := "19cc788419412926a11049b9fb1f87906b8f02bc6bf8f73d8fd347ede0b79fa5"

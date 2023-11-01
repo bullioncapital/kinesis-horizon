@@ -142,9 +142,12 @@ func FeeBumpScenario(tt *test.T, q *Q, successful bool) FeeBumpFixture {
 								Type: xdr.MemoTypeMemoNone,
 							},
 							SeqNum: 97,
-							TimeBounds: &xdr.TimeBounds{
-								MinTime: 2,
-								MaxTime: 4,
+							Cond: xdr.Preconditions{
+								Type: xdr.PreconditionTypePrecondTime,
+								TimeBounds: &xdr.TimeBounds{
+									MinTime: 2,
+									MaxTime: 4,
+								},
 							},
 							Operations: []xdr.Operation{
 								{
@@ -246,11 +249,16 @@ func FeeBumpScenario(tt *test.T, q *Q, successful bool) FeeBumpFixture {
 	})
 	ctx := context.Background()
 	insertBuilder := q.NewTransactionBatchInsertBuilder(2)
+	prefilterInsertBuilder := q.NewTransactionFilteredTmpBatchInsertBuilder(2)
 	// include both fee bump and normal transaction in the same batch
 	// to make sure both kinds of transactions can be inserted using a single exec statement
 	tt.Assert.NoError(insertBuilder.Add(ctx, feeBumpTransaction, sequence))
 	tt.Assert.NoError(insertBuilder.Add(ctx, normalTransaction, sequence))
 	tt.Assert.NoError(insertBuilder.Exec(ctx))
+
+	tt.Assert.NoError(prefilterInsertBuilder.Add(ctx, feeBumpTransaction, sequence))
+	tt.Assert.NoError(prefilterInsertBuilder.Add(ctx, normalTransaction, sequence))
+	tt.Assert.NoError(prefilterInsertBuilder.Exec(ctx))
 
 	account := fixture.Envelope.SourceAccount().ToAccountId()
 	feeBumpAccount := fixture.Envelope.FeeBumpAccount().ToAccountId()
@@ -299,7 +307,7 @@ func FeeBumpScenario(tt *test.T, q *Q, successful bool) FeeBumpFixture {
 			LedgerSequence:       fixture.Ledger.Sequence,
 			ApplicationOrder:     1,
 			Account:              account.Address(),
-			AccountSequence:      "97",
+			AccountSequence:      97,
 			MaxFee:               int64(fixture.Envelope.Fee()),
 			FeeCharged:           int64(resultPair.Result.FeeCharged),
 			OperationCount:       1,
@@ -310,6 +318,8 @@ func FeeBumpScenario(tt *test.T, q *Q, successful bool) FeeBumpFixture {
 			MemoType:             "none",
 			Memo:                 null.NewString("", false),
 			TimeBounds:           TimeBounds{Lower: null.IntFrom(2), Upper: null.IntFrom(4)},
+			LedgerBounds:         LedgerBounds{Null: true},
+			ExtraSigners:         nil,
 			Signatures:           signatures(fixture.Envelope.FeeBumpSignatures()),
 			InnerSignatures:      signatures(fixture.Envelope.Signatures()),
 			Successful:           successful,
@@ -326,7 +336,7 @@ func FeeBumpScenario(tt *test.T, q *Q, successful bool) FeeBumpFixture {
 			LedgerSequence:   fixture.Ledger.Sequence,
 			ApplicationOrder: 1,
 			Account:          "GAUJETIZVEP2NRYLUESJ3LS66NVCEGMON4UDCBCSBEVPIID773P2W6AY",
-			AccountSequence:  "78621794419880145",
+			AccountSequence:  78621794419880145,
 			MaxFee:           200,
 			FeeCharged:       300,
 			OperationCount:   1,

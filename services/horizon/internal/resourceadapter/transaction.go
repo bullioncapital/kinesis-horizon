@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/guregu/null"
@@ -54,9 +55,46 @@ func PopulateTransaction(
 		}
 	}
 	dest.Signatures = row.Signatures
+
+	// If we never use this, we'll remove it later. This just defends us against
+	// nil dereferences.
+	dest.Preconditions = &protocol.TransactionPreconditions{}
+
 	if !row.TimeBounds.Null {
-		dest.ValidBefore = timeString(dest, row.TimeBounds.Upper)
-		dest.ValidAfter = timeString(dest, row.TimeBounds.Lower)
+		// Action needed in release: horizon-v3.0.0: remove ValidBefore and ValidAfter
+		dest.ValidBefore = timeString(row.TimeBounds.Upper)
+		dest.ValidAfter = timeString(row.TimeBounds.Lower)
+
+		dest.Preconditions.TimeBounds = &protocol.TransactionPreconditionsTimebounds{
+			MaxTime: timestampString(row.TimeBounds.Upper),
+			MinTime: timestampString(row.TimeBounds.Lower),
+		}
+	}
+
+	if !row.LedgerBounds.Null {
+		dest.Preconditions.LedgerBounds = &protocol.TransactionPreconditionsLedgerbounds{}
+		if row.LedgerBounds.MinLedger.Valid {
+			dest.Preconditions.LedgerBounds.MinLedger = uint32(row.LedgerBounds.MinLedger.Int64)
+		}
+		if row.LedgerBounds.MaxLedger.Valid {
+			dest.Preconditions.LedgerBounds.MaxLedger = uint32(row.LedgerBounds.MaxLedger.Int64)
+		}
+	}
+
+	if row.MinAccountSequence.Valid {
+		dest.Preconditions.MinAccountSequence = fmt.Sprint(row.MinAccountSequence.Int64)
+	}
+
+	if row.MinAccountSequenceAge.Valid && row.MinAccountSequenceAge.String != "0" {
+		dest.Preconditions.MinAccountSequenceAge = row.MinAccountSequenceAge.String
+	}
+
+	if row.MinAccountSequenceLedgerGap.Valid {
+		dest.Preconditions.MinAccountSequenceLedgerGap = uint32(row.MinAccountSequenceLedgerGap.Int64)
+	}
+
+	if len(row.ExtraSigners) > 0 {
+		dest.Preconditions.ExtraSigners = row.ExtraSigners
 	}
 
 	if row.InnerTransactionHash.Valid {
@@ -96,6 +134,11 @@ func PopulateTransaction(
 	dest.Links.Succeeds = lb.Linkf("/transactions?order=desc&cursor=%s", dest.PT)
 	dest.Links.Precedes = lb.Linkf("/transactions?order=asc&cursor=%s", dest.PT)
 
+	// If we didn't need the structure, drop it.
+	if !row.HasPreconditions() {
+		dest.Preconditions = nil
+	}
+
 	return nil
 }
 
@@ -109,10 +152,18 @@ func memoBytes(envelopeXDR string) (string, error) {
 	return base64.StdEncoding.EncodeToString([]byte(memo)), nil
 }
 
-func timeString(res *protocol.Transaction, in null.Int) string {
+func timeString(in null.Int) string {
 	if !in.Valid {
 		return ""
 	}
 
 	return time.Unix(in.Int64, 0).UTC().Format(time.RFC3339)
+}
+
+func timestampString(in null.Int) string {
+	if !in.Valid {
+		return ""
+	}
+
+	return strconv.FormatInt(in.Int64, 10)
 }

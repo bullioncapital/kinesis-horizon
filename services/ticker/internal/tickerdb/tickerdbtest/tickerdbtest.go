@@ -7,7 +7,6 @@ import (
 
 	migrate "github.com/rubenv/sql-migrate"
 	"github.com/stellar/go/services/ticker/internal/tickerdb"
-	"github.com/stellar/go/support/db/dbtest"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -15,7 +14,7 @@ import (
 // SetupTickerTestSession sets up the database for testing the GraphQL endpoints
 // and associated query logic.
 func SetupTickerTestSession(t *testing.T, migrationsDir string) (session tickerdb.TickerSession) {
-	db := dbtest.Postgres(t)
+	db := tickerdb.OpenTestDBConnection(t)
 	session.DB = db.Open()
 	ctx := context.Background()
 

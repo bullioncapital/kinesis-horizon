@@ -41,12 +41,11 @@ const (
 )
 
 var (
-	RunWithCaptiveCore      = os.Getenv("HORIZON_INTEGRATION_ENABLE_CAPTIVE_CORE") != ""
-	RunWithCaptiveCoreUseDB = os.Getenv("HORIZON_INTEGRATION_ENABLE_CAPTIVE_CORE_USE_DB") != ""
+	RunWithCaptiveCore      = os.Getenv("HORIZON_INTEGRATION_TESTS_ENABLE_CAPTIVE_CORE") != ""
+	RunWithCaptiveCoreUseDB = os.Getenv("HORIZON_INTEGRATION_TESTS_CAPTIVE_CORE_USE_DB") != ""
 )
 
 type Config struct {
-	PostgresURL           string
 	ProtocolVersion       uint32
 	SkipContainerCreation bool
 	CoreDockerImage       string
@@ -64,14 +63,16 @@ type Config struct {
 	// You can also control the environmental variables in a similar way, but
 	// note that CLI args take precedence over envvars, so set the corresponding
 	// CLI arg empty.
-	HorizonParameters  map[string]string
-	HorizonEnvironment map[string]string
+	HorizonWebParameters    map[string]string
+	HorizonIngestParameters map[string]string
+	HorizonEnvironment      map[string]string
 }
 
 type CaptiveConfig struct {
-	binaryPath string
-	configPath string
-	useDB      bool
+	binaryPath  string
+	configPath  string
+	storagePath string
+	useDB       bool
 }
 
 type Test struct {
@@ -79,16 +80,18 @@ type Test struct {
 
 	composePath string
 
-	config        Config
-	coreConfig    CaptiveConfig
-	horizonConfig horizon.Config
-	environment   *EnvironmentManager
+	config              Config
+	coreConfig          CaptiveConfig
+	horizonIngestConfig horizon.Config
+	environment         *EnvironmentManager
 
-	horizonClient *sdk.Client
-	coreClient    *stellarcore.Client
+	horizonClient      *sdk.Client
+	horizonAdminClient *sdk.AdminClient
+	coreClient         *stellarcore.Client
 
-	app           *horizon.App
-	appStopped    chan struct{}
+	webNode       *horizon.App
+	ingestNode    *horizon.App
+	appStopped    *sync.WaitGroup
 	shutdownOnce  sync.Once
 	shutdownCalls []func()
 	masterKey     *keypair.Full
@@ -96,11 +99,17 @@ type Test struct {
 }
 
 func NewTestForRemoteHorizon(t *testing.T, horizonURL string, passPhrase string, masterKey *keypair.Full) *Test {
+	adminClient, err := sdk.NewAdminClient(0, "", 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	return &Test{
-		t:             t,
-		horizonClient: &sdk.Client{HorizonURL: horizonURL},
-		masterKey:     masterKey,
-		passPhrase:    passPhrase,
+		t:                  t,
+		horizonClient:      &sdk.Client{HorizonURL: horizonURL},
+		horizonAdminClient: adminClient,
+		masterKey:          masterKey,
+		passPhrase:         passPhrase,
 	}
 }
 
@@ -111,13 +120,19 @@ func NewTestForRemoteHorizon(t *testing.T, horizonURL string, passPhrase string,
 //
 // WARNING: This requires Docker Compose installed.
 func NewTest(t *testing.T, config Config) *Test {
-	if os.Getenv("HORIZON_INTEGRATION_TESTS") == "" {
-		t.Skip("skipping integration test: HORIZON_INTEGRATION_TESTS not set")
+	if os.Getenv("HORIZON_INTEGRATION_TESTS_ENABLED") == "" {
+		t.Skip("skipping integration test: HORIZON_INTEGRATION_TESTS_ENABLED not set")
 	}
 
-	// If not specific explicitly, set the protocol to the maximum supported version
 	if config.ProtocolVersion == 0 {
+		// Default to the maximum supported protocol version
 		config.ProtocolVersion = ingest.MaxSupportedProtocolVersion
+		// If the environment tells us that Core only supports up to certain version,
+		// use that.
+		maxSupportedCoreProtocolFromEnv := GetCoreMaxSupportedProtocol()
+		if maxSupportedCoreProtocolFromEnv != 0 && maxSupportedCoreProtocolFromEnv < ingest.MaxSupportedProtocolVersion {
+			config.ProtocolVersion = maxSupportedCoreProtocolFromEnv
+		}
 	}
 
 	composePath := findDockerComposePath()
@@ -153,20 +168,21 @@ func (i *Test) configureCaptiveCore() {
 	// custom Horizon parameters.
 	if RunWithCaptiveCore {
 		composePath := findDockerComposePath()
-		i.coreConfig.binaryPath = os.Getenv("CAPTIVE_CORE_BIN")
+		i.coreConfig.binaryPath = os.Getenv("HORIZON_INTEGRATION_TESTS_CAPTIVE_CORE_BIN")
 		i.coreConfig.configPath = filepath.Join(composePath, "captive-core-integration-tests.cfg")
+		i.coreConfig.storagePath = i.CurrentTest().TempDir()
 		if RunWithCaptiveCoreUseDB {
 			i.coreConfig.useDB = true
 		}
 	}
 
-	if value := i.getParameter(
+	if value := i.getIngestParameter(
 		horizon.StellarCoreBinaryPathName,
 		"STELLAR_CORE_BINARY_PATH",
 	); value != "" {
 		i.coreConfig.binaryPath = value
 	}
-	if value := i.getParameter(
+	if value := i.getIngestParameter(
 		horizon.CaptiveCoreConfigPathName,
 		"CAPTIVE_CORE_CONFIG_PATH",
 	); value != "" {
@@ -174,11 +190,11 @@ func (i *Test) configureCaptiveCore() {
 	}
 }
 
-func (i *Test) getParameter(argName, envName string) string {
+func (i *Test) getIngestParameter(argName, envName string) string {
 	if value, ok := i.config.HorizonEnvironment[envName]; ok {
 		return value
 	}
-	if value, ok := i.config.HorizonParameters[argName]; ok {
+	if value, ok := i.config.HorizonIngestParameters[argName]; ok {
 		return value
 	}
 	return ""
@@ -190,13 +206,18 @@ func (i *Test) runComposeCommand(args ...string) {
 
 	cmdline := append([]string{"-f", integrationYaml}, args...)
 	cmd := exec.Command("docker-compose", cmdline...)
+	coreImageOverride := ""
 	if i.config.CoreDockerImage != "" {
+		coreImageOverride = i.config.CoreDockerImage
+	} else if img := os.Getenv("HORIZON_INTEGRATION_TESTS_DOCKER_IMG"); img != "" {
+		coreImageOverride = img
+	}
+	if coreImageOverride != "" {
 		cmd.Env = append(
 			os.Environ(),
-			fmt.Sprintf("CORE_IMAGE=%s", i.config.CoreDockerImage),
+			fmt.Sprintf("CORE_IMAGE=%s", coreImageOverride),
 		)
 	}
-
 	i.t.Log("Running", cmd.Env, cmd.Args)
 	out, innerErr := cmd.Output()
 	if exitErr, ok := innerErr.(*exec.ExitError); ok {
@@ -212,8 +233,11 @@ func (i *Test) runComposeCommand(args ...string) {
 func (i *Test) prepareShutdownHandlers() {
 	i.shutdownCalls = append(i.shutdownCalls,
 		func() {
-			if i.app != nil {
-				i.app.Close()
+			if i.webNode != nil {
+				i.webNode.Close()
+			}
+			if i.ingestNode != nil {
+				i.ingestNode.Close()
 			}
 			i.runComposeCommand("rm", "-fvs", "core")
 			i.runComposeCommand("rm", "-fvs", "core-postgres")
@@ -245,8 +269,8 @@ func (i *Test) RestartHorizon() error {
 	return nil
 }
 
-func (i *Test) GetHorizonConfig() horizon.Config {
-	return i.horizonConfig
+func (i *Test) GetHorizonIngestConfig() horizon.Config {
+	return i.horizonIngestConfig
 }
 
 // Shutdown stops the integration tests and destroys all its associated
@@ -263,26 +287,36 @@ func (i *Test) Shutdown() {
 }
 
 func (i *Test) StartHorizon() error {
-	horizonPostgresURL := i.config.PostgresURL
-	if horizonPostgresURL == "" {
-		postgres := dbtest.Postgres(i.t)
-		i.shutdownCalls = append(i.shutdownCalls, func() {
-			// FIXME: Unfortunately, Horizon leaves open sessions behind,
-			//        leading to a "database is being accessed by other users"
-			//        error when trying to drop it.
-			// postgres.Close()
-		})
-		horizonPostgresURL = postgres.DSN
-	}
+	postgres := dbtest.Postgres(i.t)
+	i.shutdownCalls = append(i.shutdownCalls, func() {
+		i.StopHorizon()
+		postgres.Close()
+	})
 
-	config, configOpts := horizon.Flags()
-	cmd := &cobra.Command{
+	webConfig, webConfigOpts := horizon.Flags()
+	ingestConfig, ingestConfigOpts := horizon.Flags()
+	webCmd := &cobra.Command{
 		Use:   "horizon",
 		Short: "Client-facing API server for the Stellar network",
 		Long:  "Client-facing API server for the Stellar network.",
 		Run: func(cmd *cobra.Command, args []string) {
 			var err error
-			i.app, err = horizon.NewAppFromFlags(config, configOpts)
+			i.webNode, err = horizon.NewAppFromFlags(webConfig, webConfigOpts)
+			if err != nil {
+				// Explicitly exit here as that's how these tests are structured for now.
+				fmt.Println(err)
+				os.Exit(1)
+			}
+		},
+	}
+
+	ingestCmd := &cobra.Command{
+		Use:   "horizon",
+		Short: "Ingest of Stellar network",
+		Long:  "Ingest of Stellar network.",
+		Run: func(cmd *cobra.Command, args []string) {
+			var err error
+			i.ingestNode, err = horizon.NewAppFromFlags(ingestConfig, ingestConfigOpts)
 			if err != nil {
 				// Explicitly exit here as that's how these tests are structured for now.
 				fmt.Println(err)
@@ -300,48 +334,58 @@ func (i *Test) StartHorizon() error {
 	coreBinaryPath := i.coreConfig.binaryPath
 	captiveCoreConfigPath := i.coreConfig.configPath
 	captiveCoreUseDB := strconv.FormatBool(i.coreConfig.useDB)
+	captiveCoreStoragePath := i.coreConfig.storagePath
 
 	defaultArgs := map[string]string{
-		"stellar-core-url": i.coreClient.URL,
-		"stellar-core-db-url": fmt.Sprintf(
-			"postgres://postgres:%s@%s:%d/stellar?sslmode=disable",
-			stellarCorePostgresPassword,
-			hostname,
-			stellarCorePostgresPort,
-		),
-		"stellar-core-binary-path": coreBinaryPath,
-		"captive-core-config-path": captiveCoreConfigPath,
-		"captive-core-http-port":   "21626",
-		"captive-core-use-db":      captiveCoreUseDB,
-		// Create the storage directory outside of the source repo,
-		// otherwise it will break Golang test caching.
-		"captive-core-storage-path":     os.TempDir(),
-		"enable-captive-core-ingestion": strconv.FormatBool(len(coreBinaryPath) > 0),
-		"ingest":                        "true",
+		"ingest":                        "false",
 		"history-archive-urls":          fmt.Sprintf("http://%s:%d", hostname, historyArchivePort),
-		"db-url":                        horizonPostgresURL,
+		"db-url":                        postgres.RO_DSN,
+		"stellar-core-url":              i.coreClient.URL,
 		"network-passphrase":            i.passPhrase,
 		"apply-migrations":              "true",
-		"admin-port":                    strconv.Itoa(i.AdminPort()),
+		"enable-captive-core-ingestion": "false",
 		"port":                          "8000",
 		// due to ARTIFICIALLY_ACCELERATE_TIME_FOR_TESTING
 		"checkpoint-frequency": "8",
-		"per-hour-rate-limit":  "0", // disable rate limiting
+		"per-hour-rate-limit":  "0",  // disable rate limiting
+		"max-db-connections":   "50", // the postgres container supports 100 connections, be conservative
 	}
 
-	merged := MergeMaps(defaultArgs, i.config.HorizonParameters)
-	args := mapToFlags(merged)
+	merged := MergeMaps(defaultArgs, i.config.HorizonWebParameters, map[string]string{"admin-port": "0"})
+	webArgs := mapToFlags(merged)
+	mergedIngest := MergeMaps(defaultArgs,
+		map[string]string{
+			"admin-port":                    strconv.Itoa(i.AdminPort()),
+			"port":                          "8001",
+			"enable-captive-core-ingestion": strconv.FormatBool(len(coreBinaryPath) > 0),
+			"db-url":                        postgres.DSN,
+			"stellar-core-db-url": fmt.Sprintf(
+				"postgres://postgres:%s@%s:%d/stellar?sslmode=disable",
+				stellarCorePostgresPassword,
+				hostname,
+				stellarCorePostgresPort,
+			),
+			"stellar-core-binary-path":  coreBinaryPath,
+			"captive-core-config-path":  captiveCoreConfigPath,
+			"captive-core-http-port":    "21626",
+			"captive-core-use-db":       captiveCoreUseDB,
+			"captive-core-storage-path": captiveCoreStoragePath,
+			"ingest":                    "true"},
+		i.config.HorizonIngestParameters)
+	ingestArgs := mapToFlags(mergedIngest)
 
 	// initialize core arguments
-	i.t.Log("Horizon command line:", args)
+	i.t.Log("Horizon command line:", webArgs)
 	var env strings.Builder
 	for key, value := range i.config.HorizonEnvironment {
 		env.WriteString(fmt.Sprintf("%s=%s ", key, value))
 	}
 	i.t.Logf("Horizon environmental variables: %s\n", env.String())
 
+	webCmd.SetArgs(webArgs)
+	ingestCmd.SetArgs(ingestArgs)
+
 	// prepare env
-	cmd.SetArgs(args)
 	for key, value := range i.config.HorizonEnvironment {
 		innerErr := i.environment.Add(key, value)
 		if innerErr != nil {
@@ -351,29 +395,50 @@ func (i *Test) StartHorizon() error {
 	}
 
 	var err error
-	if err = configOpts.Init(cmd); err != nil {
+	if err = webConfigOpts.Init(webCmd); err != nil {
+		return errors.Wrap(err, "cannot initialize params")
+	}
+	if err = ingestConfigOpts.Init(ingestCmd); err != nil {
 		return errors.Wrap(err, "cannot initialize params")
 	}
 
-	if err = cmd.Execute(); err != nil {
+	if err = ingestCmd.Execute(); err != nil {
+		return errors.Wrap(err, "cannot initialize Horizon")
+	}
+
+	if err = webCmd.Execute(); err != nil {
 		return errors.Wrap(err, "cannot initialize Horizon")
 	}
 
 	horizonPort := "8000"
-	if port, ok := merged["--port"]; ok {
+	if port, ok := merged["port"]; ok {
 		horizonPort = port
 	}
-	i.horizonConfig = *config
+	adminPort := uint16(i.AdminPort())
+	if port, ok := mergedIngest["admin-port"]; ok {
+		if cmdAdminPort, parseErr := strconv.ParseInt(port, 0, 16); parseErr == nil {
+			adminPort = uint16(cmdAdminPort)
+		}
+	}
+	i.horizonIngestConfig = *ingestConfig
 	i.horizonClient = &sdk.Client{
 		HorizonURL: fmt.Sprintf("http://%s:%s", hostname, horizonPort),
 	}
+	i.horizonAdminClient, err = sdk.NewAdminClient(adminPort, "", 0)
+	if err != nil {
+		return errors.Wrap(err, "cannot initialize Horizon admin client")
+	}
 
-	done := make(chan struct{})
+	i.appStopped = &sync.WaitGroup{}
+	i.appStopped.Add(2)
 	go func() {
-		i.app.Serve()
-		close(done)
+		i.ingestNode.Serve()
+		i.appStopped.Done()
 	}()
-	i.appStopped = done
+	go func() {
+		i.webNode.Serve()
+		i.appStopped.Done()
+	}()
 
 	return nil
 }
@@ -457,7 +522,8 @@ func (i *Test) WaitForHorizon() {
 		}
 
 		if uint32(root.CurrentProtocolVersion) == i.config.ProtocolVersion {
-			i.t.Logf("Horizon protocol version matches... %v", root)
+			i.t.Logf("Horizon protocol version matches %d: %+v",
+				root.CurrentProtocolVersion, root)
 			return
 		}
 	}
@@ -470,20 +536,34 @@ func (i *Test) Client() *sdk.Client {
 	return i.horizonClient
 }
 
+// Client returns horizon.Client connected to started Horizon instance.
+func (i *Test) AdminClient() *sdk.AdminClient {
+	return i.horizonAdminClient
+}
+
 // Horizon returns the horizon.App instance for the current integration test
-func (i *Test) Horizon() *horizon.App {
-	return i.app
+func (i *Test) HorizonWeb() *horizon.App {
+	return i.webNode
+}
+
+func (i *Test) HorizonIngest() *horizon.App {
+	return i.ingestNode
 }
 
 // StopHorizon shuts down the running Horizon process
 func (i *Test) StopHorizon() {
-	i.app.CloseDB()
-	i.app.Close()
+	if i.webNode != nil {
+		i.webNode.Close()
+	}
+	if i.ingestNode != nil {
+		i.ingestNode.Close()
+	}
 
 	// Wait for Horizon to shut down completely.
-	<-i.appStopped
+	i.appStopped.Wait()
 
-	i.app = nil
+	i.webNode = nil
+	i.ingestNode = nil
 }
 
 // AdminPort returns Horizon admin port.
@@ -505,11 +585,12 @@ func (i *Test) Master() *keypair.Full {
 }
 
 func (i *Test) MasterAccount() txnbuild.Account {
-	master, client := i.Master(), i.Client()
-	request := sdk.AccountRequest{AccountID: master.Address()}
-	account, err := client.AccountDetail(request)
-	panicIf(err)
+	account := i.MasterAccountDetails()
 	return &account
+}
+
+func (i *Test) MasterAccountDetails() proto.Account {
+	return i.MustGetAccount(i.Master())
 }
 
 func (i *Test) CurrentTest() *testing.T {
@@ -537,17 +618,13 @@ func (i *Test) CreateAccounts(count int, initialBalance string) ([]*keypair.Full
 	// Two paths here: either caller already did some stuff with the master
 	// account so we should retrieve the sequence number, or caller hasn't and
 	// we start from scratch.
-	seq := int64(0)
 	request := sdk.AccountRequest{AccountID: master.Address()}
 	account, err := client.AccountDetail(request)
-	if err == nil {
-		seq, err = strconv.ParseInt(account.Sequence, 10, 64) // str -> bigint
-		panicIf(err)
-	}
+	panicIf(err)
 
 	masterAccount := txnbuild.SimpleAccount{
 		AccountID: master.Address(),
-		Sequence:  seq,
+		Sequence:  account.Sequence,
 	}
 
 	for i := 0; i < count; i++ {
@@ -672,7 +749,7 @@ func (i *Test) SubmitOperations(
 func (i *Test) SubmitMultiSigOperations(
 	source txnbuild.Account, signers []*keypair.Full, ops ...txnbuild.Operation,
 ) (proto.Transaction, error) {
-	tx, err := i.CreateSignedTransaction(source, signers, ops...)
+	tx, err := i.CreateSignedTransactionFromOps(source, signers, ops...)
 	if err != nil {
 		return proto.Transaction{}, err
 	}
@@ -687,17 +764,39 @@ func (i *Test) MustSubmitMultiSigOperations(
 	return tx
 }
 
-func (i *Test) CreateSignedTransaction(
-	source txnbuild.Account, signers []*keypair.Full, ops ...txnbuild.Operation,
-) (*txnbuild.Transaction, error) {
-	txParams := txnbuild.TransactionParams{
-		SourceAccount:        source,
-		Operations:           ops,
-		BaseFee:              txnbuild.MinBaseFee,
-		Timebounds:           txnbuild.NewInfiniteTimeout(),
-		IncrementSequenceNum: true,
-	}
+func (i *Test) MustSubmitTransaction(signer *keypair.Full, txParams txnbuild.TransactionParams,
+) proto.Transaction {
+	tx, err := i.SubmitTransaction(signer, txParams)
+	panicIf(err)
+	return tx
+}
 
+func (i *Test) SubmitTransaction(
+	signer *keypair.Full, txParams txnbuild.TransactionParams,
+) (proto.Transaction, error) {
+	return i.SubmitMultiSigTransaction([]*keypair.Full{signer}, txParams)
+}
+
+func (i *Test) SubmitMultiSigTransaction(
+	signers []*keypair.Full, txParams txnbuild.TransactionParams,
+) (proto.Transaction, error) {
+	tx, err := i.CreateSignedTransaction(signers, txParams)
+	if err != nil {
+		return proto.Transaction{}, err
+	}
+	return i.Client().SubmitTransaction(tx)
+}
+
+func (i *Test) MustSubmitMultiSigTransaction(
+	signers []*keypair.Full, txParams txnbuild.TransactionParams,
+) proto.Transaction {
+	tx, err := i.SubmitMultiSigTransaction(signers, txParams)
+	panicIf(err)
+	return tx
+}
+
+func (i *Test) CreateSignedTransaction(signers []*keypair.Full, txParams txnbuild.TransactionParams,
+) (*txnbuild.Transaction, error) {
 	tx, err := txnbuild.NewTransaction(txParams)
 	if err != nil {
 		return nil, err
@@ -711,6 +810,20 @@ func (i *Test) CreateSignedTransaction(
 	}
 
 	return tx, nil
+}
+
+func (i *Test) CreateSignedTransactionFromOps(
+	source txnbuild.Account, signers []*keypair.Full, ops ...txnbuild.Operation,
+) (*txnbuild.Transaction, error) {
+	txParams := txnbuild.TransactionParams{
+		SourceAccount:        source,
+		Operations:           ops,
+		BaseFee:              txnbuild.MinBaseFee,
+		Preconditions:        txnbuild.Preconditions{TimeBounds: txnbuild.NewInfiniteTimeout()},
+		IncrementSequenceNum: true,
+	}
+
+	return i.CreateSignedTransaction(signers, txParams)
 }
 
 func (i *Test) GetCurrentCoreLedgerSequence() (int, error) {
@@ -738,7 +851,7 @@ func (i *Test) LogFailedTx(txResponse proto.Transaction, horizonResult error) {
 	err := xdr.SafeUnmarshalBase64(txResponse.ResultXdr, &txResult)
 	assert.NoErrorf(t, err, "Unmarshalling transaction failed.")
 	assert.Equalf(t, xdr.TransactionResultCodeTxSuccess, txResult.Result.Code,
-		"Transaction doesn't have success code.")
+		"Transaction did not succeed: %d", txResult.Result.Code)
 }
 
 func (i *Test) GetPassPhrase() string {
@@ -825,4 +938,20 @@ func mapToFlags(params map[string]string) []string {
 		args = append(args, fmt.Sprintf("--%s=%s", key, value))
 	}
 	return args
+}
+
+func GetCoreMaxSupportedProtocol() uint32 {
+	str := os.Getenv("HORIZON_INTEGRATION_TESTS_CORE_MAX_SUPPORTED_PROTOCOL")
+	if str == "" {
+		return 0
+	}
+	version, err := strconv.ParseUint(str, 10, 32)
+	if err != nil {
+		return 0
+	}
+	return uint32(version)
+}
+
+func (i *Test) GetEffectiveProtocolVersion() uint32 {
+	return i.config.ProtocolVersion
 }

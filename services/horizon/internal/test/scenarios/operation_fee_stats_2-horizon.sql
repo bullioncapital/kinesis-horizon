@@ -444,6 +444,11 @@ CREATE TABLE history_transactions (
     memo_type character varying DEFAULT 'none'::character varying NOT NULL,
     memo character varying,
     time_bounds int8range,
+    ledger_bounds int8range,
+    min_account_sequence bigint,
+    min_account_sequence_age bigint,
+    min_account_sequence_ledger_gap bigint,
+    extra_signers text[],
     successful boolean,
     fee_charged integer,
     new_max_fee integer

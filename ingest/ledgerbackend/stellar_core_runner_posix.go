@@ -5,7 +5,6 @@ package ledgerbackend
 
 import (
 	"os"
-	"os/exec"
 
 	"github.com/pkg/errors"
 )
@@ -19,7 +18,7 @@ func (c *stellarCoreRunner) getPipeName() string {
 	return "fd:3"
 }
 
-func (c *stellarCoreRunner) start(cmd *exec.Cmd) (pipe, error) {
+func (c *stellarCoreRunner) start(cmd cmdI) (pipe, error) {
 	// First make an anonymous pipe.
 	// Note io.File objects close-on-finalization.
 	readFile, writeFile, err := os.Pipe()
@@ -30,7 +29,7 @@ func (c *stellarCoreRunner) start(cmd *exec.Cmd) (pipe, error) {
 
 	// Add the write-end to the set of inherited file handles. This is defined
 	// to be fd 3 on posix platforms.
-	cmd.ExtraFiles = []*os.File{writeFile}
+	cmd.setExtraFiles([]*os.File{writeFile})
 	err = cmd.Start()
 	if err != nil {
 		writeFile.Close()

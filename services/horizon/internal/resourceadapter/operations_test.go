@@ -14,11 +14,12 @@ import (
 )
 
 func TestNewOperationAllTypesCovered(t *testing.T) {
+	tx := &history.Transaction{}
 	for typ, s := range xdr.OperationTypeToStringMap {
 		row := history.Operation{
 			Type: xdr.OperationType(typ),
 		}
-		op, err := NewOperation(context.Background(), row, "foo", &history.Transaction{}, history.Ledger{})
+		op, err := NewOperation(context.Background(), row, "foo", tx, history.Ledger{})
 		assert.NoError(t, err, s)
 		// if we got a base type, the operation is not covered
 		if _, ok := op.(operations.Base); ok {
@@ -30,7 +31,7 @@ func TestNewOperationAllTypesCovered(t *testing.T) {
 	row := history.Operation{
 		Type: xdr.OperationType(200000),
 	}
-	op, err := NewOperation(context.Background(), row, "foo", &history.Transaction{}, history.Ledger{})
+	op, err := NewOperation(context.Background(), row, "foo", tx, history.Ledger{})
 	assert.NoError(t, err)
 	assert.IsType(t, op, operations.Base{})
 
@@ -82,9 +83,10 @@ func TestPopulateOperation_WithTransaction(t *testing.T) {
 	operationsRow = history.Operation{TransactionSuccessful: true}
 	transactionRow = history.Transaction{
 		TransactionWithoutLedger: history.TransactionWithoutLedger{
-			Successful: true,
-			MaxFee:     10000,
-			FeeCharged: 100,
+			Successful:      true,
+			MaxFee:          10000,
+			FeeCharged:      100,
+			AccountSequence: 1,
 		},
 	}
 
@@ -295,9 +297,10 @@ func getJSONResponse(typ xdr.OperationType, details string) (rsp map[string]inte
 	ctx, _ := test.ContextWithLogBuffer()
 	transactionRow := history.Transaction{
 		TransactionWithoutLedger: history.TransactionWithoutLedger{
-			Successful: true,
-			MaxFee:     10000,
-			FeeCharged: 100,
+			Successful:      true,
+			MaxFee:          10000,
+			FeeCharged:      100,
+			AccountSequence: 1,
 		},
 	}
 	operationsRow := history.Operation{
@@ -330,6 +333,7 @@ func TestFeeBumpOperation(t *testing.T) {
 			TransactionHash:      "cebb875a00ff6e1383aef0fd251a76f22c1f9ab2a2dffcb077855736ade2659a",
 			FeeAccount:           null.StringFrom("GCXKG6RN4ONIEPCMNFB732A436Z5PNDSRLGWK7GBLCMQLIFO4S7EYWVU"),
 			Account:              "GBRPYHIL2CI3FNQ4BXLFMNDLFJUNPU2HY3ZMFSHONUCEOASW7QC7OX2H",
+			AccountSequence:      1,
 			NewMaxFee:            null.IntFrom(10000),
 			InnerTransactionHash: null.StringFrom("2374e99349b9ef7dba9a5db3339b78fda8f34777b1af33ba468ad5c0df946d4d"),
 			Signatures:           []string{"a", "b", "c"},

@@ -662,7 +662,7 @@ func TestLiquidityPoolFailedDepositAndWithdraw(t *testing.T) {
 	nonExistentPoolID := [32]byte{0xca, 0xfe}
 
 	// Failing deposit
-	tx, err := itest.CreateSignedTransaction(shareAccount, []*keypair.Full{shareKeys},
+	tx, err := itest.CreateSignedTransactionFromOps(shareAccount, []*keypair.Full{shareKeys},
 		&txnbuild.LiquidityPoolDeposit{
 			LiquidityPoolID: nonExistentPoolID,
 			MaxAmountA:      "400",
@@ -696,7 +696,7 @@ func TestLiquidityPoolFailedDepositAndWithdraw(t *testing.T) {
 	tt.Equal("0.0000000", deposit.SharesReceived)
 
 	// Failing withdrawal
-	tx, err = itest.CreateSignedTransaction(shareAccount, []*keypair.Full{shareKeys},
+	tx, err = itest.CreateSignedTransactionFromOps(shareAccount, []*keypair.Full{shareKeys},
 		&txnbuild.LiquidityPoolWithdraw{
 			LiquidityPoolID: nonExistentPoolID,
 			Amount:          amount.StringFromInt64(int64(10)),

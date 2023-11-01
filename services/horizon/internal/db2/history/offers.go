@@ -2,12 +2,15 @@ package history
 
 import (
 	"context"
+	"database/sql"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/jmoiron/sqlx"
 
 	"github.com/stellar/go/support/errors"
 )
+
+const offersBatchSize = 50000
 
 // QOffers defines offer related queries.
 type QOffers interface {
@@ -83,28 +86,52 @@ func (q *Q) GetOffers(ctx context.Context, query OffersQuery) ([]Offer, error) {
 
 // StreamAllOffers loads all non deleted offers
 func (q *Q) StreamAllOffers(ctx context.Context, callback func(Offer) error) error {
+	if tx := q.GetTx(); tx == nil {
+		return errors.New("cannot be called outside of a transaction")
+	}
+	if opts := q.GetTxOptions(); opts == nil || !opts.ReadOnly || opts.Isolation != sql.LevelRepeatableRead {
+		return errors.New("should only be called in a repeatable read transaction")
+	}
+
+	lastID := int64(0)
+	for {
+		nextID, err := q.streamAllOffersBatch(ctx, lastID, offersBatchSize, callback)
+		if err != nil {
+			return err
+		}
+		if lastID == nextID {
+			return nil
+		}
+		lastID = nextID
+	}
+}
+
+func (q *Q) streamAllOffersBatch(ctx context.Context, lastId int64, limit uint64, callback func(Offer) error) (int64, error) {
 	var rows *sqlx.Rows
 	var err error
 
-	if rows, err = q.Query(ctx, selectOffers.Where("deleted = ?", false)); err != nil {
-		return errors.Wrap(err, "could not run all offers select query")
+	rows, err = q.Query(ctx, selectOffers.
+		Where("deleted = ?", false).
+		Where("offer_id > ? ", lastId).
+		OrderBy("offer_id asc").Limit(limit))
+	if err != nil {
+		return 0, errors.Wrap(err, "could not run all offers select query")
 	}
 
 	defer rows.Close()
-
 	for rows.Next() {
 		offer := Offer{}
 		if err = rows.StructScan(&offer); err != nil {
-			return errors.Wrap(err, "could not scan row into offer struct")
+			return 0, errors.Wrap(err, "could not scan row into offer struct")
 		}
 
 		if err = callback(offer); err != nil {
-			return err
+			return 0, err
 		}
+		lastId = offer.OfferID
 	}
 
-	return rows.Err()
-
+	return lastId, rows.Err()
 }
 
 // GetUpdatedOffers returns all offers created, updated, or deleted after the given ledger sequence.

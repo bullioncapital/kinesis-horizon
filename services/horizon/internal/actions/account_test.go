@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/guregu/null"
+	"github.com/guregu/null/zero"
 
 	"github.com/stretchr/testify/assert"
 
@@ -32,6 +33,8 @@ var (
 		AccountID:          accountOne,
 		Balance:            20000,
 		SequenceNumber:     223456789,
+		SequenceLedger:     zero.IntFrom(0),
+		SequenceTime:       zero.IntFrom(0),
 		NumSubEntries:      10,
 		Flags:              1,
 		HomeDomain:         "stellar.org",
@@ -48,6 +51,8 @@ var (
 		AccountID:          accountTwo,
 		Balance:            50000,
 		SequenceNumber:     648736,
+		SequenceLedger:     zero.IntFrom(3456),
+		SequenceTime:       zero.IntFrom(1647365533),
 		NumSubEntries:      10,
 		Flags:              2,
 		HomeDomain:         "meridian.stellar.org",
@@ -64,6 +69,8 @@ var (
 		AccountID:          signer,
 		Balance:            50000,
 		SequenceNumber:     648736,
+		SequenceLedger:     zero.IntFrom(4567),
+		SequenceTime:       zero.IntFrom(1647465533),
 		NumSubEntries:      10,
 		Flags:              2,
 		MasterWeight:       5,
@@ -170,6 +177,8 @@ func TestAccountInfo(t *testing.T) {
 		AccountID:            accountID,
 		Balance:              9999999900,
 		SequenceNumber:       8589934593,
+		SequenceLedger:       zero.IntFrom(4567),
+		SequenceTime:         zero.IntFrom(1647465533),
 		NumSubEntries:        1,
 		InflationDestination: "",
 		HomeDomain:           "",
@@ -232,7 +241,7 @@ func TestAccountInfo(t *testing.T) {
 	account, err := AccountInfo(tt.Ctx, &history.Q{tt.HorizonSession()}, accountID)
 	tt.Assert.NoError(err)
 
-	tt.Assert.Equal("8589934593", account.Sequence)
+	tt.Assert.Equal(int64(8589934593), account.Sequence)
 	tt.Assert.Equal(uint32(4), account.LastModifiedLedger)
 	tt.Assert.NotNil(account.LastModifiedTime)
 	tt.Assert.Equal(ledgerFourCloseTime, account.LastModifiedTime.Unix())

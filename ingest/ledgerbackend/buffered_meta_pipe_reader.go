@@ -48,11 +48,11 @@ type metaResult struct {
 //
 // It solves the following issues:
 //
-//   * Decouples buffering from stellarCoreRunner so it can focus on running core.
-//   * Decouples unmarshalling and buffering of LedgerCloseMeta's from CaptiveCore.
-//   * By adding buffering it allows unmarshaling the ledgers available in Stellar-Core
+//   - Decouples buffering from stellarCoreRunner so it can focus on running core.
+//   - Decouples unmarshalling and buffering of LedgerCloseMeta's from CaptiveCore.
+//   - By adding buffering it allows unmarshaling the ledgers available in Stellar-Core
 //     while previous ledger are being processed.
-//   * Limits memory usage in case of large ledgers are closed by the network.
+//   - Limits memory usage in case of large ledgers are closed by the network.
 //
 // Internally, it keeps two buffers: bufio.Reader with binary ledger data and
 // buffered channel with unmarshaled xdr.LedgerCloseMeta objects ready for
@@ -82,8 +82,8 @@ func newBufferedLedgerMetaReader(reader io.Reader) *bufferedLedgerMetaReader {
 
 // readLedgerMetaFromPipe unmarshalls the next ledger from meta pipe.
 // It can block for two reasons:
-//   * Meta pipe buffer is full so it will wait until it refills.
-//   * The next ledger available in the buffer exceeds the meta pipe buffer size.
+//   - Meta pipe buffer is full so it will wait until it refills.
+//   - The next ledger available in the buffer exceeds the meta pipe buffer size.
 //     In such case the method will block until LedgerCloseMeta buffer is empty.
 func (b *bufferedLedgerMetaReader) readLedgerMetaFromPipe() (*xdr.LedgerCloseMeta, error) {
 	frameLength, err := xdr.ReadFrameLength(b.decoder)

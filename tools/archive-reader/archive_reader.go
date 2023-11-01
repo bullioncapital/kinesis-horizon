@@ -67,6 +67,7 @@ func archive() (*historyarchive.Archive, error) {
 		historyarchive.ConnectOptions{
 			S3Region:         "eu-west-1",
 			UnsignedRequests: true,
+			UserAgent:        "archive-reader",
 		},
 	)
 }

@@ -10,6 +10,7 @@
 // migrations/20190411165735-data_seed_and_indices.sql (1.522kB)
 // migrations/20190425110313-add_orderbook_stats.sql (749B)
 // migrations/20190426092321-add_aggregated_orderbook_view.sql (831B)
+// migrations/20220909100700-trades_pk_to_bigint.sql (220B)
 
 package bdata
 
@@ -278,6 +279,26 @@ func migrations20190426092321Add_aggregated_orderbook_viewSql() (*asset, error) 
 	return a, nil
 }
 
+var _migrations20220909100700Trades_pk_to_bigintSql = []byte("\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\xff\xe2\xd2\xd5\x55\xd0\xce\xcd\x4c\x2f\x4a\x2c\x49\x55\x08\x2d\xe0\x72\xf4\x09\x71\x0d\x52\x08\x71\x74\xf2\x71\x55\x28\x29\x4a\x4c\x49\x2d\x56\x80\x08\x39\xfb\xfb\x84\xfa\xfa\x29\x64\xa6\x28\x84\x44\x06\xb8\x2a\x38\x79\xba\x7b\xfa\x85\x58\x43\xd5\x07\xbb\x06\x86\xba\xfa\x39\xc3\xb4\xc4\x67\xa6\xc4\x17\xa7\x16\x2a\x38\x06\x43\xd5\x29\x38\x47\x3a\xfb\xb8\x5a\x73\x71\xa1\x58\xe7\x92\x5f\x9e\x47\xb4\x85\x44\xd9\x06\xb2\xca\xcf\x1f\x66\x1b\x20\x00\x00\xff\xff\xed\x82\xee\x3c\xdc\x00\x00\x00")
+
+func migrations20220909100700Trades_pk_to_bigintSqlBytes() ([]byte, error) {
+	return bindataRead(
+		_migrations20220909100700Trades_pk_to_bigintSql,
+		"migrations/20220909100700-trades_pk_to_bigint.sql",
+	)
+}
+
+func migrations20220909100700Trades_pk_to_bigintSql() (*asset, error) {
+	bytes, err := migrations20220909100700Trades_pk_to_bigintSqlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "migrations/20220909100700-trades_pk_to_bigint.sql", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info, digest: [32]uint8{0xef, 0x7e, 0x21, 0xaf, 0xf, 0xb, 0x48, 0x35, 0x40, 0x5d, 0xbb, 0xb7, 0xa7, 0x64, 0x32, 0x67, 0xba, 0xfa, 0xea, 0xcb, 0x51, 0x28, 0x33, 0x99, 0x8c, 0xbc, 0x77, 0xd3, 0xd3, 0xf6, 0x3d, 0xc6}}
+	return a, nil
+}
+
 // Asset loads and returns the asset for the given name.
 // It returns an error if the asset could not be found or
 // could not be loaded.
@@ -379,17 +400,20 @@ var _bindata = map[string]func() (*asset, error){
 	"migrations/20190411165735-data_seed_and_indices.sql":           migrations20190411165735Data_seed_and_indicesSql,
 	"migrations/20190425110313-add_orderbook_stats.sql":             migrations20190425110313Add_orderbook_statsSql,
 	"migrations/20190426092321-add_aggregated_orderbook_view.sql":   migrations20190426092321Add_aggregated_orderbook_viewSql,
+	"migrations/20220909100700-trades_pk_to_bigint.sql":             migrations20220909100700Trades_pk_to_bigintSql,
 }
 
 // AssetDir returns the file names below a certain
 // directory embedded in the file by go-bindata.
 // For example if you run go-bindata on data/... and data contains the
 // following hierarchy:
-//     data/
-//       foo.txt
-//       img/
-//         a.png
-//         b.png
+//
+//	data/
+//	  foo.txt
+//	  img/
+//	    a.png
+//	    b.png
+//
 // then AssetDir("data") would return []string{"foo.txt", "img"},
 // AssetDir("data/img") would return []string{"a.png", "b.png"},
 // AssetDir("foo.txt") and AssetDir("notexist") would return an error, and
@@ -433,6 +457,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 		"20190411165735-data_seed_and_indices.sql":           &bintree{migrations20190411165735Data_seed_and_indicesSql, map[string]*bintree{}},
 		"20190425110313-add_orderbook_stats.sql":             &bintree{migrations20190425110313Add_orderbook_statsSql, map[string]*bintree{}},
 		"20190426092321-add_aggregated_orderbook_view.sql":   &bintree{migrations20190426092321Add_aggregated_orderbook_viewSql, map[string]*bintree{}},
+		"20220909100700-trades_pk_to_bigint.sql":             &bintree{migrations20220909100700Trades_pk_to_bigintSql, map[string]*bintree{}},
 	}},
 }}
 

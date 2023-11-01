@@ -93,7 +93,7 @@ type ReverseSQLDriver struct {
 	SQLDriver
 
 	// LookupReverseRecordQuery is a SQL query used for performing "reverse"
-	// federation queries.  This query should accomodate a single parameter, using
+	// federation queries.  This query should accommodate a single parameter, using
 	// "?" as the placeholder.  This provided parameter will be a strkey-encoded
 	// stellar account id to lookup, such as
 	// "GDOP3VI4UA5LS7AMLJI66RJUXEQ4HX46WUXTRTJGI5IKDLNWUBOW3FUK".
@@ -115,7 +115,7 @@ type SQLDriver struct {
 	Dialect string
 
 	// LookupRecordQuery is a SQL query used for performing "forward" federation
-	// queries.  This query should accomodate one or two parameters, using "?" as
+	// queries.  This query should accommodate one or two parameters, using "?" as
 	// the placeholder.  This provided parameters will be a name and domain
 	LookupRecordQuery string
 

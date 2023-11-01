@@ -8,13 +8,12 @@ import (
 	"time"
 
 	migrate "github.com/rubenv/sql-migrate"
-	"github.com/stellar/go/support/db/dbtest"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestRetrieveMarketData(t *testing.T) {
-	db := dbtest.Postgres(t)
+	db := OpenTestDBConnection(t)
 	defer db.Close()
 
 	var session TickerSession
@@ -286,7 +285,7 @@ func TestRetrieveMarketData(t *testing.T) {
 
 	assert.Equal(t, priceChange24hDiff, priceChange7dDiff)
 
-	// Analysing aggregated orderbook data:
+	// Analyzing aggregated orderbook data:
 	assert.Equal(t, 15, xlmethMkt.NumBids)
 	assert.Equal(t, 0.15, xlmethMkt.BidVolume)
 	assert.Equal(t, 200.0, xlmethMkt.HighestBid)
@@ -303,7 +302,7 @@ func TestRetrieveMarketData(t *testing.T) {
 }
 
 func TestRetrievePartialMarkets(t *testing.T) {
-	db := dbtest.Postgres(t)
+	db := OpenTestDBConnection(t)
 	defer db.Close()
 
 	var session TickerSession
@@ -618,7 +617,7 @@ func TestRetrievePartialMarkets(t *testing.T) {
 }
 
 func Test24hStatsFallback(t *testing.T) {
-	db := dbtest.Postgres(t)
+	db := OpenTestDBConnection(t)
 	defer db.Close()
 
 	var session TickerSession
@@ -724,7 +723,7 @@ func Test24hStatsFallback(t *testing.T) {
 }
 
 func TestPreferAnchorAssetCode(t *testing.T) {
-	db := dbtest.Postgres(t)
+	db := OpenTestDBConnection(t)
 	defer db.Close()
 
 	var session TickerSession

@@ -90,7 +90,9 @@ func (a *App) Serve() error {
 	}
 
 	go a.run()
-	go a.orderBookStream.Run(a.ctx)
+	if !a.config.DisablePathFinding {
+		go a.orderBookStream.Run(a.ctx)
+	}
 
 	// WaitGroup for all go routines. Makes sure that DB is closed when
 	// all services gracefully shutdown.
@@ -535,6 +537,7 @@ func (a *App) init() error {
 			},
 			cache: newHealthCache(healthCacheTTL),
 		},
+		EnableIngestionFiltering: a.config.EnableIngestionFiltering,
 	}
 
 	if a.primaryHistoryQ != nil {

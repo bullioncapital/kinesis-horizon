@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/stellar/go/price"
+	"github.com/stellar/go/support/ordered"
 	"github.com/stellar/go/xdr"
 )
 
@@ -161,7 +162,7 @@ func search(
 			pathToCurrentAsset := bestPath[currentAsset]
 			edges := state.venues(currentAsset)
 			for j := 0; j < len(edges); j++ {
-				// Exit early if the context was cancelled.
+				// Exit early if the context was canceled.
 				if err := ctx.Err(); err != nil {
 					return err
 				}
@@ -237,11 +238,11 @@ func search(
 // edges in `graph.edgesForSellingAsset` are traversed.
 //
 // The DFS maintains the following invariants:
-//  - no node is repeated
-//  - no offers are consumed from the `ignoreOffersFrom` account
-//  - each payment path must begin with an asset in `targetAssets`
-//  - also, the required source asset amount cannot exceed the balance in
-//    `targetAssets`
+//   - no node is repeated
+//   - no offers are consumed from the `ignoreOffersFrom` account
+//   - each payment path must begin with an asset in `targetAssets`
+//   - also, the required source asset amount cannot exceed the balance in
+//     `targetAssets`
 type sellingGraphSearchState struct {
 	graph                  *OrderBookGraph
 	destinationAssetString string
@@ -339,10 +340,10 @@ func (state *sellingGraphSearchState) consumePool(
 // edges in `graph.edgesForBuyingAsset` are traversed.
 //
 // The DFS maintains the following invariants:
-//  - no node is repeated
-//  - no offers are consumed from the `ignoreOffersFrom` account
-//  - each payment path must terminate with an asset in `targetAssets`
-//  - each payment path must begin with `sourceAsset`
+//   - no node is repeated
+//   - no offers are consumed from the `ignoreOffersFrom` account
+//   - each payment path must terminate with an asset in `targetAssets`
+//   - each payment path must begin with `sourceAsset`
 type buyingGraphSearchState struct {
 	graph             *OrderBookGraph
 	sourceAssetString string
@@ -399,7 +400,7 @@ func (state *buyingGraphSearchState) consumeOffers(
 ) (xdr.Int64, error) {
 	nextAmount, err := consumeOffersForBuyingAsset(offers, currentAssetAmount)
 
-	return max(nextAmount, currentBestAmount), err
+	return ordered.Max(nextAmount, currentBestAmount), err
 }
 
 func (state *buyingGraphSearchState) considerPools() bool {

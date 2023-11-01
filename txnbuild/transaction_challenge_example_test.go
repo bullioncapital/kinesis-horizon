@@ -37,7 +37,7 @@ func ExampleVerifyChallengeTxThreshold() {
 	// Server builds challenge transaction
 	var challengeTx string
 	{
-		tx, err := txnbuild.BuildChallengeTx(serverAccount.Seed(), clientAccount.Address(), "webauthdomain.stellar.org", "test", network.TestNetworkPassphrase, time.Minute)
+		tx, err := txnbuild.BuildChallengeTx(serverAccount.Seed(), clientAccount.Address(), "webauthdomain.stellar.org", "test", network.TestNetworkPassphrase, time.Minute, nil)
 		if err != nil {
 			fmt.Println("Error:", err)
 			return
@@ -52,7 +52,7 @@ func ExampleVerifyChallengeTxThreshold() {
 	// Client reads and signs challenge transaction
 	var signedChallengeTx string
 	{
-		tx, txClientAccountID, _, err := txnbuild.ReadChallengeTx(challengeTx, serverAccount.Address(), network.TestNetworkPassphrase, "webauthdomain.stellar.org", []string{"test"})
+		tx, txClientAccountID, _, _, err := txnbuild.ReadChallengeTx(challengeTx, serverAccount.Address(), network.TestNetworkPassphrase, "webauthdomain.stellar.org", []string{"test"})
 		if err != nil {
 			fmt.Println("Error:", err)
 			return
@@ -75,9 +75,12 @@ func ExampleVerifyChallengeTxThreshold() {
 
 	// Server verifies signed challenge transaction
 	{
-		_, txClientAccountID, _, err := txnbuild.ReadChallengeTx(challengeTx, serverAccount.Address(), network.TestNetworkPassphrase, "webauthdomain.stellar.org", []string{"test"})
+		_, txClientAccountID, _, memo, err := txnbuild.ReadChallengeTx(challengeTx, serverAccount.Address(), network.TestNetworkPassphrase, "webauthdomain.stellar.org", []string{"test"})
 		if err != nil {
 			fmt.Println("Error:", err)
+			return
+		} else if memo != nil {
+			fmt.Println("Expected memo to be nil, got: ", memo)
 			return
 		}
 

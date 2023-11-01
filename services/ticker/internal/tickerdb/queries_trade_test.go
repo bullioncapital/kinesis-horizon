@@ -9,12 +9,11 @@ import (
 
 	_ "github.com/lib/pq"
 	migrate "github.com/rubenv/sql-migrate"
-	"github.com/stellar/go/support/db/dbtest"
 	"github.com/stretchr/testify/require"
 )
 
 func TestBulkInsertTrades(t *testing.T) {
-	db := dbtest.Postgres(t)
+	db := OpenTestDBConnection(t)
 	defer db.Close()
 
 	var session TickerSession
@@ -120,7 +119,7 @@ func TestBulkInsertTrades(t *testing.T) {
 }
 
 func TestGetLastTrade(t *testing.T) {
-	db := dbtest.Postgres(t)
+	db := OpenTestDBConnection(t)
 	defer db.Close()
 
 	var session TickerSession
@@ -224,7 +223,7 @@ func TestGetLastTrade(t *testing.T) {
 }
 
 func TestDeleteOldTrades(t *testing.T) {
-	db := dbtest.Postgres(t)
+	db := OpenTestDBConnection(t)
 	defer db.Close()
 
 	var session TickerSession

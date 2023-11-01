@@ -18,7 +18,7 @@ func TestBumpSequenceValidate(t *testing.T) {
 		TransactionParams{
 			SourceAccount: &sourceAccount,
 			Operations:    []Operation{&bumpSequence},
-			Timebounds:    NewInfiniteTimeout(),
+			Preconditions: Preconditions{TimeBounds: NewInfiniteTimeout()},
 			BaseFee:       MinBaseFee,
 		},
 	)

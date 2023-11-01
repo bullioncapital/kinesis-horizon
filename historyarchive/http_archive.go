@@ -16,9 +16,10 @@ import (
 )
 
 type HttpArchiveBackend struct {
-	ctx    context.Context
-	client http.Client
-	base   url.URL
+	ctx       context.Context
+	client    http.Client
+	base      url.URL
+	userAgent string
 }
 
 func checkResp(r *http.Response) error {
@@ -33,14 +34,7 @@ func checkResp(r *http.Response) error {
 func (b *HttpArchiveBackend) GetFile(pth string) (io.ReadCloser, error) {
 	derived := b.base
 	derived.Path = path.Join(derived.Path, pth)
-	req, err := http.NewRequest("GET", derived.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(b.ctx)
-	logReq(req)
-	resp, err := b.client.Do(req)
-	logResp(resp)
+	resp, err := b.makeSendRequest("GET", derived.String())
 	if err != nil {
 		if resp != nil && resp.Body != nil {
 			resp.Body.Close()
@@ -60,14 +54,7 @@ func (b *HttpArchiveBackend) GetFile(pth string) (io.ReadCloser, error) {
 func (b *HttpArchiveBackend) Head(pth string) (*http.Response, error) {
 	derived := b.base
 	derived.Path = path.Join(derived.Path, pth)
-	req, err := http.NewRequest("HEAD", derived.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(b.ctx)
-	logReq(req)
-	resp, err := b.client.Do(req)
-	logResp(resp)
+	resp, err := b.makeSendRequest("HEAD", derived.String())
 	if err != nil {
 		return nil, err
 	}
@@ -77,6 +64,21 @@ func (b *HttpArchiveBackend) Head(pth string) (*http.Response, error) {
 	}
 
 	return resp, nil
+}
+
+func (b *HttpArchiveBackend) makeSendRequest(method, url string) (*http.Response, error) {
+	req, err := http.NewRequest(method, url, nil)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(b.ctx)
+	logReq(req)
+	if b.userAgent != "" {
+		req.Header.Set("User-Agent", b.userAgent)
+	}
+	resp, err := b.client.Do(req)
+	logResp(resp)
+	return resp, err
 }
 
 func (b *HttpArchiveBackend) Exists(pth string) (bool, error) {
@@ -89,7 +91,7 @@ func (b *HttpArchiveBackend) Exists(pth string) (bool, error) {
 	} else if resp.StatusCode == http.StatusNotFound {
 		return false, nil
 	} else {
-		return false, errors.Errorf("Unkown status code=%d", resp.StatusCode)
+		return false, errors.Errorf("Unknown status code=%d", resp.StatusCode)
 	}
 }
 
@@ -103,7 +105,7 @@ func (b *HttpArchiveBackend) Size(pth string) (int64, error) {
 	} else if resp.StatusCode == http.StatusNotFound {
 		return 0, nil
 	} else {
-		return 0, errors.Errorf("Unkown status code=%d", resp.StatusCode)
+		return 0, errors.Errorf("Unknown status code=%d", resp.StatusCode)
 	}
 }
 
@@ -127,7 +129,8 @@ func (b *HttpArchiveBackend) CanListFiles() bool {
 
 func makeHttpBackend(base *url.URL, opts ConnectOptions) ArchiveBackend {
 	return &HttpArchiveBackend{
-		ctx:  opts.Context,
-		base: *base,
+		ctx:       opts.Context,
+		userAgent: opts.UserAgent,
+		base:      *base,
 	}
 }

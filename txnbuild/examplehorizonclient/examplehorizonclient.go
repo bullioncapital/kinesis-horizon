@@ -21,7 +21,7 @@ var DefaultTestNetClient = Client{}
 func (client *Client) AccountDetail(req AccountRequest) (hProtocol.Account, error) {
 	return hProtocol.Account{
 		AccountID: req.AccountID,
-		Sequence:  "3556091187167235",
+		Sequence:  3556091187167235,
 	}, nil
 }
 

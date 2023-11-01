@@ -140,10 +140,10 @@ func TestTxApproveHandler_validateInput(t *testing.T) {
 	tx, err := txnbuild.NewTransaction(txnbuild.TransactionParams{
 		SourceAccount: &horizon.Account{
 			AccountID: h.issuerKP.Address(),
-			Sequence:  "1",
+			Sequence:  1,
 		},
 		IncrementSequenceNum: true,
-		Timebounds:           txnbuild.NewInfiniteTimeout(),
+		Preconditions:        txnbuild.Preconditions{TimeBounds: txnbuild.NewInfiniteTimeout()},
 		BaseFee:              300,
 		Operations: []txnbuild.Operation{
 			&txnbuild.Payment{
@@ -166,10 +166,10 @@ func TestTxApproveHandler_validateInput(t *testing.T) {
 	tx, err = txnbuild.NewTransaction(txnbuild.TransactionParams{
 		SourceAccount: &horizon.Account{
 			AccountID: clientKP.Address(),
-			Sequence:  "1",
+			Sequence:  1,
 		},
 		IncrementSequenceNum: true,
-		Timebounds:           txnbuild.NewInfiniteTimeout(),
+		Preconditions:        txnbuild.Preconditions{TimeBounds: txnbuild.NewInfiniteTimeout()},
 		BaseFee:              300,
 		Operations: []txnbuild.Operation{
 			&txnbuild.BumpSequence{},
@@ -194,10 +194,10 @@ func TestTxApproveHandler_validateInput(t *testing.T) {
 	tx, err = txnbuild.NewTransaction(txnbuild.TransactionParams{
 		SourceAccount: &horizon.Account{
 			AccountID: clientKP.Address(),
-			Sequence:  "1",
+			Sequence:  1,
 		},
 		IncrementSequenceNum: true,
-		Timebounds:           txnbuild.NewInfiniteTimeout(),
+		Preconditions:        txnbuild.Preconditions{TimeBounds: txnbuild.NewInfiniteTimeout()},
 		BaseFee:              300,
 		Operations: []txnbuild.Operation{
 			&txnbuild.Payment{
@@ -332,7 +332,7 @@ func TestTxApproveHandler_txApprove_rejected(t *testing.T) {
 		On("AccountDetail", horizonclient.AccountRequest{AccountID: senderKP.Address()}).
 		Return(horizon.Account{
 			AccountID: senderKP.Address(),
-			Sequence:  "2",
+			Sequence:  2,
 		}, nil)
 
 	handler := txApproveHandler{
@@ -360,7 +360,7 @@ func TestTxApproveHandler_txApprove_rejected(t *testing.T) {
 		txnbuild.TransactionParams{
 			SourceAccount: &horizon.Account{
 				AccountID: senderKP.Address(),
-				Sequence:  "2",
+				Sequence:  2,
 			},
 			IncrementSequenceNum: true,
 			Operations: []txnbuild.Operation{
@@ -371,8 +371,8 @@ func TestTxApproveHandler_txApprove_rejected(t *testing.T) {
 					Asset:       assetGOAT,
 				},
 			},
-			BaseFee:    txnbuild.MinBaseFee,
-			Timebounds: txnbuild.NewInfiniteTimeout(),
+			BaseFee:       txnbuild.MinBaseFee,
+			Preconditions: txnbuild.Preconditions{TimeBounds: txnbuild.NewInfiniteTimeout()},
 		},
 	)
 	require.NoError(t, err)
@@ -388,14 +388,14 @@ func TestTxApproveHandler_txApprove_rejected(t *testing.T) {
 		txnbuild.TransactionParams{
 			SourceAccount: &horizon.Account{
 				AccountID: senderKP.Address(),
-				Sequence:  "2",
+				Sequence:  2,
 			},
 			IncrementSequenceNum: true,
 			Operations: []txnbuild.Operation{
 				&txnbuild.BumpSequence{},
 			},
-			BaseFee:    txnbuild.MinBaseFee,
-			Timebounds: txnbuild.NewInfiniteTimeout(),
+			BaseFee:       txnbuild.MinBaseFee,
+			Preconditions: txnbuild.Preconditions{TimeBounds: txnbuild.NewInfiniteTimeout()},
 		},
 	)
 	require.NoError(t, err)
@@ -411,7 +411,7 @@ func TestTxApproveHandler_txApprove_rejected(t *testing.T) {
 		txnbuild.TransactionParams{
 			SourceAccount: &horizon.Account{
 				AccountID: senderKP.Address(),
-				Sequence:  "2",
+				Sequence:  2,
 			},
 			IncrementSequenceNum: true,
 			Operations: []txnbuild.Operation{
@@ -424,8 +424,8 @@ func TestTxApproveHandler_txApprove_rejected(t *testing.T) {
 					},
 				},
 			},
-			BaseFee:    txnbuild.MinBaseFee,
-			Timebounds: txnbuild.NewInfiniteTimeout(),
+			BaseFee:       txnbuild.MinBaseFee,
+			Preconditions: txnbuild.Preconditions{TimeBounds: txnbuild.NewInfiniteTimeout()},
 		},
 	)
 	require.NoError(t, err)
@@ -441,7 +441,7 @@ func TestTxApproveHandler_txApprove_rejected(t *testing.T) {
 		txnbuild.TransactionParams{
 			SourceAccount: &horizon.Account{
 				AccountID: senderKP.Address(),
-				Sequence:  "2",
+				Sequence:  2,
 			},
 			IncrementSequenceNum: true,
 			Operations: []txnbuild.Operation{
@@ -454,8 +454,8 @@ func TestTxApproveHandler_txApprove_rejected(t *testing.T) {
 					},
 				},
 			},
-			BaseFee:    txnbuild.MinBaseFee,
-			Timebounds: txnbuild.NewInfiniteTimeout(),
+			BaseFee:       txnbuild.MinBaseFee,
+			Preconditions: txnbuild.Preconditions{TimeBounds: txnbuild.NewInfiniteTimeout()},
 		},
 	)
 	require.NoError(t, err)
@@ -471,7 +471,7 @@ func TestTxApproveHandler_txApprove_rejected(t *testing.T) {
 		txnbuild.TransactionParams{
 			SourceAccount: &horizon.Account{
 				AccountID: senderKP.Address(),
-				Sequence:  "20",
+				Sequence:  20,
 			},
 			IncrementSequenceNum: true,
 			Operations: []txnbuild.Operation{
@@ -481,8 +481,8 @@ func TestTxApproveHandler_txApprove_rejected(t *testing.T) {
 					Asset:       assetGOAT,
 				},
 			},
-			BaseFee:    txnbuild.MinBaseFee,
-			Timebounds: txnbuild.NewInfiniteTimeout(),
+			BaseFee:       txnbuild.MinBaseFee,
+			Preconditions: txnbuild.Preconditions{TimeBounds: txnbuild.NewInfiniteTimeout()},
 		},
 	)
 	require.NoError(t, err)
@@ -516,7 +516,7 @@ func TestTxApproveHandler_txApprove_success(t *testing.T) {
 		On("AccountDetail", horizonclient.AccountRequest{AccountID: senderKP.Address()}).
 		Return(horizon.Account{
 			AccountID: senderKP.Address(),
-			Sequence:  "2",
+			Sequence:  2,
 		}, nil)
 
 	handler := txApproveHandler{
@@ -533,7 +533,7 @@ func TestTxApproveHandler_txApprove_success(t *testing.T) {
 		txnbuild.TransactionParams{
 			SourceAccount: &horizon.Account{
 				AccountID: senderKP.Address(),
-				Sequence:  "2",
+				Sequence:  2,
 			},
 			IncrementSequenceNum: true,
 			Operations: []txnbuild.Operation{
@@ -568,8 +568,8 @@ func TestTxApproveHandler_txApprove_success(t *testing.T) {
 					SourceAccount: issuerKP.Address(),
 				},
 			},
-			BaseFee:    txnbuild.MinBaseFee,
-			Timebounds: txnbuild.NewInfiniteTimeout(),
+			BaseFee:       txnbuild.MinBaseFee,
+			Preconditions: txnbuild.Preconditions{TimeBounds: txnbuild.NewInfiniteTimeout()},
 		},
 	)
 	require.NoError(t, err)
@@ -603,7 +603,7 @@ func TestTxApproveHandler_txApprove_actionRequired(t *testing.T) {
 		On("AccountDetail", horizonclient.AccountRequest{AccountID: senderKP.Address()}).
 		Return(horizon.Account{
 			AccountID: senderKP.Address(),
-			Sequence:  "2",
+			Sequence:  2,
 		}, nil)
 
 	handler := txApproveHandler{
@@ -620,7 +620,7 @@ func TestTxApproveHandler_txApprove_actionRequired(t *testing.T) {
 		txnbuild.TransactionParams{
 			SourceAccount: &horizon.Account{
 				AccountID: senderKP.Address(),
-				Sequence:  "2",
+				Sequence:  2,
 			},
 			IncrementSequenceNum: true,
 			Operations: []txnbuild.Operation{
@@ -630,8 +630,8 @@ func TestTxApproveHandler_txApprove_actionRequired(t *testing.T) {
 					Asset:       assetGOAT,
 				},
 			},
-			BaseFee:    txnbuild.MinBaseFee,
-			Timebounds: txnbuild.NewInfiniteTimeout(),
+			BaseFee:       txnbuild.MinBaseFee,
+			Preconditions: txnbuild.Preconditions{TimeBounds: txnbuild.NewInfiniteTimeout()},
 		},
 	)
 	require.NoError(t, err)
@@ -679,7 +679,7 @@ func TestTxApproveHandler_txApprove_revised(t *testing.T) {
 		On("AccountDetail", horizonclient.AccountRequest{AccountID: senderKP.Address()}).
 		Return(horizon.Account{
 			AccountID: senderKP.Address(),
-			Sequence:  "2",
+			Sequence:  2,
 		}, nil)
 
 	handler := txApproveHandler{
@@ -696,7 +696,7 @@ func TestTxApproveHandler_txApprove_revised(t *testing.T) {
 		txnbuild.TransactionParams{
 			SourceAccount: &horizon.Account{
 				AccountID: senderKP.Address(),
-				Sequence:  "2",
+				Sequence:  2,
 			},
 			IncrementSequenceNum: true,
 			Operations: []txnbuild.Operation{
@@ -706,8 +706,8 @@ func TestTxApproveHandler_txApprove_revised(t *testing.T) {
 					Asset:       assetGOAT,
 				},
 			},
-			BaseFee:    txnbuild.MinBaseFee,
-			Timebounds: txnbuild.NewInfiniteTimeout(),
+			BaseFee:       txnbuild.MinBaseFee,
+			Preconditions: txnbuild.Preconditions{TimeBounds: txnbuild.NewInfiniteTimeout()},
 		},
 	)
 	require.NoError(t, err)
@@ -773,7 +773,7 @@ func TestValidateTransactionOperationsForSuccess(t *testing.T) {
 	tx, err := txnbuild.NewTransaction(txnbuild.TransactionParams{
 		SourceAccount: &horizon.Account{
 			AccountID: senderKP.Address(),
-			Sequence:  "5",
+			Sequence:  5,
 		},
 		IncrementSequenceNum: true,
 		Operations: []txnbuild.Operation{
@@ -784,8 +784,8 @@ func TestValidateTransactionOperationsForSuccess(t *testing.T) {
 				Asset:         assetGOAT,
 			},
 		},
-		BaseFee:    300,
-		Timebounds: txnbuild.NewTimeout(300),
+		BaseFee:       300,
+		Preconditions: txnbuild.Preconditions{TimeBounds: txnbuild.NewTimeout(300)},
 	})
 	require.NoError(t, err)
 
@@ -798,7 +798,7 @@ func TestValidateTransactionOperationsForSuccess(t *testing.T) {
 	tx, err = txnbuild.NewTransaction(txnbuild.TransactionParams{
 		SourceAccount: &horizon.Account{
 			AccountID: senderKP.Address(),
-			Sequence:  "5",
+			Sequence:  5,
 		},
 		IncrementSequenceNum: true,
 		Operations: []txnbuild.Operation{
@@ -808,8 +808,8 @@ func TestValidateTransactionOperationsForSuccess(t *testing.T) {
 			&txnbuild.BumpSequence{},
 			&txnbuild.BumpSequence{},
 		},
-		BaseFee:    300,
-		Timebounds: txnbuild.NewTimeout(300),
+		BaseFee:       300,
+		Preconditions: txnbuild.Preconditions{TimeBounds: txnbuild.NewTimeout(300)},
 	})
 	require.NoError(t, err)
 
@@ -822,7 +822,7 @@ func TestValidateTransactionOperationsForSuccess(t *testing.T) {
 	tx, err = txnbuild.NewTransaction(txnbuild.TransactionParams{
 		SourceAccount: &horizon.Account{
 			AccountID: senderKP.Address(),
-			Sequence:  "5",
+			Sequence:  5,
 		},
 		IncrementSequenceNum: true,
 		Operations: []txnbuild.Operation{
@@ -837,8 +837,8 @@ func TestValidateTransactionOperationsForSuccess(t *testing.T) {
 			&txnbuild.BumpSequence{},
 			&txnbuild.BumpSequence{},
 		},
-		BaseFee:    300,
-		Timebounds: txnbuild.NewTimeout(300),
+		BaseFee:       300,
+		Preconditions: txnbuild.Preconditions{TimeBounds: txnbuild.NewTimeout(300)},
 	})
 	require.NoError(t, err)
 
@@ -851,7 +851,7 @@ func TestValidateTransactionOperationsForSuccess(t *testing.T) {
 	tx, err = txnbuild.NewTransaction(txnbuild.TransactionParams{
 		SourceAccount: &horizon.Account{
 			AccountID: senderKP.Address(),
-			Sequence:  "5",
+			Sequence:  5,
 		},
 		IncrementSequenceNum: true,
 		Operations: []txnbuild.Operation{
@@ -886,8 +886,8 @@ func TestValidateTransactionOperationsForSuccess(t *testing.T) {
 				SourceAccount: issuerKP.Address(),
 			},
 		},
-		BaseFee:    300,
-		Timebounds: txnbuild.NewTimeout(300),
+		BaseFee:       300,
+		Preconditions: txnbuild.Preconditions{TimeBounds: txnbuild.NewTimeout(300)},
 	})
 	require.NoError(t, err)
 
@@ -900,7 +900,7 @@ func TestValidateTransactionOperationsForSuccess(t *testing.T) {
 	tx, err = txnbuild.NewTransaction(txnbuild.TransactionParams{
 		SourceAccount: &horizon.Account{
 			AccountID: senderKP.Address(),
-			Sequence:  "5",
+			Sequence:  5,
 		},
 		IncrementSequenceNum: true,
 		Operations: []txnbuild.Operation{
@@ -935,8 +935,8 @@ func TestValidateTransactionOperationsForSuccess(t *testing.T) {
 				SourceAccount: issuerKP.Address(),
 			},
 		},
-		BaseFee:    300,
-		Timebounds: txnbuild.NewTimeout(300),
+		BaseFee:       300,
+		Preconditions: txnbuild.Preconditions{TimeBounds: txnbuild.NewTimeout(300)},
 	})
 	require.NoError(t, err)
 
@@ -974,7 +974,7 @@ func TestTxApproveHandler_handleSuccessResponseIfNeeded_revisable(t *testing.T) 
 		On("AccountDetail", horizonclient.AccountRequest{AccountID: senderKP.Address()}).
 		Return(horizon.Account{
 			AccountID: senderKP.Address(),
-			Sequence:  "2",
+			Sequence:  2,
 		}, nil)
 
 	handler := txApproveHandler{
@@ -990,7 +990,7 @@ func TestTxApproveHandler_handleSuccessResponseIfNeeded_revisable(t *testing.T) 
 	revisableTx, err := txnbuild.NewTransaction(txnbuild.TransactionParams{
 		SourceAccount: &horizon.Account{
 			AccountID: senderKP.Address(),
-			Sequence:  "2",
+			Sequence:  2,
 		},
 		IncrementSequenceNum: true,
 		Operations: []txnbuild.Operation{
@@ -1001,8 +1001,8 @@ func TestTxApproveHandler_handleSuccessResponseIfNeeded_revisable(t *testing.T) 
 				Asset:         assetGOAT,
 			},
 		},
-		BaseFee:    300,
-		Timebounds: txnbuild.NewTimeout(300),
+		BaseFee:       300,
+		Preconditions: txnbuild.Preconditions{TimeBounds: txnbuild.NewTimeout(300)},
 	})
 	require.NoError(t, err)
 
@@ -1033,7 +1033,7 @@ func TestTxApproveHandler_handleSuccessResponseIfNeeded_rejected(t *testing.T) {
 		On("AccountDetail", horizonclient.AccountRequest{AccountID: senderKP.Address()}).
 		Return(horizon.Account{
 			AccountID: senderKP.Address(),
-			Sequence:  "2",
+			Sequence:  2,
 		}, nil)
 
 	handler := txApproveHandler{
@@ -1050,7 +1050,7 @@ func TestTxApproveHandler_handleSuccessResponseIfNeeded_rejected(t *testing.T) {
 	tx, err := txnbuild.NewTransaction(txnbuild.TransactionParams{
 		SourceAccount: &horizon.Account{
 			AccountID: senderKP.Address(),
-			Sequence:  "2",
+			Sequence:  2,
 		},
 		IncrementSequenceNum: true,
 		Operations: []txnbuild.Operation{
@@ -1065,8 +1065,8 @@ func TestTxApproveHandler_handleSuccessResponseIfNeeded_rejected(t *testing.T) {
 			&txnbuild.BumpSequence{},
 			&txnbuild.BumpSequence{},
 		},
-		BaseFee:    300,
-		Timebounds: txnbuild.NewTimeout(300),
+		BaseFee:       300,
+		Preconditions: txnbuild.Preconditions{TimeBounds: txnbuild.NewTimeout(300)},
 	})
 	require.NoError(t, err)
 
@@ -1078,7 +1078,7 @@ func TestTxApproveHandler_handleSuccessResponseIfNeeded_rejected(t *testing.T) {
 	tx, err = txnbuild.NewTransaction(txnbuild.TransactionParams{
 		SourceAccount: &horizon.Account{
 			AccountID: senderKP.Address(),
-			Sequence:  "2",
+			Sequence:  2,
 		},
 		IncrementSequenceNum: true,
 		Operations: []txnbuild.Operation{
@@ -1113,8 +1113,8 @@ func TestTxApproveHandler_handleSuccessResponseIfNeeded_rejected(t *testing.T) {
 				SourceAccount: issuerKP.Address(),
 			},
 		},
-		BaseFee:    300,
-		Timebounds: txnbuild.NewTimeout(300),
+		BaseFee:       300,
+		Preconditions: txnbuild.Preconditions{TimeBounds: txnbuild.NewTimeout(300)},
 	})
 	require.NoError(t, err)
 
@@ -1158,12 +1158,12 @@ func TestTxApproveHandler_handleSuccessResponseIfNeeded_rejected(t *testing.T) {
 	tx, err = txnbuild.NewTransaction(txnbuild.TransactionParams{
 		SourceAccount: &horizon.Account{
 			AccountID: senderKP.Address(),
-			Sequence:  "3",
+			Sequence:  3,
 		},
 		IncrementSequenceNum: true,
 		Operations:           compliantOps,
 		BaseFee:              300,
-		Timebounds:           txnbuild.NewTimeout(300),
+		Preconditions:        txnbuild.Preconditions{TimeBounds: txnbuild.NewTimeout(300)},
 	})
 	require.NoError(t, err)
 
@@ -1194,7 +1194,7 @@ func TestTxApproveHandler_handleSuccessResponseIfNeeded_actionRequired(t *testin
 		On("AccountDetail", horizonclient.AccountRequest{AccountID: senderKP.Address()}).
 		Return(horizon.Account{
 			AccountID: senderKP.Address(),
-			Sequence:  "2",
+			Sequence:  2,
 		}, nil)
 
 	handler := txApproveHandler{
@@ -1211,7 +1211,7 @@ func TestTxApproveHandler_handleSuccessResponseIfNeeded_actionRequired(t *testin
 	tx, err := txnbuild.NewTransaction(txnbuild.TransactionParams{
 		SourceAccount: &horizon.Account{
 			AccountID: senderKP.Address(),
-			Sequence:  "2",
+			Sequence:  2,
 		},
 		IncrementSequenceNum: true,
 		Operations: []txnbuild.Operation{
@@ -1246,8 +1246,8 @@ func TestTxApproveHandler_handleSuccessResponseIfNeeded_actionRequired(t *testin
 				SourceAccount: issuerKP.Address(),
 			},
 		},
-		BaseFee:    300,
-		Timebounds: txnbuild.NewTimeout(300),
+		BaseFee:       300,
+		Preconditions: txnbuild.Preconditions{TimeBounds: txnbuild.NewTimeout(300)},
 	})
 	require.NoError(t, err)
 
@@ -1334,7 +1334,7 @@ func TestTxApproveHandler_handleSuccessResponseIfNeeded_success(t *testing.T) {
 		On("AccountDetail", horizonclient.AccountRequest{AccountID: senderKP.Address()}).
 		Return(horizon.Account{
 			AccountID: senderKP.Address(),
-			Sequence:  "2",
+			Sequence:  2,
 		}, nil)
 
 	handler := txApproveHandler{
@@ -1350,7 +1350,7 @@ func TestTxApproveHandler_handleSuccessResponseIfNeeded_success(t *testing.T) {
 	tx, err := txnbuild.NewTransaction(txnbuild.TransactionParams{
 		SourceAccount: &horizon.Account{
 			AccountID: senderKP.Address(),
-			Sequence:  "2",
+			Sequence:  2,
 		},
 		IncrementSequenceNum: true,
 		Operations: []txnbuild.Operation{
@@ -1385,8 +1385,8 @@ func TestTxApproveHandler_handleSuccessResponseIfNeeded_success(t *testing.T) {
 				SourceAccount: issuerKP.Address(),
 			},
 		},
-		BaseFee:    300,
-		Timebounds: txnbuild.NewTimeout(300),
+		BaseFee:       300,
+		Preconditions: txnbuild.Preconditions{TimeBounds: txnbuild.NewTimeout(300)},
 	})
 	require.NoError(t, err)
 

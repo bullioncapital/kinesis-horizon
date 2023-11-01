@@ -6,5 +6,4 @@
 // to logging within the context of an http server, and our chosen path for
 // responding to "Oh my god something is horribly wrong" within the context
 // of an HTTP request is to panic on that request.
-//
 package log

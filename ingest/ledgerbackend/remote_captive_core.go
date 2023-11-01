@@ -157,9 +157,10 @@ func (c RemoteCaptiveStellarCore) Close() error {
 // Captive stellar-core backend needs to initalize Stellar-Core state to be
 // able to stream ledgers.
 // Stellar-Core mode depends on the provided ledgerRange:
-//   * For BoundedRange it will start Stellar-Core in catchup mode.
-//   * For UnboundedRange it will first catchup to starting ledger and then run
+//   - For BoundedRange it will start Stellar-Core in catchup mode.
+//   - For UnboundedRange it will first catchup to starting ledger and then run
 //     it normally (including connecting to the Stellar network).
+//
 // Please note that using a BoundedRange, currently, requires a full-trust on
 // history archive. This issue is being fixed in Stellar-Core.
 func (c RemoteCaptiveStellarCore) PrepareRange(ctx context.Context, ledgerRange Range) error {

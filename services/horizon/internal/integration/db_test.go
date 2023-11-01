@@ -3,27 +3,26 @@ package integration
 import (
 	"context"
 	"fmt"
-	"os"
 	"path/filepath"
 	"strconv"
 	"testing"
 	"time"
 
-	"github.com/stellar/go/clients/horizonclient"
-	"github.com/stellar/go/keypair"
-	horizon "github.com/stellar/go/services/horizon/internal"
-	"github.com/stellar/go/services/horizon/internal/db2/history"
-	"github.com/stellar/go/xdr"
-
 	"github.com/stretchr/testify/assert"
 
+	"github.com/stellar/go/clients/horizonclient"
 	"github.com/stellar/go/historyarchive"
+	"github.com/stellar/go/keypair"
 	horizoncmd "github.com/stellar/go/services/horizon/cmd"
+	horizon "github.com/stellar/go/services/horizon/internal"
+	"github.com/stellar/go/services/horizon/internal/db2/history"
 	"github.com/stellar/go/services/horizon/internal/db2/schema"
 	"github.com/stellar/go/services/horizon/internal/test/integration"
+	"github.com/stellar/go/support/collections/set"
 	"github.com/stellar/go/support/db"
 	"github.com/stellar/go/support/db/dbtest"
 	"github.com/stellar/go/txnbuild"
+	"github.com/stellar/go/xdr"
 )
 
 func submitLiquidityPoolOps(itest *integration.Test, tt *assert.Assertions) (submittedOperations []txnbuild.Operation, lastLedger int32) {
@@ -363,12 +362,10 @@ func submitAccountOps(itest *integration.Test, tt *assert.Assertions) (submitted
 	allOps := ops
 	itest.MustSubmitOperations(itest.MasterAccount(), itest.Master(), ops...)
 	account := itest.MustGetAccount(accountPair)
-	seq, err := strconv.ParseInt(account.Sequence, 10, 64)
-	tt.NoError(err)
 	domain := "www.example.com"
 	ops = []txnbuild.Operation{
 		&txnbuild.BumpSequence{
-			BumpTo: seq + 1000,
+			BumpTo: account.Sequence + 1000,
 		},
 		&txnbuild.SetOptions{
 			HomeDomain: &domain,
@@ -398,33 +395,37 @@ func submitAccountOps(itest *integration.Test, tt *assert.Assertions) (submitted
 	return allOps, txResp.Ledger
 }
 
-func initializeDBIntegrationTest(t *testing.T) (itest *integration.Test, reachedLedger int32) {
-	itest = integration.NewTest(t, integration.Config{})
+func initializeDBIntegrationTest(t *testing.T) (*integration.Test, int32) {
+	itest := integration.NewTest(t, integration.Config{})
 	tt := assert.New(t)
 
-	// submit all possible operations
-	ops, _ := submitAccountOps(itest, tt)
-	submittedOps := ops
-	ops, _ = submitPaymentOps(itest, tt)
-	submittedOps = append(submittedOps, ops...)
-	ops, _ = submitOfferAndTrustlineOps(itest, tt)
-	submittedOps = append(submittedOps, ops...)
-	ops, _ = submitSponsorshipOps(itest, tt)
-	submittedOps = append(submittedOps, ops...)
-	ops, _ = submitClaimableBalanceOps(itest, tt)
-	submittedOps = append(submittedOps, ops...)
-	ops, _ = submitClawbackOps(itest, tt)
-	submittedOps = append(submittedOps, ops...)
-	ops, reachedLedger = submitLiquidityPoolOps(itest, tt)
-	submittedOps = append(submittedOps, ops...)
-
 	// Make sure all possible operations are covered by reingestion
-	allOpTypes := map[xdr.OperationType]struct{}{}
+	allOpTypes := set.Set[xdr.OperationType]{}
 	for typ := range xdr.OperationTypeToStringMap {
-		allOpTypes[xdr.OperationType(typ)] = struct{}{}
+		allOpTypes.Add(xdr.OperationType(typ))
+	}
+
+	submitters := []func(*integration.Test, *assert.Assertions) ([]txnbuild.Operation, int32){
+		submitAccountOps,
+		submitPaymentOps,
+		submitOfferAndTrustlineOps,
+		submitSponsorshipOps,
+		submitClaimableBalanceOps,
+		submitClawbackOps,
+		submitLiquidityPoolOps,
 	}
 	// Inflation is not supported
 	delete(allOpTypes, xdr.OperationTypeInflation)
+
+	var submittedOps []txnbuild.Operation
+	var ledgerOfLastSubmittedTx int32
+	// submit all possible operations
+	for i, f := range submitters {
+		var ops []txnbuild.Operation
+		ops, ledgerOfLastSubmittedTx = f(itest, tt)
+		t.Logf("%v ledgerOfLastSubmittedTx %v", i, ledgerOfLastSubmittedTx)
+		submittedOps = append(submittedOps, ops...)
+	}
 
 	for _, op := range submittedOps {
 		opXDR, err := op.BuildXDR()
@@ -433,34 +434,23 @@ func initializeDBIntegrationTest(t *testing.T) (itest *integration.Test, reached
 	}
 	tt.Empty(allOpTypes)
 
-	root, err := itest.Client().Root()
-	tt.NoError(err)
-	tt.LessOrEqual(reachedLedger, root.HorizonSequence)
+	reachedLedger := func() bool {
+		root, err := itest.Client().Root()
+		tt.NoError(err)
+		return root.HorizonSequence >= ledgerOfLastSubmittedTx
+	}
+	tt.Eventually(reachedLedger, 15*time.Second, 5*time.Second)
 
-	return
+	return itest, ledgerOfLastSubmittedTx
 }
 
 func TestReingestDB(t *testing.T) {
 	itest, reachedLedger := initializeDBIntegrationTest(t)
 	tt := assert.New(t)
 
-	// Create a fresh Horizon database
-	newDB := dbtest.Postgres(t)
-	// TODO: Unfortunately Horizon's ingestion System leaves open sessions behind,leading to
-	//       a "database  is being accessed by other users" error when trying to drop it
-	// defer newDB.Close()
-	freshHorizonPostgresURL := newDB.DSN
-	horizonConfig := itest.GetHorizonConfig()
-	horizonConfig.DatabaseURL = freshHorizonPostgresURL
-	// Initialize the DB schema
-	dbConn, err := db.Open("postgres", freshHorizonPostgresURL)
-	tt.NoError(err)
-	defer dbConn.Close()
-	_, err = schema.Migrate(dbConn.DB.DB, schema.MigrateUp, 0)
-	tt.NoError(err)
-
+	horizonConfig := itest.GetHorizonIngestConfig()
 	t.Run("validate parallel range", func(t *testing.T) {
-		horizoncmd.RootCmd.SetArgs(command(horizonConfig,
+		horizoncmd.RootCmd.SetArgs(command(t, horizonConfig,
 			"db",
 			"reingest",
 			"range",
@@ -472,6 +462,7 @@ func TestReingestDB(t *testing.T) {
 		assert.EqualError(t, horizoncmd.RootCmd.Execute(), "Invalid range: {10 2} from > to")
 	})
 
+	t.Logf("reached ledger is %v", reachedLedger)
 	// cap reachedLedger to the nearest checkpoint ledger because reingest range cannot ingest past the most
 	// recent checkpoint ledger when using captive core
 	toLedger := uint32(reachedLedger)
@@ -485,7 +476,10 @@ func TestReingestDB(t *testing.T) {
 	var latestCheckpoint uint32
 	publishedFirstCheckpoint := func() bool {
 		has, requestErr := archive.GetRootHAS()
-		tt.NoError(requestErr)
+		if requestErr != nil {
+			t.Logf("request to fetch checkpoint failed: %v", requestErr)
+			return false
+		}
 		latestCheckpoint = has.CurrentLedger
 		return latestCheckpoint > 1
 	}
@@ -505,7 +499,7 @@ func TestReingestDB(t *testing.T) {
 		"captive-core-reingest-range-integration-tests.cfg",
 	)
 
-	horizoncmd.RootCmd.SetArgs(command(horizonConfig, "db",
+	horizoncmd.RootCmd.SetArgs(command(t, horizonConfig, "db",
 		"reingest",
 		"range",
 		"--parallel-workers=1",
@@ -517,7 +511,7 @@ func TestReingestDB(t *testing.T) {
 	tt.NoError(horizoncmd.RootCmd.Execute(), "Repeat the same reingest range against db, should not have errors.")
 }
 
-func command(horizonConfig horizon.Config, args ...string) []string {
+func command(t *testing.T, horizonConfig horizon.Config, args ...string) []string {
 	return append([]string{
 		"--stellar-core-url",
 		horizonConfig.StellarCoreURL,
@@ -541,8 +535,50 @@ func command(horizonConfig horizon.Config, args ...string) []string {
 		"8",
 		// Create the storage directory outside of the source repo,
 		// otherwise it will break Golang test caching.
-		"--captive-core-storage-path=" + os.TempDir(),
+		"--captive-core-storage-path=" + t.TempDir(),
 	}, args...)
+}
+
+func TestMigrateIngestIsTrueByDefault(t *testing.T) {
+	tt := assert.New(t)
+	// Create a fresh Horizon database
+	newDB := dbtest.Postgres(t)
+	freshHorizonPostgresURL := newDB.DSN
+
+	horizoncmd.RootCmd.SetArgs([]string{
+		// ingest is set to true by default
+		"--db-url", freshHorizonPostgresURL,
+		"db", "migrate", "up",
+	})
+	tt.NoError(horizoncmd.RootCmd.Execute())
+
+	dbConn, err := db.Open("postgres", freshHorizonPostgresURL)
+	tt.NoError(err)
+
+	status, err := schema.Status(dbConn.DB.DB)
+	tt.NoError(err)
+	tt.NotContains(status, "1_initial_schema.sql\t\t\t\t\t\tno")
+}
+
+func TestMigrateChecksIngestFlag(t *testing.T) {
+	tt := assert.New(t)
+	// Create a fresh Horizon database
+	newDB := dbtest.Postgres(t)
+	freshHorizonPostgresURL := newDB.DSN
+
+	horizoncmd.RootCmd.SetArgs([]string{
+		"--ingest=false",
+		"--db-url", freshHorizonPostgresURL,
+		"db", "migrate", "up",
+	})
+	tt.NoError(horizoncmd.RootCmd.Execute())
+
+	dbConn, err := db.Open("postgres", freshHorizonPostgresURL)
+	tt.NoError(err)
+
+	status, err := schema.Status(dbConn.DB.DB)
+	tt.NoError(err)
+	tt.Contains(status, "1_initial_schema.sql\t\t\t\t\t\tno")
 }
 
 func TestFillGaps(t *testing.T) {
@@ -551,15 +587,18 @@ func TestFillGaps(t *testing.T) {
 
 	// Create a fresh Horizon database
 	newDB := dbtest.Postgres(t)
-	// TODO: Unfortunately Horizon's ingestion System leaves open sessions behind,leading to
-	//       a "database  is being accessed by other users" error when trying to drop it
-	// defer newDB.Close()
 	freshHorizonPostgresURL := newDB.DSN
-	horizonConfig := itest.GetHorizonConfig()
+	horizonConfig := itest.GetHorizonIngestConfig()
 	horizonConfig.DatabaseURL = freshHorizonPostgresURL
 	// Initialize the DB schema
 	dbConn, err := db.Open("postgres", freshHorizonPostgresURL)
-	defer dbConn.Close()
+	tt.NoError(err)
+	historyQ := history.Q{dbConn}
+	defer func() {
+		historyQ.Close()
+		newDB.Close()
+	}()
+
 	_, err = schema.Migrate(dbConn.DB.DB, schema.MigrateUp, 0)
 	tt.NoError(err)
 
@@ -573,7 +612,7 @@ func TestFillGaps(t *testing.T) {
 	tt.NoError(err)
 
 	t.Run("validate parallel range", func(t *testing.T) {
-		horizoncmd.RootCmd.SetArgs(command(horizonConfig,
+		horizoncmd.RootCmd.SetArgs(command(t, horizonConfig,
 			"db",
 			"fill-gaps",
 			"--parallel-workers=2",
@@ -603,7 +642,6 @@ func TestFillGaps(t *testing.T) {
 	// subprocesses to conflict.
 	itest.StopHorizon()
 
-	historyQ := history.Q{dbConn}
 	var oldestLedger, latestLedger int64
 	tt.NoError(historyQ.ElderLedger(context.Background(), &oldestLedger))
 	tt.NoError(historyQ.LatestLedger(context.Background(), &latestLedger))
@@ -613,20 +651,20 @@ func TestFillGaps(t *testing.T) {
 		filepath.Dir(horizonConfig.CaptiveCoreConfigPath),
 		"captive-core-reingest-range-integration-tests.cfg",
 	)
-	horizoncmd.RootCmd.SetArgs(command(horizonConfig, "db", "fill-gaps", "--parallel-workers=1"))
+	horizoncmd.RootCmd.SetArgs(command(t, horizonConfig, "db", "fill-gaps", "--parallel-workers=1"))
 	tt.NoError(horizoncmd.RootCmd.Execute())
 
 	tt.NoError(historyQ.LatestLedger(context.Background(), &latestLedger))
 	tt.Equal(int64(0), latestLedger)
 
-	horizoncmd.RootCmd.SetArgs(command(horizonConfig, "db", "fill-gaps", "3", "4"))
+	horizoncmd.RootCmd.SetArgs(command(t, horizonConfig, "db", "fill-gaps", "3", "4"))
 	tt.NoError(horizoncmd.RootCmd.Execute())
 	tt.NoError(historyQ.LatestLedger(context.Background(), &latestLedger))
 	tt.NoError(historyQ.ElderLedger(context.Background(), &oldestLedger))
 	tt.Equal(int64(3), oldestLedger)
 	tt.Equal(int64(4), latestLedger)
 
-	horizoncmd.RootCmd.SetArgs(command(horizonConfig, "db", "fill-gaps", "6", "7"))
+	horizoncmd.RootCmd.SetArgs(command(t, horizonConfig, "db", "fill-gaps", "6", "7"))
 	tt.NoError(horizoncmd.RootCmd.Execute())
 	tt.NoError(historyQ.LatestLedger(context.Background(), &latestLedger))
 	tt.NoError(historyQ.ElderLedger(context.Background(), &oldestLedger))
@@ -637,7 +675,7 @@ func TestFillGaps(t *testing.T) {
 	tt.NoError(err)
 	tt.Equal([]history.LedgerRange{{StartSequence: 5, EndSequence: 5}}, gaps)
 
-	horizoncmd.RootCmd.SetArgs(command(horizonConfig, "db", "fill-gaps"))
+	horizoncmd.RootCmd.SetArgs(command(t, horizonConfig, "db", "fill-gaps"))
 	tt.NoError(horizoncmd.RootCmd.Execute())
 	tt.NoError(historyQ.LatestLedger(context.Background(), &latestLedger))
 	tt.NoError(historyQ.ElderLedger(context.Background(), &oldestLedger))
@@ -647,7 +685,7 @@ func TestFillGaps(t *testing.T) {
 	tt.NoError(err)
 	tt.Empty(gaps)
 
-	horizoncmd.RootCmd.SetArgs(command(horizonConfig, "db", "fill-gaps", "2", "8"))
+	horizoncmd.RootCmd.SetArgs(command(t, horizonConfig, "db", "fill-gaps", "2", "8"))
 	tt.NoError(horizoncmd.RootCmd.Execute())
 	tt.NoError(historyQ.LatestLedger(context.Background(), &latestLedger))
 	tt.NoError(historyQ.ElderLedger(context.Background(), &oldestLedger))

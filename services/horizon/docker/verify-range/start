@@ -1,7 +1,17 @@
 #! /usr/bin/env bash
 set -e
 
-service postgresql start
+# configure postgres
+if [ -z "${PGDATA}" ]; then
+    export PGDATA="/data"
+fi
+rm -rf "$PGDATA"/* 
+sudo chown -R postgres "$PGDATA"
+sudo chmod -R 775 "$PGDATA"
+sudo -u postgres --preserve-env=PGDATA /usr/lib/postgresql/12/bin/initdb
+sudo -u postgres --preserve-env=PGDATA /usr/lib/postgresql/12/bin/pg_ctl start
+sudo -u postgres createdb horizon
+sudo -u postgres psql -c "ALTER USER postgres PASSWORD 'postgres';"
 
 # Calculate params for AWS Batch
 if [ ! -z "$AWS_BATCH_JOB_ARRAY_INDEX" ]; then
@@ -61,6 +71,9 @@ dump_horizon_db() {
 export NETWORK_PASSPHRASE="Public Global Stellar Network ; September 2015"
 export HISTORY_ARCHIVE_URLS="https://s3-eu-west-1.amazonaws.com/history.stellar.org/prd/core-live/core_live_001"
 export DATABASE_URL="postgres://postgres:postgres@localhost:5432/horizon?sslmode=disable"
+export CAPTIVE_CORE_CONFIG_APPEND_PATH="/captive-core-pubnet.cfg" 
+export STELLAR_CORE_BINARY_PATH="/usr/bin/stellar-core"
+export ENABLE_CAPTIVE_CORE_INGESTION="true"
 
 cd stellar-go
 git pull origin
@@ -93,13 +106,14 @@ function alter_tables_unlogged() {
 }
 
 /usr/local/go/bin/go build -v ./services/horizon
-./horizon db migrate up
+cd $CAPTIVE_CORE_STORAGE_PATH
+/stellar-go/horizon db migrate up
 alter_tables_unlogged
-./horizon ingest verify-range --from $FROM --to $TO --verify-state
+/stellar-go/horizon ingest verify-range --from $FROM --to $TO --verify-state
 
 function compare() {
-  local expected="old_$1"
-  local actual="new_$1"
+  local expected="/data/compare/old_$1"
+  local actual="/data/compare/new_$1"
 
   # Files can be very large, leading to `diff` running out of memory.
   # As a workaround, since files are expected to be identical,
@@ -114,24 +128,27 @@ function compare() {
 
 BASE_BRANCH=${BASE_BRANCH:-horizon-v2.0.0}
 
+rm -rf /data/compare
+mkdir /data/compare
 if [ ! -z "$VERIFY_HISTORY" ]; then
-	dump_horizon_db "new_history"
+	dump_horizon_db "/data/compare/new_history"
 
 	echo "Done dump_horizon_db new_history"
 
 	psql "postgres://postgres:postgres@localhost:5432/horizon?sslmode=disable" -c "DROP SCHEMA public CASCADE;"
 	psql "postgres://postgres:postgres@localhost:5432/horizon?sslmode=disable" -c "CREATE SCHEMA public;"
 
+    cd /stellar-go
 	git checkout "$BASE_BRANCH"
-
 	/usr/local/go/bin/go build -v ./services/horizon
-
-	./horizon db migrate up
+	
+	cd $CAPTIVE_CORE_STORAGE_PATH
+	/stellar-go/horizon db migrate up
 	alter_tables_unlogged
 	REINGEST_FROM=$((FROM + 1)) # verify-range does not ingest starting ledger
-	./horizon db reingest range $REINGEST_FROM $TO
+	/stellar-go/horizon db reingest range $REINGEST_FROM $TO
 
-	dump_horizon_db "old_history"
+	dump_horizon_db "/data/compare/old_history"
 	echo "Done dump_horizon_db old_history"
 
 	compare history_effects

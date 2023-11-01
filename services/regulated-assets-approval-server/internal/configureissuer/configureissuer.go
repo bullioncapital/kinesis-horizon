@@ -119,8 +119,8 @@ func setup(opts Options, hClient horizonclient.ClientInterface) error {
 				SourceAccount: trustorKP.Address(),
 			},
 		},
-		BaseFee:    300,
-		Timebounds: txnbuild.NewTimeout(300),
+		BaseFee:       300,
+		Preconditions: txnbuild.Preconditions{TimeBounds: txnbuild.NewTimeout(300)},
 	})
 	if err != nil {
 		return errors.Wrap(err, "building transaction")

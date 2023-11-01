@@ -75,6 +75,10 @@ func (kp *FromAddress) SignDecorated(input []byte) (xdr.DecoratedSignature, erro
 	return xdr.DecoratedSignature{}, ErrCannotSign
 }
 
+func (kp *FromAddress) SignPayloadDecorated(input []byte) (xdr.DecoratedSignature, error) {
+	return xdr.DecoratedSignature{}, ErrCannotSign
+}
+
 func (kp *FromAddress) Equal(a *FromAddress) bool {
 	if kp == nil && a == nil {
 		return true

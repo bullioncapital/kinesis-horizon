@@ -9,7 +9,7 @@ import (
 
 // This little app helped testing CaptiveStellarCore.runFromParams on a living
 // Stellar-Core. Adding it to the repo because it can be useful in a future if
-// Stellar-Core behaviour changes again.
+// Stellar-Core behavior changes again.
 // To make it work, run standalone network (RUN_STANDALONE=false to allow outside
 // connections) and update paths below.
 func main() {

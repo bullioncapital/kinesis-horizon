@@ -222,7 +222,7 @@ func TestSellingBuyingAssetQueryParams(t *testing.T) {
 	}
 }
 
-func TestSellingBuyingAssetQueryParamsWithCanonicalRepresenation(t *testing.T) {
+func TestSellingBuyingAssetQueryParamsWithCanonicalRepresentation(t *testing.T) {
 
 	testCases := []struct {
 		desc                 string

@@ -27,7 +27,7 @@ func TestPathPaymentStrictSendValidateSendAsset(t *testing.T) {
 			IncrementSequenceNum: false,
 			Operations:           []Operation{&pathPayment},
 			BaseFee:              MinBaseFee,
-			Timebounds:           NewInfiniteTimeout(),
+			Preconditions:        Preconditions{TimeBounds: NewInfiniteTimeout()},
 		},
 	)
 	if assert.Error(t, err) {
@@ -57,7 +57,7 @@ func TestPathPaymentStrictSendValidateDestAsset(t *testing.T) {
 			IncrementSequenceNum: false,
 			Operations:           []Operation{&pathPayment},
 			BaseFee:              MinBaseFee,
-			Timebounds:           NewInfiniteTimeout(),
+			Preconditions:        Preconditions{TimeBounds: NewInfiniteTimeout()},
 		},
 	)
 	if assert.Error(t, err) {
@@ -87,7 +87,7 @@ func TestPathPaymentStrictSendValidateDestination(t *testing.T) {
 			IncrementSequenceNum: false,
 			Operations:           []Operation{&pathPayment},
 			BaseFee:              MinBaseFee,
-			Timebounds:           NewInfiniteTimeout(),
+			Preconditions:        Preconditions{TimeBounds: NewInfiniteTimeout()},
 		},
 	)
 	if assert.Error(t, err) {
@@ -117,7 +117,7 @@ func TestPathPaymentStrictSendValidateSendMax(t *testing.T) {
 			IncrementSequenceNum: false,
 			Operations:           []Operation{&pathPayment},
 			BaseFee:              MinBaseFee,
-			Timebounds:           NewInfiniteTimeout(),
+			Preconditions:        Preconditions{TimeBounds: NewInfiniteTimeout()},
 		},
 	)
 
@@ -148,7 +148,7 @@ func TestPathPaymentStrictSendValidateDestAmount(t *testing.T) {
 			IncrementSequenceNum: false,
 			Operations:           []Operation{&pathPayment},
 			BaseFee:              MinBaseFee,
-			Timebounds:           NewInfiniteTimeout(),
+			Preconditions:        Preconditions{TimeBounds: NewInfiniteTimeout()},
 		},
 	)
 	if assert.Error(t, err) {

@@ -40,6 +40,7 @@ type KP interface {
 	Sign(input []byte) ([]byte, error)
 	SignBase64(input []byte) (string, error)
 	SignDecorated(input []byte) (xdr.DecoratedSignature, error)
+	SignPayloadDecorated(input []byte) (xdr.DecoratedSignature, error)
 }
 
 // Random creates a random full keypair

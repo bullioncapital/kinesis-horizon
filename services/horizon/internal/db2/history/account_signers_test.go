@@ -112,7 +112,7 @@ func TestMultipleAccountsForSigner(t *testing.T) {
 	tt.Assert.Equal(expected, results)
 }
 
-func TestRemoveNonExistantAccountSigner(t *testing.T) {
+func TestRemoveNonExistentAccountSigner(t *testing.T) {
 	tt := test.Start(t)
 	tt.Scenario("base")
 	defer tt.Finish()

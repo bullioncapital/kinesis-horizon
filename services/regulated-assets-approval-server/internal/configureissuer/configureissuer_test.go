@@ -43,7 +43,7 @@ func TestSetup_accountAlreadyConfigured(t *testing.T) {
 				AuthRevocable: true,
 			},
 			HomeDomain: "domain.test.com",
-			Sequence:   "10",
+			Sequence:   10,
 		}, nil)
 	horizonMock.
 		On("Assets", horizonclient.AssetRequest{
@@ -93,7 +93,7 @@ func TestSetup(t *testing.T) {
 		On("AccountDetail", horizonclient.AccountRequest{AccountID: issuerKP.Address()}).
 		Return(horizon.Account{
 			AccountID: issuerKP.Address(),
-			Sequence:  "10",
+			Sequence:  10,
 		}, nil)
 	horizonMock.
 		On("Assets", horizonclient.AssetRequest{

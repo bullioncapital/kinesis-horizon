@@ -78,7 +78,7 @@ func TestClaimableBalanceID(t *testing.T) {
 			SourceAccount:        &aAccount,
 			IncrementSequenceNum: true,
 			BaseFee:              MinBaseFee,
-			Timebounds:           NewInfiniteTimeout(),
+			Preconditions:        Preconditions{TimeBounds: NewInfiniteTimeout()},
 			Operations:           []Operation{&claimableBalanceEntry},
 		},
 	)

@@ -33,4 +33,9 @@ func Load(url string, path string) {
 	if err != nil {
 		log.Fatalf("could not exec scenario %v: %v\n", path, err)
 	}
+
+	// facilitates 'user_ro' db connecction for read only usage in tests
+	db.Exec("GRANT USAGE ON SCHEMA public TO PUBLIC;")
+	db.Exec("GRANT SELECT ON ALL TABLES IN SCHEMA public TO PUBLIC;")
+	db.Exec("ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO PUBLIC;")
 }

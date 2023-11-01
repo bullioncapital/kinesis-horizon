@@ -23,7 +23,7 @@ func TestInitFriendbot_createMinionAccounts_success(t *testing.T) {
 	botAccountID := botKeypair.Address()
 	botAccountMock := horizon.Account{
 		AccountID: botAccountID,
-		Sequence:  "1",
+		Sequence:  1,
 	}
 	botAccount := internal.Account{AccountID: botAccountID, Sequence: 1}
 
@@ -55,7 +55,7 @@ func TestInitFriendbot_createMinionAccounts_timeoutError(t *testing.T) {
 	botAccountID := botKeypair.Address()
 	botAccountMock := horizon.Account{
 		AccountID: botAccountID,
-		Sequence:  "1",
+		Sequence:  1,
 	}
 	botAccount := internal.Account{AccountID: botAccountID, Sequence: 1}
 

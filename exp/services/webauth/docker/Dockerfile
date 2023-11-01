@@ -1,4 +1,4 @@
-FROM golang:1.18 as build
+FROM golang:1.19.1 as build
 
 ADD . /src/webauth
 WORKDIR /src/webauth

@@ -38,6 +38,8 @@ func genAccount(tt *test.T, gen randxdr.Generator) xdr.LedgerEntryChange {
 			{randxdr.FieldEquals("created.data.account.ext.v1.ext.v2.numSponsoring"), randxdr.SetPositiveNum32},
 			{randxdr.FieldEquals("created.data.account.ext.v1.ext.v2.numSponsored"), randxdr.SetPositiveNum32},
 			{randxdr.FieldEquals("created.data.account.ext.v1.ext.v2.signerSponsoringIDs"), randxdr.SetVecLen(numSigners)},
+			{randxdr.FieldEquals("created.data.account.ext.v1.ext.v2.ext.v3.seqLedger"), randxdr.SetPositiveNum32},
+			{randxdr.FieldEquals("created.data.account.ext.v1.ext.v2.ext.v3.seqTime"), randxdr.SetPositiveNum64},
 		},
 	)
 

@@ -161,7 +161,7 @@ func TestDecodeForm_validTags(t *testing.T) {
 	assert.Equal(t, "bar", bodyDecoded.FooName)
 }
 
-func TestDecodeForm_validIgnoresUnkownKeys(t *testing.T) {
+func TestDecodeForm_validIgnoresUnknownKeys(t *testing.T) {
 	body := `foo=bar&foz=baz`
 	r, _ := http.NewRequest("POST", "/", strings.NewReader(body))
 	r.Header.Set("Content-Type", "application/x-www-form-urlencoded; charset=utf-8")

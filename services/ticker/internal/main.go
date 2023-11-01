@@ -43,7 +43,7 @@ type MarketStats struct {
 	SpreadMidPoint   float64 `json:"spread_mid_point"`
 }
 
-// Asset Sumary represents the collection of valid assets.
+// Asset Summary represents the collection of valid assets.
 type AssetSummary struct {
 	GeneratedAt        int64   `json:"generated_at"`
 	GeneratedAtRFC3339 string  `json:"generated_at_rfc3339"`

@@ -1,10 +1,12 @@
 package ledgerbackend
 
 import (
+	"testing"
+
 	"github.com/stellar/go/network"
 	"github.com/stellar/go/xdr"
 	"github.com/stretchr/testify/assert"
-	"testing"
+	"github.com/stretchr/testify/require"
 )
 
 func TestHashOrder(t *testing.T) {
@@ -40,7 +42,7 @@ func TestHashOrder(t *testing.T) {
 		},
 	}
 
-	sortByHash(original, network.TestNetworkPassphrase)
+	require.NoError(t, sortByHash(original, network.TestNetworkPassphrase))
 	hashes := map[int]xdr.Hash{}
 
 	for i, tx := range original {

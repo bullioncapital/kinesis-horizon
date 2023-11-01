@@ -35,7 +35,7 @@ func TestParticipantsForTransaction(t *testing.T) {
 		),
 	)
 
-	particpants, err := participantsForTransaction(
+	particpants, err := ParticipantsForTransaction(
 		3,
 		ingest.LedgerTransaction{
 			Index:      1,

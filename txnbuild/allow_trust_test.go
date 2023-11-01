@@ -22,7 +22,7 @@ func TestAllowTrustValidateAsset(t *testing.T) {
 		TransactionParams{
 			SourceAccount: &sourceAccount,
 			Operations:    []Operation{&allowTrust},
-			Timebounds:    NewInfiniteTimeout(),
+			Preconditions: Preconditions{TimeBounds: NewInfiniteTimeout()},
 			BaseFee:       MinBaseFee,
 		},
 	)
@@ -48,7 +48,7 @@ func TestAllowTrustValidateTrustor(t *testing.T) {
 		TransactionParams{
 			SourceAccount: &sourceAccount,
 			Operations:    []Operation{&allowTrust},
-			Timebounds:    NewInfiniteTimeout(),
+			Preconditions: Preconditions{TimeBounds: NewInfiniteTimeout()},
 			BaseFee:       MinBaseFee,
 		},
 	)

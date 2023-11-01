@@ -12,6 +12,7 @@ import (
 	"github.com/stellar/go/services/horizon/internal/db2/schema"
 	"github.com/stellar/go/services/horizon/internal/ledger"
 	"github.com/stellar/go/services/horizon/internal/operationfeestats"
+	tdb "github.com/stellar/go/services/horizon/internal/test/db"
 	"github.com/stellar/go/services/horizon/internal/test/scenarios"
 	"github.com/stellar/go/support/db"
 	"github.com/stellar/go/support/render/hal"
@@ -51,11 +52,11 @@ func (t *T) HorizonSession() *db.Session {
 func (t *T) loadScenario(scenarioName string, includeHorizon bool) {
 	stellarCorePath := scenarioName + "-core.sql"
 
-	scenarios.Load(StellarCoreDatabaseURL(), stellarCorePath)
+	scenarios.Load(tdb.StellarCoreURL(), stellarCorePath)
 
 	if includeHorizon {
 		horizonPath := scenarioName + "-horizon.sql"
-		scenarios.Load(DatabaseURL(), horizonPath)
+		scenarios.Load(tdb.HorizonURL(), horizonPath)
 	}
 }
 

@@ -1,0 +1,68 @@
+version: '3'
+services:
+  core-postgres:
+    image: postgres:9.6.17-alpine
+    restart: on-failure
+    environment:
+      - POSTGRES_PASSWORD=mysecretpassword
+      - POSTGRES_DB=stellar
+    expose:
+      - "5641"
+    command: ["-p", "5641"]
+
+  core:
+    platform: linux/amd64
+    # Note: Please keep the image pinned to an immutable tag matching the Captive Core version.
+    #       This avoid implicit updates which break compatibility between
+    #       the Core container and captive core.
+    image: ${CORE_IMAGE:-stellar/stellar-core:19.5.0-1108.ca2fb0605.focal}
+    depends_on:
+      - core-postgres
+    restart: on-failure
+    environment:
+      - TRACY_NO_INVARIANT_CHECK=1
+    ports:
+      - "11625:11625"
+      - "11626:11626"
+      # add extra port for history archive server
+      - "1570:1570"
+    entrypoint: /usr/bin/env
+    command: /start standalone
+    volumes:
+      - ./stellar-core-integration-tests.cfg:/stellar-core.cfg
+      - ./core-start.sh:/start
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  horizon-postgres:
+    image: postgres:9.6.17-alpine
+    restart: on-failure
+    environment:
+      - POSTGRES_HOST_AUTH_METHOD=trust
+      - POSTGRES_DB=horizon
+    expose:
+      - "5432"
+
+  horizon:
+    platform: linux/amd64
+    image: stellar/stellar-horizon:2.21.0-298
+    depends_on:
+      - horizon-postgres
+      - core
+    restart: on-failure
+    ports:
+      - "8000:8000"
+      - "11725:11725"
+    environment:
+      - HISTORY_ARCHIVE_URLS=http://host.docker.internal:1570
+      - NETWORK_PASSPHRASE=Standalone Network ; February 2017
+      - CAPTIVE_CORE_CONFIG_APPEND_PATH=/captive-core-integration-tests.cfg
+      - DATABASE_URL=postgres://postgres@horizon-postgres:5432/horizon?sslmode=disable
+      - INGEST=true
+      - PER_HOUR_RATE_LIMIT=0
+      - CHECKPOINT_FREQUENCY=8
+    volumes:
+      - ./captive-core-integration-tests.cfg:/captive-core-integration-tests.cfg
+    command: ["--apply-migrations"]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

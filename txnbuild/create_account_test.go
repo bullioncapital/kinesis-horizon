@@ -21,7 +21,7 @@ func TestCreateAccountValidateDestination(t *testing.T) {
 			IncrementSequenceNum: false,
 			Operations:           []Operation{&createAccount},
 			BaseFee:              MinBaseFee,
-			Timebounds:           NewInfiniteTimeout(),
+			Preconditions:        Preconditions{TimeBounds: NewInfiniteTimeout()},
 		},
 	)
 	if assert.Error(t, err) {
@@ -45,7 +45,7 @@ func TestCreateAccountValidateAmount(t *testing.T) {
 			IncrementSequenceNum: false,
 			Operations:           []Operation{&createAccount},
 			BaseFee:              MinBaseFee,
-			Timebounds:           NewInfiniteTimeout(),
+			Preconditions:        Preconditions{TimeBounds: NewInfiniteTimeout()},
 		},
 	)
 

@@ -349,8 +349,8 @@ func TestAccountSign_signingAddressAccountAuthenticatedButSigningAddressInvalid(
 					},
 				},
 			},
-			BaseFee:    txnbuild.MinBaseFee,
-			Timebounds: txnbuild.NewTimebounds(0, 1),
+			BaseFee:       txnbuild.MinBaseFee,
+			Preconditions: txnbuild.Preconditions{TimeBounds: txnbuild.NewTimebounds(0, 1)},
 		},
 	)
 	require.NoError(t, err)
@@ -411,8 +411,8 @@ func TestAccountSign_signingAddressAccountAuthenticatedOtherSignerSelected(t *te
 					},
 				},
 			},
-			BaseFee:    txnbuild.MinBaseFee,
-			Timebounds: txnbuild.NewTimebounds(0, 1),
+			BaseFee:       txnbuild.MinBaseFee,
+			Preconditions: txnbuild.Preconditions{TimeBounds: txnbuild.NewTimebounds(0, 1)},
 		},
 	)
 	require.NoError(t, err)
@@ -477,8 +477,8 @@ func TestAccountSign_signingAddressAccountAuthenticatedTxSourceAccountValid(t *t
 					},
 				},
 			},
-			BaseFee:    txnbuild.MinBaseFee,
-			Timebounds: txnbuild.NewTimebounds(0, 1),
+			BaseFee:       txnbuild.MinBaseFee,
+			Preconditions: txnbuild.Preconditions{TimeBounds: txnbuild.NewTimebounds(0, 1)},
 		},
 	)
 	require.NoError(t, err)
@@ -544,8 +544,8 @@ func TestAccountSign_signingAddressAccountAuthenticatedTxAndOpSourceAccountValid
 					},
 				},
 			},
-			BaseFee:    txnbuild.MinBaseFee,
-			Timebounds: txnbuild.NewTimebounds(0, 1),
+			BaseFee:       txnbuild.MinBaseFee,
+			Preconditions: txnbuild.Preconditions{TimeBounds: txnbuild.NewTimebounds(0, 1)},
 		},
 	)
 	require.NoError(t, err)
@@ -610,8 +610,8 @@ func TestAccountSign_signingAddressAccountAuthenticatedTxSourceAccountInvalid(t 
 					},
 				},
 			},
-			BaseFee:    txnbuild.MinBaseFee,
-			Timebounds: txnbuild.NewTimebounds(0, 1),
+			BaseFee:       txnbuild.MinBaseFee,
+			Preconditions: txnbuild.Preconditions{TimeBounds: txnbuild.NewTimebounds(0, 1)},
 		},
 	)
 	require.NoError(t, err)
@@ -673,8 +673,8 @@ func TestAccountSign_signingAddressAccountAuthenticatedOpSourceAccountInvalid(t 
 					},
 				},
 			},
-			BaseFee:    txnbuild.MinBaseFee,
-			Timebounds: txnbuild.NewTimebounds(0, 1),
+			BaseFee:       txnbuild.MinBaseFee,
+			Preconditions: txnbuild.Preconditions{TimeBounds: txnbuild.NewTimebounds(0, 1)},
 		},
 	)
 	require.NoError(t, err)
@@ -737,8 +737,8 @@ func TestAccountSign_signingAddressAccountAuthenticatedTxAndOpSourceAccountInval
 					},
 				},
 			},
-			BaseFee:    txnbuild.MinBaseFee,
-			Timebounds: txnbuild.NewTimebounds(0, 1),
+			BaseFee:       txnbuild.MinBaseFee,
+			Preconditions: txnbuild.Preconditions{TimeBounds: txnbuild.NewTimebounds(0, 1)},
 		},
 	)
 	require.NoError(t, err)
@@ -806,8 +806,8 @@ func TestAccountSign_signingAddressPhoneNumberOwnerAuthenticated(t *testing.T) {
 					},
 				},
 			},
-			BaseFee:    txnbuild.MinBaseFee,
-			Timebounds: txnbuild.NewTimebounds(0, 1),
+			BaseFee:       txnbuild.MinBaseFee,
+			Preconditions: txnbuild.Preconditions{TimeBounds: txnbuild.NewTimebounds(0, 1)},
 		},
 	)
 	require.NoError(t, err)
@@ -878,8 +878,8 @@ func TestAccountSign_signingAddressPhoneNumberOtherAuthenticated(t *testing.T) {
 					},
 				},
 			},
-			BaseFee:    txnbuild.MinBaseFee,
-			Timebounds: txnbuild.NewTimebounds(0, 1),
+			BaseFee:       txnbuild.MinBaseFee,
+			Preconditions: txnbuild.Preconditions{TimeBounds: txnbuild.NewTimebounds(0, 1)},
 		},
 	)
 	require.NoError(t, err)
@@ -950,8 +950,8 @@ func TestAccountSign_signingAddressEmailOwnerAuthenticated(t *testing.T) {
 					},
 				},
 			},
-			BaseFee:    txnbuild.MinBaseFee,
-			Timebounds: txnbuild.NewTimebounds(0, 1),
+			BaseFee:       txnbuild.MinBaseFee,
+			Preconditions: txnbuild.Preconditions{TimeBounds: txnbuild.NewTimebounds(0, 1)},
 		},
 	)
 	require.NoError(t, err)
@@ -1031,8 +1031,8 @@ func TestAccountSign_signingAddressEmailOwnerAuthenticatedOpSourceAccountIsAllow
 				},
 				&txnbuild.EndSponsoringFutureReserves{},
 			},
-			BaseFee:    txnbuild.MinBaseFee,
-			Timebounds: txnbuild.NewTimebounds(0, 1),
+			BaseFee:       txnbuild.MinBaseFee,
+			Preconditions: txnbuild.Preconditions{TimeBounds: txnbuild.NewTimebounds(0, 1)},
 		},
 	)
 	require.NoError(t, err)
@@ -1108,8 +1108,8 @@ func TestAccountSign_signingAddressEmailOwnerAuthenticatedOpSourceAccountInvalid
 				},
 				&txnbuild.EndSponsoringFutureReserves{},
 			},
-			BaseFee:    txnbuild.MinBaseFee,
-			Timebounds: txnbuild.NewTimebounds(0, 1),
+			BaseFee:       txnbuild.MinBaseFee,
+			Preconditions: txnbuild.Preconditions{TimeBounds: txnbuild.NewTimebounds(0, 1)},
 		},
 	)
 	require.NoError(t, err)
@@ -1175,8 +1175,8 @@ func TestAccountSign_signingAddressEmailOtherAuthenticated(t *testing.T) {
 					},
 				},
 			},
-			BaseFee:    txnbuild.MinBaseFee,
-			Timebounds: txnbuild.NewTimebounds(0, 1),
+			BaseFee:       txnbuild.MinBaseFee,
+			Preconditions: txnbuild.Preconditions{TimeBounds: txnbuild.NewTimebounds(0, 1)},
 		},
 	)
 	require.NoError(t, err)
@@ -1281,8 +1281,8 @@ func TestAccountSign_signingAddressRejectsFeeBumpTx(t *testing.T) {
 					},
 				},
 			},
-			BaseFee:    txnbuild.MinBaseFee,
-			Timebounds: txnbuild.NewTimebounds(0, 1),
+			BaseFee:       txnbuild.MinBaseFee,
+			Preconditions: txnbuild.Preconditions{TimeBounds: txnbuild.NewTimebounds(0, 1)},
 		},
 	)
 	require.NoError(t, err)
@@ -1351,8 +1351,8 @@ func TestAccountSign_signingAddressValidContentTypeForm(t *testing.T) {
 					},
 				},
 			},
-			BaseFee:    txnbuild.MinBaseFee,
-			Timebounds: txnbuild.NewTimebounds(0, 1),
+			BaseFee:       txnbuild.MinBaseFee,
+			Preconditions: txnbuild.Preconditions{TimeBounds: txnbuild.NewTimebounds(0, 1)},
 		},
 	)
 	require.NoError(t, err)
