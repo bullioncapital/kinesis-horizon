@@ -3,6 +3,11 @@
 {
   "name": "HorizonDev",
   "dockerFile": "Dockerfile",
+  "build": {
+    "args": {
+      "KINESIS_CORE_IMAGE": "abxit/kinesis-core:v18.5.0-kinesis.1"
+    }
+  },
   "context": "..",
   // // The optional 'runArgs' property can be used to specify additional runtime arguments.
   "runArgs": [
