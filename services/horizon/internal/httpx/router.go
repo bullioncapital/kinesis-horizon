@@ -325,6 +325,12 @@ func (r *Router) addRoutes(config *RouterConfig, rateLimiter *throttled.HTTPRate
 	// Network state related endpoints
 	r.Method(http.MethodGet, "/fee_stats", ObjectActionHandler{actions.FeeStatsHandler{}})
 
+	// Kinesis Coin-in-Circulation dataset
+	r.With(historyMiddleware).Method(http.MethodGet, "/coin_in_circulation", ObjectActionHandler{actions.KinesisCoinInCirculationHandler{
+		NetworkPassphrase: config.NetworkPassphrase,
+		LedgerState:       ledgerState,
+	}})
+
 	// friendbot
 	if config.FriendbotURL != nil {
 		redirectFriendbot := func(w http.ResponseWriter, r *http.Request) {

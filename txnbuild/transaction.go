@@ -866,7 +866,7 @@ func NewTransaction(params TransactionParams) (*Transaction, error) {
 		V1: &xdr.TransactionV1Envelope{
 			Tx: xdr.Transaction{
 				SourceAccount: sourceAccount,
-				Fee:           xdr.Uint32(tx.maxFee),
+				Fee:           xdr.Uint64(tx.maxFee),
 				SeqNum:        xdr.SequenceNumber(sequence),
 				Cond:          precondXdr,
 			},

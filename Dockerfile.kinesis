@@ -1,0 +1,47 @@
+ARG KINESIS_CORE_IMAGE=abxit/kinesis-core:v18.5.0-kinesis.1
+
+FROM golang:1.19 as builder
+ENV DEBIAN_FRONTEND=noninteractive
+ARG VERSION=develop
+RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-suggests --no-install-recommends vim
+
+# install PGSQL for integration testing
+RUN apt-get install -y --no-install-suggests --no-install-recommends postgresql && apt-get clean
+COPY pg_hba.conf /etc/postgresql/11/main/pg_hba.conf
+
+# install modules
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+# skip tests
+# RUN /etc/init.d/postgresql start 11 && \
+#     go test -race -cover ./...
+
+ENV CGO_ENABLED=0
+ENV HORIZON_VERSION="-X=github.com/stellar/go/support/app.version=$VERSION"
+ENV GOFLAGS="-ldflags=$HORIZON_VERSION"
+RUN go install ./...
+
+FROM ${KINESIS_CORE_IMAGE} as core
+
+FROM ubuntu:20.04
+ENV DEBIAN_FRONTEND=noninteractive
+
+EXPOSE 8000
+EXPOSE 9473
+
+# ca-certificates are required to make tls connections
+RUN apt-get update && apt-get upgrade -y \
+  && apt-get install -y --no-install-recommends ca-certificates curl wget gnupg apt-utils jq libpq5 \
+  && apt-get clean
+
+COPY --from=core /usr/bin/stellar-core /usr/bin/stellar-core
+COPY --from=builder /go/bin/horizon \
+  /go/bin/friendbot \
+  /go/bin/stellar-archivist \
+  /go/bin/stellar-hd-wallet \
+  /usr/bin/
+
+ENTRYPOINT ["horizon"]
