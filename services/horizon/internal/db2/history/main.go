@@ -457,6 +457,7 @@ type KinesisCoinInCirculation struct {
 	Circulation string `db:"circulation"`
 	Mint        string `db:"mint"`
 	Redemption  string `db:"redemption"`
+	Ledger      uint32 `db:"ledger"`
 }
 
 // Effect is a row of data from the `history_effects` table
