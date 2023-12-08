@@ -102,7 +102,7 @@ BEGIN
         AND qry.dest_account <> inflation_account
     ) t WHERE t.tx_type <> 'N/A';
 END;
-$$
+$$;
 
 DROP FUNCTION IF EXISTS kinesis_coin_in_circulation(character varying,character varying,character varying,character varying);
 CREATE OR REPLACE FUNCTION kinesis_coin_in_circulation(
