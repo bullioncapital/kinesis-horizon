@@ -64,6 +64,7 @@ func (handler KinesisCoinInCirculationHandler) GetResource(w HeaderWriter, r *ht
 		cic.Records[i].Circulation = record.Circulation
 		cic.Records[i].Mint = record.Mint
 		cic.Records[i].Redemption = record.Redemption
+		cic.Records[i].Ledger = record.Ledger
 	}
 
 	ledgerState := handler.LedgerState.CurrentStatus()

@@ -25,6 +25,7 @@ func (q *Q) KinesisCoinInCirculation(ctx context.Context, criteria KinesisCoinIn
 
 	selectQuery := sq.Select(`
 		tx_date,
+		ledger,
 		circulation,
 		mint,
 		redemption
