@@ -115,7 +115,7 @@ require (
 	github.com/yudai/pp v2.0.1+incompatible // indirect
 	github.com/ziutek/mymysql v1.5.4 // indirect
 	go.opencensus.io v0.24.0 // indirect
-	golang.org/x/crypto v0.0.0-20211202192323-5770296d904e // indirect
+	golang.org/x/crypto v0.1.0 // indirect
 	golang.org/x/net v0.9.0 // indirect
 	golang.org/x/oauth2 v0.7.0 // indirect
 	golang.org/x/sys v0.7.0 // indirect
