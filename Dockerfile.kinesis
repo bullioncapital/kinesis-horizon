@@ -7,7 +7,7 @@ RUN apt-get update && apt-get upgrade -y && apt-get clean
 
 # install PGSQL for integration testing
 RUN apt-get install -y --no-install-suggests --no-install-recommends postgresql && apt-get clean
-COPY pg_hba.conf /etc/postgresql/11/main/pg_hba.conf
+COPY pg_hba.conf /etc/postgresql/13/main/pg_hba.conf
 
 # install modules
 WORKDIR /src
@@ -16,8 +16,8 @@ RUN go mod download
 
 COPY . .
 # skip tests
-# RUN /etc/init.d/postgresql start 11 && \
-#     go test -race -cover ./...
+# RUN /etc/init.d/postgresql start 13 && \
+#   go test -race -cover ./...
 
 ENV CGO_ENABLED=0
 ENV HORIZON_VERSION="-X=github.com/stellar/go/support/app.version=$VERSION"
