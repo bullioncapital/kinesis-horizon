@@ -460,6 +460,14 @@ type KinesisCoinInCirculation struct {
 	Ledger      uint32 `db:"ledger"`
 }
 
+type KinesisCoinInCirculationByLedger struct {
+	Timestamp   string `db:"last_ledger_timestamp"`
+	Ledger      uint32 `db:"last_ledger"`
+	Circulation string `db:"circulation"`
+	Mint        string `db:"mint"`
+	Redemption  string `db:"redemption"`
+}
+
 // Effect is a row of data from the `history_effects` table
 type Effect struct {
 	HistoryAccountID   int64       `db:"history_account_id"`
