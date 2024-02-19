@@ -1,5 +1,6 @@
 -- +migrate Up
 -- +migrate StatementBegin
+DROP FUNCTION IF EXISTS kinesis_coin_in_circulation_raw(character varying,character varying,character varying,character varying);
 CREATE OR REPLACE FUNCTION kinesis_coin_in_circulation_raw(
     IN root_account VARCHAR(56),
     IN emission_account VARCHAR(56),
@@ -71,8 +72,8 @@ CREATE OR REPLACE FUNCTION kinesis_coin_in_circulation_at_ledger(
     IN ledger INT
 )
 RETURNS TABLE(
-    tx_date timestamp without time zone,
-    ledger INT,                     -- last ledger of the day where mint/redemption happened
+    last_ledger_timestamp timestamp without time zone,
+    last_ledger INT,                     -- last ledger of the day where mint/redemption happened
     circulation  NUMERIC(18, 7),
     mint NUMERIC(18, 7),
     redemption NUMERIC(18, 7)
@@ -83,8 +84,8 @@ BEGIN
 	RETURN QUERY
 
     SELECT
-        MAX(cc.closed_at) as tx_date,
-        MAX(cc.ledger) as ledger,
+        MAX(cc.closed_at) as last_ledger_timestamp,
+        MAX(cc.ledger) as last_ledger,
         SUM(cc.minting - cc.redemption) as total_coins,
         SUM(cc.minting) as minted,
         SUM(cc.redemption) as redemption
