@@ -323,10 +323,16 @@ func (r *Router) addRoutes(config *RouterConfig, rateLimiter *throttled.HTTPRate
 	r.Method(http.MethodGet, "/fee_stats", ObjectActionHandler{actions.FeeStatsHandler{}})
 
 	// Kinesis Coin-in-Circulation dataset
-	r.With(historyMiddleware).Method(http.MethodGet, "/coin_in_circulation", ObjectActionHandler{actions.KinesisCoinInCirculationHandler{
-		NetworkPassphrase: config.NetworkPassphrase,
-		LedgerState:       ledgerState,
-	}})
+	r.Route("/coin_in_circulation", func(r chi.Router) {
+		r.With(historyMiddleware).Method(http.MethodGet, "/", ObjectActionHandler{actions.KinesisCoinInCirculationHandler{
+			NetworkPassphrase: config.NetworkPassphrase,
+			LedgerState:       ledgerState,
+		}})
+		r.With(historyMiddleware).Method(http.MethodGet, "/ledger/{ledger_id}", ObjectActionHandler{actions.GetKinesisCoinInCirculationByLedgerHandler{
+			NetworkPassphrase: config.NetworkPassphrase,
+			LedgerState:       ledgerState,
+		}})
+	})
 
 	// friendbot
 	if config.FriendbotURL != nil {

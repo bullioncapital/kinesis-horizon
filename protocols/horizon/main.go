@@ -837,3 +837,11 @@ type KinesisDailyCoinInCirculation struct {
 	Date        string `json:"date"`
 	Ledger      uint32 `json:"ledger"`
 }
+
+type KinesisDailyCoinInCirculationByLedger struct {
+	Circulation string `json:"circulation"`
+	Mint        string `json:"mint"`
+	Redemption  string `json:"redemption"`
+	Timestamp   string `json:"last_ledger_timestamp"`
+	Ledger      uint32 `json:"last_ledger"`
+}

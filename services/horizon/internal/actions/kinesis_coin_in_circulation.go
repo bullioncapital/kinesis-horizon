@@ -2,10 +2,8 @@ package actions
 
 import (
 	"net/http"
-
 	"time"
 
-	"github.com/stellar/go/keypair"
 	"github.com/stellar/go/protocols/horizon"
 	"github.com/stellar/go/services/horizon/internal/context"
 	"github.com/stellar/go/services/horizon/internal/db2/history"
@@ -14,6 +12,48 @@ import (
 	"github.com/stellar/go/support/errors"
 	supportProblem "github.com/stellar/go/support/render/problem"
 )
+
+type KinesisCoinInCirculationByLedgerIDQuery struct {
+	LedgerID uint64 `schema:"ledger_id" valid:"required"`
+}
+
+// KinesisCoinInCirculationByLedger is the action handler for the /ledger/{ledger_id} endpoint
+type GetKinesisCoinInCirculationByLedgerHandler struct {
+	LedgerState       *ledger.State
+	NetworkPassphrase string
+}
+
+// GetResource returns a kinesis coin in circulation by ledger id.
+func (handler GetKinesisCoinInCirculationByLedgerHandler) GetResource(w HeaderWriter, r *http.Request) (interface{}, error) {
+	ctx := r.Context()
+
+	qp := KinesisCoinInCirculationByLedgerIDQuery{}
+	if err := getParams(&qp, r); err != nil {
+		return nil, err
+	}
+
+	criteria := history.KinesisCoinInCirculationByLedgerQuery{}
+	criteria.PopulateAccounts(handler.NetworkPassphrase)
+
+	// get data
+	historyQ, err := context.HistoryQFromRequest(r)
+	if err != nil {
+		return nil, err
+	}
+
+	cic := horizon.KinesisDailyCoinInCirculationByLedger{}
+	records, _ := historyQ.KinesisCoinInCirculationByLedger(ctx, criteria)
+
+	if len(records) > 0 {
+		cic.Timestamp = records[0].TxDate
+		cic.Circulation = records[0].Circulation
+		cic.Mint = records[0].Mint
+		cic.Redemption = records[0].Redemption
+		cic.Ledger = records[0].Ledger
+	}
+
+	return cic, nil
+}
 
 type KinesisCoinInCirculationQuery struct {
 	From string `schema:"from"`
@@ -44,12 +84,7 @@ func (handler KinesisCoinInCirculationHandler) GetResource(w HeaderWriter, r *ht
 		}
 		criteria.FromDate = date.Format("2006-01-02")
 	}
-
-	// known accounts
-	criteria.RootAccount = getPublicKeyFromSeedPhrase(handler.NetworkPassphrase)
-	criteria.EmissionAccount = getPublicKeyFromSeedPhrase(handler.NetworkPassphrase + "emission")
-	criteria.HotWalletAccount = getPublicKeyFromSeedPhrase(handler.NetworkPassphrase + "exchange")
-	criteria.FeepoolAccount = getPublicKeyFromSeedPhrase(handler.NetworkPassphrase + "feepool")
+	criteria.PopulateAccounts(handler.NetworkPassphrase)
 
 	// get data
 	historyQ, err := context.HistoryQFromRequest(r)
@@ -74,9 +109,4 @@ func (handler KinesisCoinInCirculationHandler) GetResource(w HeaderWriter, r *ht
 	cic.HistoryElderSequence = ledgerState.HistoryElder
 
 	return cic, nil
-}
-
-func getPublicKeyFromSeedPhrase(seedPhrase string) string {
-	kp := keypair.Root(seedPhrase)
-	return kp.Address()
 }
