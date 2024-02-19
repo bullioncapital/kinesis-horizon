@@ -6,10 +6,12 @@ import (
 
 	"github.com/stellar/go/protocols/horizon"
 	"github.com/stellar/go/services/horizon/internal/context"
+	horizonContext "github.com/stellar/go/services/horizon/internal/context"
 	"github.com/stellar/go/services/horizon/internal/db2/history"
 	"github.com/stellar/go/services/horizon/internal/ledger"
 	horizonProblem "github.com/stellar/go/services/horizon/internal/render/problem"
 	"github.com/stellar/go/support/errors"
+	"github.com/stellar/go/support/render/hal"
 	supportProblem "github.com/stellar/go/support/render/problem"
 )
 
@@ -26,13 +28,18 @@ type GetKinesisCoinInCirculationByLedgerHandler struct {
 // GetResource returns a kinesis coin in circulation by ledger id.
 func (handler GetKinesisCoinInCirculationByLedgerHandler) GetResource(w HeaderWriter, r *http.Request) (interface{}, error) {
 	ctx := r.Context()
+	if handler.LedgerState.CurrentStatus().HorizonStatus.HistoryElder > 2 {
+		return nil, horizonProblem.PartialLedgerIngested
+	}
 
 	qp := KinesisCoinInCirculationByLedgerIDQuery{}
 	if err := getParams(&qp, r); err != nil {
 		return nil, err
 	}
 
-	criteria := history.KinesisCoinInCirculationByLedgerQuery{}
+	criteria := history.KinesisCoinInCirculationByLedgerQuery{
+		LedgerID: qp.LedgerID,
+	}
 	criteria.PopulateAccounts(handler.NetworkPassphrase)
 
 	// get data
@@ -45,11 +52,11 @@ func (handler GetKinesisCoinInCirculationByLedgerHandler) GetResource(w HeaderWr
 	records, _ := historyQ.KinesisCoinInCirculationByLedger(ctx, criteria)
 
 	if len(records) > 0 {
-		cic.Timestamp = records[0].TxDate
+		cic.Timestamp = records[0].Timestamp
+		cic.Ledger = records[0].Ledger
 		cic.Circulation = records[0].Circulation
 		cic.Mint = records[0].Mint
 		cic.Redemption = records[0].Redemption
-		cic.Ledger = records[0].Ledger
 	}
 
 	return cic, nil
@@ -67,6 +74,11 @@ type KinesisCoinInCirculationHandler struct {
 func (handler KinesisCoinInCirculationHandler) GetResource(w HeaderWriter, r *http.Request) (interface{}, error) {
 	ctx := r.Context()
 	cic := horizon.KinesisCoinInCirculation{}
+
+	lb := hal.LinkBuilder{Base: horizonContext.BaseURL(ctx)}
+	self := "/coin_in_circulation"
+	cic.Links.Self = lb.Link(self)
+	cic.Links.Ledger = lb.Link(self, "ledger/{sequence}")
 
 	if handler.LedgerState.CurrentStatus().HorizonStatus.HistoryElder > 2 {
 		return nil, horizonProblem.PartialLedgerIngested

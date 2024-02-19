@@ -69,7 +69,7 @@ CREATE OR REPLACE FUNCTION kinesis_coin_in_circulation_at_ledger(
     IN emission_account VARCHAR(56),
 	IN hot_account VARCHAR(56),
     IN inflation_account VARCHAR(56),
-    IN ledger INT
+    IN ledger_id INT
 )
 RETURNS TABLE(
     last_ledger_timestamp timestamp without time zone,
@@ -95,7 +95,7 @@ BEGIN
         hot_account,
         inflation_account
     ) as cc
-    WHERE cc.ledger <= ledger;
+    WHERE cc.ledger <= ledger_id;
 
 END;
 $$

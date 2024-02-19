@@ -53,7 +53,7 @@ type KinesisCoinInCirculationByLedgerQuery struct {
 	LedgerID uint64
 }
 
-func (q *Q) KinesisCoinInCirculationByLedger(ctx context.Context, criteria KinesisCoinInCirculationByLedgerQuery) ([]KinesisCoinInCirculation, error) {
+func (q *Q) KinesisCoinInCirculationByLedger(ctx context.Context, criteria KinesisCoinInCirculationByLedgerQuery) ([]KinesisCoinInCirculationByLedger, error) {
 	fn := fmt.Sprintf("kinesis_coin_in_circulation_at_ledger('%s', '%s', '%s', '%s', %d)",
 		criteria.RootAccount,
 		criteria.EmissionAccount,
@@ -62,14 +62,23 @@ func (q *Q) KinesisCoinInCirculationByLedger(ctx context.Context, criteria Kines
 		criteria.LedgerID)
 
 	selectQuery := sq.Select(`
-		tx_date,
-		ledger,
+		last_ledger_timestamp,
+		last_ledger,
 		circulation,
 		mint,
 		redemption
 	`).From(fn)
 
-	return q.queryKinesisCoinInCirculation(ctx, selectQuery.Limit(1))
+	return q.queryKinesisCoinInCirculationByLeader(ctx, selectQuery.Limit(1))
+}
+
+func (q *Q) queryKinesisCoinInCirculationByLeader(ctx context.Context, selectQuery sq.SelectBuilder) ([]KinesisCoinInCirculationByLedger, error) {
+	var results []KinesisCoinInCirculationByLedger
+	if err := q.Select(ctx, &results, selectQuery); err != nil {
+		return nil, errors.Wrap(err, "could not run select query")
+	}
+
+	return results, nil
 }
 
 func (q *Q) queryKinesisCoinInCirculation(ctx context.Context, selectQuery sq.SelectBuilder) ([]KinesisCoinInCirculation, error) {

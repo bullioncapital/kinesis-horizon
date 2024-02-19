@@ -823,6 +823,11 @@ type LiquidityPoolReserve struct {
 
 // Kinesis Coin-in-Circulation
 type KinesisCoinInCirculation struct {
+	Links struct {
+		Self   hal.Link `json:"self"`
+		Ledger hal.Link `json:"ledger"`
+	} `json:"_links"`
+
 	IngestSequence        uint32                          `json:"ingest_latest_ledger"`
 	HorizonSequence       int32                           `json:"history_latest_ledger"`
 	HorizonLatestClosedAt time.Time                       `json:"history_latest_ledger_closed_at"`
