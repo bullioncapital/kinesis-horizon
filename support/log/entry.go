@@ -9,8 +9,11 @@ import (
 	gerr "github.com/go-errors/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/sirupsen/logrus/hooks/test"
+
 	"github.com/stellar/go/support/errors"
 )
+
+const timeStampFormat = "2006-01-02T15:04:05.000Z07:00"
 
 // Ctx appends all fields from `e` to the new logger created from `ctx`
 // logger and returns it.
@@ -38,12 +41,24 @@ func (e *Entry) SetLevel(level logrus.Level) {
 	e.entry.Logger.SetLevel(level)
 }
 
+func (e *Entry) UseJSONFormatter() {
+	formatter := new(logrus.JSONFormatter)
+	formatter.TimestampFormat = timeStampFormat
+	e.entry.Logger.Formatter = formatter
+}
+
 func (e *Entry) DisableColors() {
-	e.entry.Logger.Formatter.(*logrus.TextFormatter).DisableColors = true
+	if f, ok := e.entry.Logger.Formatter.(*logrus.TextFormatter); ok {
+		f.DisableColors = true
+	}
 }
 
 func (e *Entry) DisableTimestamp() {
-	e.entry.Logger.Formatter.(*logrus.TextFormatter).DisableTimestamp = true
+	if f, ok := e.entry.Logger.Formatter.(*logrus.TextFormatter); ok {
+		f.DisableTimestamp = true
+	} else if f, ok := e.entry.Logger.Formatter.(*logrus.JSONFormatter); ok {
+		f.DisableTimestamp = true
+	}
 }
 
 // WithField creates a child logger annotated with the provided key value pair.

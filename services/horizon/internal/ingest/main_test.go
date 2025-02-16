@@ -5,13 +5,13 @@ import (
 	"context"
 	"database/sql"
 	"testing"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"github.com/stellar/go/historyarchive"
 	"github.com/stellar/go/ingest"
 	"github.com/stellar/go/ingest/ledgerbackend"
 	"github.com/stellar/go/services/horizon/internal/db2/history"
@@ -79,12 +79,21 @@ func TestCheckVerifyStateVersion(t *testing.T) {
 	)
 }
 
+func TestLedgerEligibleForStateVerification(t *testing.T) {
+	checker := ledgerEligibleForStateVerification(64, 3)
+	for ledger := uint32(1); ledger < 64*6; ledger++ {
+		run := checker(ledger)
+		expected := (ledger+1)%(64*3) == 0
+		assert.Equal(t, expected, run)
+	}
+}
+
 func TestNewSystem(t *testing.T) {
 	config := Config{
 		CoreSession:              &db.Session{DB: &sqlx.DB{}},
 		HistorySession:           &db.Session{DB: &sqlx.DB{}},
 		DisableStateVerification: true,
-		HistoryArchiveURL:        "https://history.stellar.org/prd/core-live/core_live_001",
+		HistoryArchiveURLs:       []string{"https://history.stellar.org/prd/core-live/core_live_001"},
 		CheckpointFrequency:      64,
 	}
 
@@ -162,12 +171,12 @@ func TestStateMachineRunReturnsErrorWhenNextStateIsShutdownWithError(t *testing.
 	assert.EqualError(t, err, "invalid range: [0, 0]")
 }
 
-func TestMaybeVerifyStateGetExpStateInvalidDBErrCancelOrContextCanceled(t *testing.T) {
+func TestMaybeVerifyStateGetExpStateInvalidError(t *testing.T) {
 	historyQ := &mockDBQ{}
 	system := &system{
-		historyQ:          historyQ,
-		ctx:               context.Background(),
-		checkpointManager: historyarchive.NewCheckpointManager(64),
+		historyQ:                     historyQ,
+		ctx:                          context.Background(),
+		runStateVerificationOnLedger: ledgerEligibleForStateVerification(64, 1),
 	}
 
 	var out bytes.Buffer
@@ -180,21 +189,29 @@ func TestMaybeVerifyStateGetExpStateInvalidDBErrCancelOrContextCanceled(t *testi
 	defer func() { log = oldLogger }()
 
 	historyQ.On("GetExpStateInvalid", system.ctx).Return(false, db.ErrCancelled).Once()
-	system.maybeVerifyState(0)
+	system.maybeVerifyState(63)
+	system.wg.Wait()
 
 	historyQ.On("GetExpStateInvalid", system.ctx).Return(false, context.Canceled).Once()
-	system.maybeVerifyState(0)
+	system.maybeVerifyState(63)
+	system.wg.Wait()
 
 	logged := done()
 	assert.Len(t, logged, 0)
+
+	// Ensure state verifier does not start also for any other error
+	historyQ.On("GetExpStateInvalid", system.ctx).Return(false, errors.New("my error")).Once()
+	system.maybeVerifyState(63)
+	system.wg.Wait()
+
 	historyQ.AssertExpectations(t)
 }
 func TestMaybeVerifyInternalDBErrCancelOrContextCanceled(t *testing.T) {
 	historyQ := &mockDBQ{}
 	system := &system{
-		historyQ:          historyQ,
-		ctx:               context.Background(),
-		checkpointManager: historyarchive.NewCheckpointManager(64),
+		historyQ:                     historyQ,
+		ctx:                          context.Background(),
+		runStateVerificationOnLedger: ledgerEligibleForStateVerification(64, 1),
 	}
 
 	var out bytes.Buffer
@@ -226,10 +243,51 @@ func TestMaybeVerifyInternalDBErrCancelOrContextCanceled(t *testing.T) {
 	historyQ.AssertExpectations(t)
 }
 
+func TestCurrentStateRaceCondition(t *testing.T) {
+	historyQ := &mockDBQ{}
+	s := &system{
+		historyQ: historyQ,
+		ctx:      context.Background(),
+	}
+
+	historyQ.On("GetTx").Return(nil)
+	historyQ.On("Begin").Return(nil)
+	historyQ.On("Rollback").Return(nil)
+	historyQ.On("GetLastLedgerIngest", s.ctx).Return(uint32(1), nil)
+	historyQ.On("GetIngestVersion", s.ctx).Return(CurrentVersion, nil)
+
+	timer := time.NewTimer(2000 * time.Millisecond)
+	getCh := make(chan bool, 1)
+	doneCh := make(chan bool, 1)
+	go func() {
+		var state = buildState{checkpointLedger: 8,
+			skipChecks: true,
+			stop:       true}
+		for range getCh {
+			_ = s.runStateMachine(state)
+		}
+		close(doneCh)
+	}()
+
+loop:
+	for {
+		s.GetCurrentState()
+		select {
+		case <-timer.C:
+			break loop
+		default:
+		}
+		getCh <- true
+	}
+	close(getCh)
+	<-doneCh
+}
+
 type mockDBQ struct {
 	mock.Mock
 
 	history.MockQAccounts
+	history.MockQFilter
 	history.MockQClaimableBalances
 	history.MockQHistoryClaimableBalances
 	history.MockQLiquidityPools
@@ -265,9 +323,19 @@ func (m *mockDBQ) Commit() error {
 	return args.Error(0)
 }
 
+func (m *mockDBQ) Close() error {
+	args := m.Called()
+	return args.Error(0)
+}
+
 func (m *mockDBQ) Rollback() error {
 	args := m.Called()
 	return args.Error(0)
+}
+
+func (m *mockDBQ) TryStateVerificationLock(ctx context.Context) (bool, error) {
+	args := m.Called(ctx)
+	return args.Get(0).(bool), args.Error(1)
 }
 
 func (m *mockDBQ) GetTx() *sqlx.Tx {
@@ -360,6 +428,18 @@ func (m *mockDBQ) NewTradeBatchInsertBuilder(maxBatchSize int) history.TradeBatc
 	return args.Get(0).(history.TradeBatchInsertBuilder)
 }
 
+func (m *mockDBQ) ReapLookupTables(ctx context.Context, offsets map[string]int64) (map[string]int64, map[string]int64, error) {
+	args := m.Called(ctx, offsets)
+	var r1, r2 map[string]int64
+	if args.Get(0) != nil {
+		r1 = args.Get(0).(map[string]int64)
+	}
+	if args.Get(1) != nil {
+		r1 = args.Get(1).(map[string]int64)
+	}
+	return r1, r2, args.Error(2)
+}
+
 func (m *mockDBQ) RebuildTradeAggregationTimes(ctx context.Context, from, to strtime.Millis, roundingSlippageFilter int) error {
 	args := m.Called(ctx, from, to, roundingSlippageFilter)
 	return args.Error(0)
@@ -373,6 +453,11 @@ func (m *mockDBQ) RebuildTradeAggregationBuckets(ctx context.Context, fromLedger
 func (m *mockDBQ) CreateAssets(ctx context.Context, assets []xdr.Asset, batchSize int) (map[string]history.Asset, error) {
 	args := m.Called(ctx, assets)
 	return args.Get(0).(map[string]history.Asset), args.Error(1)
+}
+
+func (m *mockDBQ) DeleteTransactionsFilteredTmpOlderThan(ctx context.Context, howOldInSeconds uint64) (int64, error) {
+	args := m.Called(ctx, howOldInSeconds)
+	return args.Get(0).(int64), args.Error(1)
 }
 
 type mockLedgerBackend struct {
@@ -427,10 +512,11 @@ func (m *mockProcessorsRunner) RunGenesisStateIngestion() (ingest.StatsChangePro
 
 func (m *mockProcessorsRunner) RunHistoryArchiveIngestion(
 	checkpointLedger uint32,
+	skipChecks bool,
 	ledgerProtocolVersion uint32,
 	bucketListHash xdr.Hash,
 ) (ingest.StatsChangeProcessorResults, error) {
-	args := m.Called(checkpointLedger, ledgerProtocolVersion, bucketListHash)
+	args := m.Called(checkpointLedger, skipChecks, ledgerProtocolVersion, bucketListHash)
 	return args.Get(0).(ingest.StatsChangeProcessorResults), args.Error(1)
 }
 
@@ -496,6 +582,11 @@ func (m *mockSystem) VerifyRange(fromLedger, toLedger uint32, verifyState bool) 
 	return args.Error(0)
 }
 
+func (m *mockSystem) BuildState(sequence uint32, skipChecks bool) error {
+	args := m.Called(sequence, skipChecks)
+	return args.Error(0)
+}
+
 func (m *mockSystem) ReingestRange(ledgerRanges []history.LedgerRange, force bool) error {
 	args := m.Called(ledgerRanges, force)
 	return args.Error(0)
@@ -504,6 +595,11 @@ func (m *mockSystem) ReingestRange(ledgerRanges []history.LedgerRange, force boo
 func (m *mockSystem) BuildGenesisState() error {
 	args := m.Called()
 	return args.Error(0)
+}
+
+func (m *mockSystem) GetCurrentState() State {
+	args := m.Called()
+	return args.Get(0).(State)
 }
 
 func (m *mockSystem) Shutdown() {

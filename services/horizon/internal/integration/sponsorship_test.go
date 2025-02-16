@@ -311,7 +311,7 @@ func TestSponsorships(t *testing.T) {
 			SourceAccount:        newAccount,
 			Operations:           []txnbuild.Operation{preAuthOp},
 			BaseFee:              txnbuild.MinBaseFee,
-			Timebounds:           txnbuild.NewInfiniteTimeout(),
+			Preconditions:        txnbuild.Preconditions{TimeBounds: txnbuild.NewInfiniteTimeout()},
 			IncrementSequenceNum: true,
 		}
 		preaAuthTx, err := txnbuild.NewTransaction(txParams)

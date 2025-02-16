@@ -49,6 +49,8 @@ type ConnectOptions struct {
 	// CheckpointFrequency is the number of ledgers between checkpoints
 	// if unset, DefaultCheckpointFrequency will be used
 	CheckpointFrequency uint32
+	// UserAgent is the value of `User-Agent` header. Applicable only for HTTP client.
+	UserAgent string
 }
 
 type Ledger struct {

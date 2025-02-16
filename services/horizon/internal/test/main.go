@@ -41,21 +41,6 @@ func Context() context.Context {
 	return log.Set(context.Background(), testLogger)
 }
 
-// Database returns a connection to the horizon test database
-//
-// DEPRECATED:  use `Horizon()` from test/db package
-func Database(t *testing.T) *sqlx.DB {
-	return tdb.Horizon(t)
-}
-
-// DatabaseURL returns the database connection the url any test
-// use when connecting to the history/horizon database
-//
-// DEPRECATED:  use `HorizonURL()` from test/db package
-func DatabaseURL() string {
-	return tdb.HorizonURL()
-}
-
 // Start initializes a new test helper object, a new instance of log,
 // and conceptually "starts" a new test
 func Start(t *testing.T) *T {
@@ -64,26 +49,11 @@ func Start(t *testing.T) *T {
 	logger := log.New()
 
 	result.Ctx = log.Set(context.Background(), logger)
-	result.HorizonDB = Database(t)
-	result.CoreDB = StellarCoreDatabase(t)
+	result.HorizonDB = tdb.Horizon(t)
+	result.CoreDB = tdb.StellarCore(t)
 	result.Assert = assert.New(t)
 	result.Require = require.New(t)
 	result.EndLogTest = logger.StartTest(log.DebugLevel)
 
 	return result
-}
-
-// StellarCoreDatabase returns a connection to the stellar core test database
-//
-// DEPRECATED:  use `StellarCore()` from test/db package
-func StellarCoreDatabase(t *testing.T) *sqlx.DB {
-	return tdb.StellarCore(t)
-}
-
-// StellarCoreDatabaseURL returns the database connection the url any test
-// use when connecting to the stellar-core database
-//
-// DEPRECATED:  use `StellarCoreURL()` from test/db package
-func StellarCoreDatabaseURL() string {
-	return tdb.StellarCoreURL()
 }

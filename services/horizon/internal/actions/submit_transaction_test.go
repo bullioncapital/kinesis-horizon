@@ -44,11 +44,7 @@ type networkSubmitterMock struct {
 	mock.Mock
 }
 
-func (m *networkSubmitterMock) Submit(
-	ctx context.Context,
-	rawTx string,
-	envelope xdr.TransactionEnvelope,
-	hash string) <-chan txsub.Result {
+func (m *networkSubmitterMock) Submit(ctx context.Context, rawTx string, envelope xdr.TransactionEnvelope, hash string) <-chan txsub.Result {
 	a := m.Called()
 	return a.Get(0).(chan txsub.Result)
 }

@@ -47,6 +47,16 @@ func newParallelSystems(config Config, workerCount uint, systemFactory func(Conf
 	}, nil
 }
 
+func (ps *ParallelSystems) Shutdown() {
+	log.Info("Shutting down parallel ingestion system...")
+	if ps.config.HistorySession != nil {
+		ps.config.HistorySession.Close()
+	}
+	if ps.config.CoreSession != nil {
+		ps.config.CoreSession.Close()
+	}
+}
+
 func (ps *ParallelSystems) runReingestWorker(s System, stop <-chan struct{}, reingestJobQueue <-chan history.LedgerRange) rangeError {
 
 	for {
@@ -128,6 +138,9 @@ func (ps *ParallelSystems) ReingestRange(ledgerRanges []history.LedgerRange, bat
 		// the user needs to start again to prevent the gaps.
 		lowestRangeErr *rangeError
 	)
+
+	defer ps.Shutdown()
+
 	if err := validateRanges(ledgerRanges); err != nil {
 		return err
 	}

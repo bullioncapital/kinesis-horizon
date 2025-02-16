@@ -90,7 +90,9 @@ func (a *App) Serve() error {
 	}
 
 	go a.run()
-	go a.orderBookStream.Run(a.ctx)
+	if !a.config.DisablePathFinding {
+		go a.orderBookStream.Run(a.ctx)
+	}
 
 	// WaitGroup for all go routines. Makes sure that DB is closed when
 	// all services gracefully shutdown.
@@ -215,6 +217,14 @@ func (a *App) Paths() paths.Finder {
 // in case Stellar-Core query timeout.
 func (a *App) UpdateCoreLedgerState(ctx context.Context) {
 	var next ledger.CoreStatus
+
+	// #4446 If the ingestion state machine is in the build state, the query can time out
+	// because the captive-core buffer may be full. In this case, skip the check.
+	if a.config.CaptiveCoreToml != nil &&
+		a.config.StellarCoreURL == fmt.Sprintf("http://localhost:%d", a.config.CaptiveCoreToml.HTTPPort) &&
+		a.ingester != nil && a.ingester.GetCurrentState() == ingest.Build {
+		return
+	}
 
 	logErr := func(err error, msg string) {
 		log.WithStack(err).WithField("err", err.Error()).Error(msg)
@@ -535,6 +545,7 @@ func (a *App) init() error {
 			},
 			cache: newHealthCache(healthCacheTTL),
 		},
+		EnableIngestionFiltering: a.config.EnableIngestionFiltering,
 	}
 
 	if a.primaryHistoryQ != nil {

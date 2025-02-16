@@ -154,5 +154,5 @@ func (in kycPostRequest) buildUpdateKYCQuery() (string, []interface{}) {
 }
 
 // RxEmail is a regex used to validate e-mail addresses, according with the reference https://www.alexedwards.net/blog/validation-snippets-for-go#email-validation.
-// It's free to use under the [MIT Licence](https://opensource.org/licenses/MIT)
+// It's free to use under the [MIT License](https://opensource.org/licenses/MIT)
 var RxEmail = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")

@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func newUint(v uint) *uint {
@@ -198,7 +199,7 @@ func TestCaptiveCoreTomlValidation(t *testing.T) {
 		{
 			name:          "unexpected BUCKET_DIR_PATH",
 			appendPath:    filepath.Join("testdata", "appendix-with-bucket-dir-path.cfg"),
-			expectedError: "could not unmarshal captive core toml: setting BUCKET_DIR_PATH is disallowed, it can cause clashes between instances",
+			expectedError: "could not unmarshal captive core toml: setting BUCKET_DIR_PATH is disallowed for Captive Core, use CAPTIVE_CORE_STORAGE_PATH instead",
 		},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
@@ -355,7 +356,7 @@ func TestExternalStorageConfigUsesDatabaseToml(t *testing.T) {
 
 	assert.NoError(t, err)
 	toml := CaptiveCoreToml{}
-	toml.unmarshal(configBytes, true)
+	require.NoError(t, toml.unmarshal(configBytes, true))
 	assert.Equal(t, toml.Database, "sqlite3:///etc/defaults/stellar.db")
 }
 
@@ -383,7 +384,7 @@ func TestDBConfigDefaultsToSqlite(t *testing.T) {
 
 	assert.NoError(t, err)
 	toml := CaptiveCoreToml{}
-	toml.unmarshal(configBytes, true)
+	require.NoError(t, toml.unmarshal(configBytes, true))
 	assert.Equal(t, toml.Database, "sqlite3://stellar.db")
 }
 
@@ -411,6 +412,6 @@ func TestNonDBConfigDoesNotUpdateDatabase(t *testing.T) {
 
 	assert.NoError(t, err)
 	toml := CaptiveCoreToml{}
-	toml.unmarshal(configBytes, true)
+	require.NoError(t, toml.unmarshal(configBytes, true))
 	assert.Equal(t, toml.Database, "")
 }

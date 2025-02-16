@@ -23,7 +23,7 @@ func AccountInfo(ctx context.Context, hq *history.Q, addr string) (*protocol.Acc
 		data       []history.Data
 		signers    []history.AccountSigner
 		trustlines []history.TrustLine
-		resouce    protocol.Account
+		resource   protocol.Account
 	)
 
 	record, err := hq.GetAccountByID(ctx, addr)
@@ -53,7 +53,7 @@ func AccountInfo(ctx context.Context, hq *history.Q, addr string) (*protocol.Acc
 
 	err = resourceadapter.PopulateAccountEntry(
 		ctx,
-		&resouce,
+		&resource,
 		record,
 		data,
 		signers,
@@ -64,7 +64,7 @@ func AccountInfo(ctx context.Context, hq *history.Q, addr string) (*protocol.Acc
 		return nil, errors.Wrap(err, "populating account entry")
 	}
 
-	return &resouce, nil
+	return &resource, nil
 }
 
 // AccountsQuery query struct for accounts end-point

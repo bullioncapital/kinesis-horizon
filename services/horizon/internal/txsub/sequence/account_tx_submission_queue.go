@@ -1,7 +1,7 @@
 package sequence
 
 import (
-	"container/heap"
+	"sort"
 	"time"
 )
 
@@ -12,12 +12,18 @@ import (
 // AccountTxSubmissionQueue maintains a priority queue of pending submissions, and when updated
 // (via the NotifyLastAccountSequence() method) with the current sequence number of the account
 // being managed, queued submissions that can be acted upon will be unblocked.
-//
 type AccountTxSubmissionQueue struct {
-	lastActiveAt time.Time
-	timeout      time.Duration
-	nextSequence uint64
-	queue        pqueue
+	lastActiveAt            time.Time
+	timeout                 time.Duration
+	lastSeenAccountSequence uint64
+	transactions            []txToSubmit
+}
+
+// txToSubmit represents a transaction being tracked by the queue
+type txToSubmit struct {
+	minAccSeqNum   uint64     // minimum account sequence required to send the transaction
+	maxAccSeqNum   uint64     // maximum account sequence required to send the transaction
+	notifyBackChan chan error // submission notification channel
 }
 
 // NewAccountTxSubmissionQueue creates a new *AccountTxSubmissionQueue
@@ -25,17 +31,13 @@ func NewAccountTxSubmissionQueue() *AccountTxSubmissionQueue {
 	result := &AccountTxSubmissionQueue{
 		lastActiveAt: time.Now(),
 		timeout:      10 * time.Second,
-		queue:        nil,
 	}
-
-	heap.Init(&result.queue)
-
 	return result
 }
 
 // Size returns the count of currently buffered submissions in the queue.
 func (q *AccountTxSubmissionQueue) Size() int {
-	return len(q.queue)
+	return len(q.transactions)
 }
 
 // Push enqueues the intent to submit a transaction at the provided sequence
@@ -47,13 +49,23 @@ func (q *AccountTxSubmissionQueue) Size() int {
 // the same as the provided sequence, to keep internal complexity much lower.
 // Given that, the recommended usage pattern is:
 //
-// 1. Push the submission onto the queue
-// 2. Load the current sequence number for the source account from the DB
-// 3. Call NotifyLastAccountSequence() with the result from step 2 to trigger the submission if
-//		possible
-func (q *AccountTxSubmissionQueue) Push(sequence uint64) <-chan error {
+//  1. Push the submission onto the queue
+//  2. Load the current sequence number for the source account from the DB
+//  3. Call NotifyLastAccountSequence() with the result from step 2 to trigger the submission if
+//     possible
+func (q *AccountTxSubmissionQueue) Push(sequence uint64, minSeqNum *uint64) <-chan error {
+	// From CAP 21: If minSeqNum is nil, the txToSubmit is only valid when sourceAccount's sequence number is seqNum - 1.
+	// Otherwise, valid when sourceAccount's sequence number n satisfies minSeqNum <= n < txToSubmit.seqNum.
+	effectiveMinSeqNum := sequence - 1
+	if minSeqNum != nil {
+		effectiveMinSeqNum = *minSeqNum
+	}
 	ch := make(chan error, 1)
-	heap.Push(&q.queue, item{sequence, ch})
+	q.transactions = append(q.transactions, txToSubmit{
+		minAccSeqNum:   effectiveMinSeqNum,
+		maxAccSeqNum:   sequence - 1,
+		notifyBackChan: ch,
+	})
 	return ch
 }
 
@@ -63,99 +75,58 @@ func (q *AccountTxSubmissionQueue) Push(sequence uint64) <-chan error {
 // This function is monotonic... calling it with a sequence number lower than
 // the latest seen sequence number is a noop.
 func (q *AccountTxSubmissionQueue) NotifyLastAccountSequence(sequence uint64) {
-	if q.nextSequence <= sequence {
-		q.nextSequence = sequence + 1
+	if q.lastSeenAccountSequence < sequence {
+		q.lastSeenAccountSequence = sequence
 	}
 
-	wasChanged := false
+	queueWasChanged := false
 
-	for {
-		if q.Size() == 0 {
-			break
+	txsToSubmit := make([]txToSubmit, 0, len(q.transactions))
+	// Extract transactions ready to submit and notify those which are un-submittable.
+	for i := 0; i < len(q.transactions); {
+		candidate := q.transactions[i]
+		removeCandidateFromQueue := false
+		if q.lastSeenAccountSequence > candidate.maxAccSeqNum {
+			// this transaction can never be submitted because account sequence numbers only grow
+			candidate.notifyBackChan <- ErrBadSequence
+			close(candidate.notifyBackChan)
+			removeCandidateFromQueue = true
+		} else if q.lastSeenAccountSequence >= candidate.minAccSeqNum {
+			txsToSubmit = append(txsToSubmit, candidate)
+			removeCandidateFromQueue = true
 		}
-
-		ch, hseq := q.head()
-		// if the next queued transaction has a sequence higher than the account's
-		// current sequence, stop removing entries
-		if hseq > q.nextSequence {
-			break
+		if removeCandidateFromQueue {
+			q.transactions = append(q.transactions[:i], q.transactions[i+1:]...)
+			queueWasChanged = true
+		} else {
+			// only increment the index if there was no removal
+			i++
 		}
+	}
 
-		// since this entry is unlocked (i.e. it's sequence is the next available
-		// or in the past we can remove it an mark the queue as changed
-		q.pop()
-		wasChanged = true
-
-		if hseq < q.nextSequence {
-			ch <- ErrBadSequence
-			close(ch)
-		} else if hseq == q.nextSequence {
-			ch <- nil
-			close(ch)
-		}
+	// To maximize successful submission opportunity, submit transactions by the account sequence
+	// which would result from a successful submission (i.e. maxAccSeqNum+1)
+	sort.Slice(txsToSubmit, func(i, j int) bool {
+		return txsToSubmit[i].maxAccSeqNum < txsToSubmit[j].maxAccSeqNum
+	})
+	for _, tx := range txsToSubmit {
+		tx.notifyBackChan <- nil
+		close(tx.notifyBackChan)
 	}
 
 	// if we modified the queue, bump the timeout for this queue
-	if wasChanged {
+	if queueWasChanged {
 		q.lastActiveAt = time.Now()
 		return
 	}
 
 	// if the queue wasn't changed, see if it is too old, clear
-	// it and make room for other's
+	// it and make room for other submissions
 	if time.Since(q.lastActiveAt) > q.timeout {
-		for q.Size() > 0 {
-			ch, _ := q.pop()
-			ch <- ErrBadSequence
-			close(ch)
+		for _, tx := range q.transactions {
+			tx.notifyBackChan <- ErrBadSequence
+			close(tx.notifyBackChan)
 		}
+		q.transactions = nil
 	}
-}
-
-// helper function for interacting with the priority queue
-func (q *AccountTxSubmissionQueue) head() (chan error, uint64) {
-	if len(q.queue) == 0 {
-		return nil, uint64(0)
-	}
-
-	return q.queue[0].Chan, q.queue[0].Sequence
-}
-
-// helper function for interacting with the priority queue
-func (q *AccountTxSubmissionQueue) pop() (chan error, uint64) {
-	i := heap.Pop(&q.queue).(item)
-
-	return i.Chan, i.Sequence
-}
-
-// item is a element of the priority queue
-type item struct {
-	Sequence uint64
-	Chan     chan error
-}
-
-// pqueue is a priority queue used by AccountTxSubmissionQueue to manage buffered submissions.  It
-// implements heap.Interface.
-type pqueue []item
-
-func (pq pqueue) Len() int { return len(pq) }
-
-func (pq pqueue) Less(i, j int) bool {
-	return pq[i].Sequence < pq[j].Sequence
-}
-
-func (pq pqueue) Swap(i, j int) {
-	pq[i], pq[j] = pq[j], pq[i]
-}
-
-func (pq *pqueue) Push(x interface{}) {
-	*pq = append(*pq, x.(item))
-}
-
-func (pq *pqueue) Pop() interface{} {
-	old := *pq
-	n := len(old)
-	result := old[n-1]
-	*pq = old[0 : n-1]
-	return result
 }

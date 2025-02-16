@@ -87,6 +87,8 @@ func (tx *orderBookBatchedUpdates) apply(ledger uint32) error {
 		return errUnexpectedLedger
 	}
 
+	reallocatePairs := map[tradingPair]struct{}{}
+
 	for _, operation := range tx.operations {
 		switch operation.operationType {
 		case addOfferOperationType:
@@ -94,8 +96,10 @@ func (tx *orderBookBatchedUpdates) apply(ledger uint32) error {
 				panic(errors.Wrap(err, "could not apply update in batch"))
 			}
 		case removeOfferOperationType:
-			if _, ok := tx.orderbook.tradingPairForOffer[operation.offerID]; !ok {
+			if pair, ok := tx.orderbook.tradingPairForOffer[operation.offerID]; !ok {
 				continue
+			} else {
+				reallocatePairs[pair] = struct{}{}
 			}
 			if err := tx.orderbook.removeOffer(operation.offerID); err != nil {
 				panic(errors.Wrap(err, "could not apply update in batch"))
@@ -114,5 +118,9 @@ func (tx *orderBookBatchedUpdates) apply(ledger uint32) error {
 
 	tx.orderbook.lastLedger = ledger
 
+	for pair := range reallocatePairs {
+		tx.orderbook.venuesForSellingAsset[pair.sellingAsset].reallocate()
+		tx.orderbook.venuesForBuyingAsset[pair.buyingAsset].reallocate()
+	}
 	return nil
 }

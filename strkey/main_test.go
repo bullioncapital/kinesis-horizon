@@ -41,11 +41,16 @@ func TestVersion(t *testing.T) {
 			Address:             "MBU2RRGLXH3E5CQHTD3ODLDF2BWDCYUSSBLLZ5GNW7JXHDIYKXZWGTOG",
 			ExpectedVersionByte: VersionByte(0x60),
 		},
+		{
+			Name:                "Signed Payload",
+			Address:             "PDPYP7E6NEYZSVOTV6M23OFM2XRIMPDUJABHGHHH2Y67X7JL25GW6AAAAAAAAAAAAAAJEVA",
+			ExpectedVersionByte: VersionByteSignedPayload,
+		},
 	}
 
 	for _, kase := range cases {
 		actual, err := Version(kase.Address)
-		if assert.NoError(t, err, "An error occured decoding case %s", kase.Name) {
+		if assert.NoError(t, err, "An error occurred decoding case %s", kase.Name) {
 			assert.Equal(t, kase.ExpectedVersionByte, actual, "Output mismatch in case %s", kase.Name)
 		}
 	}

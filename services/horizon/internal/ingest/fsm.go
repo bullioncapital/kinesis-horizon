@@ -30,9 +30,25 @@ func (e ErrReingestRangeConflict) Error() string {
 	return fmt.Sprintf("reingest range overlaps with horizon ingestion, supplied range shouldn't contain ledger %d", e.maximumLedgerSequence)
 }
 
+type State int
+
+const (
+	None State = iota
+	Start
+	Stop
+	Build
+	Resume
+	WaitForCheckpoint
+	StressTest
+	VerifyRange
+	HistoryRange
+	ReingestHistoryRange
+)
+
 type stateMachineNode interface {
 	run(*system) (transition, error)
 	String() string
+	GetState() State
 }
 
 type transition struct {
@@ -105,6 +121,10 @@ func (stopState) String() string {
 	return "stop"
 }
 
+func (stopState) GetState() State {
+	return Stop
+}
+
 func (stopState) run(s *system) (transition, error) {
 	return stop(), errors.New("Cannot run terminal state")
 }
@@ -115,6 +135,10 @@ type startState struct {
 
 func (startState) String() string {
 	return "start"
+}
+
+func (startState) GetState() State {
+	return Start
 }
 
 func (state startState) run(s *system) (transition, error) {
@@ -226,11 +250,16 @@ func (state startState) run(s *system) (transition, error) {
 
 type buildState struct {
 	checkpointLedger uint32
+	skipChecks       bool
 	stop             bool
 }
 
 func (b buildState) String() string {
-	return fmt.Sprintf("buildFromCheckpoint(checkpointLedger=%d)", b.checkpointLedger)
+	return fmt.Sprintf("buildFromCheckpoint(checkpointLedger=%d, skipChecks=%t)", b.checkpointLedger, b.skipChecks)
+}
+
+func (buildState) GetState() State {
+	return Build
 }
 
 func (b buildState) run(s *system) (transition, error) {
@@ -248,8 +277,11 @@ func (b buildState) run(s *system) (transition, error) {
 	// In the long term we should probably create artificial xdr.LedgerCloseMeta
 	// for ledger #1 instead of using `ingest.GenesisChange` reader in
 	// ProcessorRunner.RunHistoryArchiveIngestion().
-	var ledgerCloseMeta xdr.LedgerCloseMeta
-	if b.checkpointLedger != 1 {
+	// We can also skip preparing range if `skipChecks` is `true` because we
+	// won't need bucket list hash and protocol version.
+	var protocolVersion uint32
+	var bucketListHash xdr.Hash
+	if b.checkpointLedger != 1 && !b.skipChecks {
 		err := s.maybePrepareRange(s.ctx, b.checkpointLedger)
 		if err != nil {
 			return nextFailState, err
@@ -257,7 +289,7 @@ func (b buildState) run(s *system) (transition, error) {
 
 		log.WithField("sequence", b.checkpointLedger).Info("Waiting for ledger to be available in the backend...")
 		startTime := time.Now()
-		ledgerCloseMeta, err = s.ledgerBackend.GetLedger(s.ctx, b.checkpointLedger)
+		ledgerCloseMeta, err := s.ledgerBackend.GetLedger(s.ctx, b.checkpointLedger)
 		if err != nil {
 			return nextFailState, errors.Wrap(err, "error getting ledger blocking")
 		}
@@ -265,6 +297,9 @@ func (b buildState) run(s *system) (transition, error) {
 			"sequence": b.checkpointLedger,
 			"duration": time.Since(startTime).Seconds(),
 		}).Info("Ledger returned from the backend")
+
+		protocolVersion = ledgerCloseMeta.ProtocolVersion()
+		bucketListHash = ledgerCloseMeta.BucketListHash()
 	}
 
 	if err := s.historyQ.Begin(); err != nil {
@@ -328,9 +363,10 @@ func (b buildState) run(s *system) (transition, error) {
 		stats, err = s.runner.RunGenesisStateIngestion()
 	} else {
 		stats, err = s.runner.RunHistoryArchiveIngestion(
-			ledgerCloseMeta.LedgerSequence(),
-			ledgerCloseMeta.ProtocolVersion(),
-			ledgerCloseMeta.BucketListHash(),
+			b.checkpointLedger,
+			b.skipChecks,
+			protocolVersion,
+			bucketListHash,
 		)
 	}
 
@@ -367,6 +403,10 @@ type resumeState struct {
 
 func (r resumeState) String() string {
 	return fmt.Sprintf("resume(latestSuccessfullyProcessedLedger=%d)", r.latestSuccessfullyProcessedLedger)
+}
+
+func (resumeState) GetState() State {
+	return Resume
 }
 
 func (r resumeState) run(s *system) (transition, error) {
@@ -423,8 +463,6 @@ func (r resumeState) run(s *system) (transition, error) {
 			// Don't return updateCursor error.
 			log.WithError(err).Warn("error updating stellar-core cursor")
 		}
-
-		s.maybeVerifyState(ingestLedger)
 
 		// resume immediately so Captive-Core catchup is not slowed down
 		return resumeImmediately(lastIngestedLedger), nil
@@ -523,6 +561,7 @@ func (r resumeState) run(s *system) (transition, error) {
 	localLog.Info("Processed ledger")
 
 	s.maybeVerifyState(ingestLedger)
+	s.maybeReapLookupTables(ingestLedger)
 
 	return resumeImmediately(ingestLedger), nil
 }
@@ -557,6 +596,10 @@ func (h historyRangeState) String() string {
 		h.fromLedger,
 		h.toLedger,
 	)
+}
+
+func (historyRangeState) GetState() State {
+	return HistoryRange
 }
 
 // historyRangeState is used when catching up history data
@@ -605,9 +648,9 @@ func (h historyRangeState) run(s *system) (transition, error) {
 			// Commit finished work in case of ledger backend error.
 			commitErr := s.historyQ.Commit()
 			if commitErr != nil {
-				log.WithError(commitErr).Error("Error commiting partial range results")
+				log.WithError(commitErr).Error("Error committing partial range results")
 			} else {
-				log.Info("Commited partial range results")
+				log.Info("Committed partial range results")
 			}
 			return start(), errors.Wrap(err, "error getting ledger")
 		}
@@ -670,6 +713,10 @@ func (h reingestHistoryRangeState) String() string {
 		h.toLedger,
 		h.force,
 	)
+}
+
+func (reingestHistoryRangeState) GetState() State {
+	return ReingestHistoryRange
 }
 
 func (h reingestHistoryRangeState) ingestRange(s *system, fromLedger, toLedger uint32) error {
@@ -826,6 +873,10 @@ func (waitForCheckpointState) String() string {
 	return "waitForCheckpoint"
 }
 
+func (waitForCheckpointState) GetState() State {
+	return WaitForCheckpoint
+}
+
 func (waitForCheckpointState) run(*system) (transition, error) {
 	log.Info("Waiting for the next checkpoint...")
 	time.Sleep(10 * time.Second)
@@ -845,6 +896,10 @@ func (v verifyRangeState) String() string {
 		v.toLedger,
 		v.verifyState,
 	)
+}
+
+func (verifyRangeState) GetState() State {
+	return VerifyRange
 }
 
 func (v verifyRangeState) run(s *system) (transition, error) {
@@ -894,6 +949,7 @@ func (v verifyRangeState) run(s *system) (transition, error) {
 
 	stats, err := s.runner.RunHistoryArchiveIngestion(
 		ledgerCloseMeta.LedgerSequence(),
+		false,
 		ledgerCloseMeta.ProtocolVersion(),
 		ledgerCloseMeta.BucketListHash(),
 	)
@@ -975,6 +1031,10 @@ type stressTestState struct{}
 
 func (stressTestState) String() string {
 	return "stressTest"
+}
+
+func (stressTestState) GetState() State {
+	return StressTest
 }
 
 func (stressTestState) run(s *system) (transition, error) {

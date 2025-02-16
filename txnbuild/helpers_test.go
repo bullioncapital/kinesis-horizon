@@ -109,7 +109,7 @@ func convertToV0(tx *Transaction) {
 			SourceAccountEd25519: *tx.envelope.SourceAccount().Ed25519,
 			Fee:                  xdr.Uint64(tx.envelope.Fee()),
 			SeqNum:               xdr.SequenceNumber(tx.envelope.SeqNum()),
-			TimeBounds:           tx.envelope.V1.Tx.TimeBounds,
+			TimeBounds:           tx.envelope.TimeBounds(),
 			Memo:                 tx.envelope.Memo(),
 			Operations:           tx.envelope.Operations(),
 		},

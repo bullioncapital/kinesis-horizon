@@ -5,7 +5,8 @@
 <h1>Stellar Go Monorepo</h1>
 </div>
 <p align="center">
-<a href="https://circleci.com/gh/stellar/go"><img alt="Build Status" src="https://circleci.com/gh/stellar/go.svg?style=shield" /></a>
+ 
+<a href="https://github.com/stellar/go/actions/workflows/go.yml?query=branch%3Amaster+event%3Apush">![master GitHub workflow](https://github.com/stellar/go/actions/workflows/go.yml/badge.svg)</a>
 <a href="https://godoc.org/github.com/stellar/go"><img alt="GoDoc" src="https://godoc.org/github.com/stellar/go?status.svg" /></a>
 <a href="https://goreportcard.com/report/github.com/stellar/go"><img alt="Go Report Card" src="https://goreportcard.com/badge/github.com/stellar/go" /></a>
 </p>

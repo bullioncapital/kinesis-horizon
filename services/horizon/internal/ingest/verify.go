@@ -11,10 +11,10 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/stellar/go/ingest"
+	"github.com/stellar/go/ingest/verify"
 	"github.com/stellar/go/services/horizon/internal/db2"
 	"github.com/stellar/go/services/horizon/internal/db2/history"
 	"github.com/stellar/go/services/horizon/internal/ingest/processors"
-	"github.com/stellar/go/services/horizon/internal/ingest/verify"
 	"github.com/stellar/go/support/errors"
 	logpkg "github.com/stellar/go/support/log"
 	"github.com/stellar/go/xdr"
@@ -29,7 +29,7 @@ const assetStatsBatchSize = 500
 // check them.
 // There is a test that checks it, to fix it: update the actual `verifyState`
 // method instead of just updating this value!
-const stateVerifierExpectedIngestionVersion = 15
+const stateVerifierExpectedIngestionVersion = 16
 
 // verifyState is called as a go routine from pipeline post hook every 64
 // ledgers. It checks if the state is correct. If another go routine is already
@@ -70,8 +70,15 @@ func (s *system) verifyState(verifyAgainstLatestCheckpoint bool) error {
 		return errors.Wrap(err, "Error starting transaction")
 	}
 
+	ctx := s.ctx
+	if s.config.StateVerificationTimeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(s.ctx, s.config.StateVerificationTimeout)
+		defer cancel()
+	}
+
 	// Ensure the ledger is a checkpoint ledger
-	ledgerSequence, err := historyQ.GetLastLedgerIngestNonBlocking(s.ctx)
+	ledgerSequence, err := historyQ.GetLastLedgerIngestNonBlocking(ctx)
 	if err != nil {
 		return errors.Wrap(err, "Error running historyQ.GetLastLedgerIngestNonBlocking")
 	}
@@ -81,8 +88,17 @@ func (s *system) verifyState(verifyAgainstLatestCheckpoint bool) error {
 		"sequence":   ledgerSequence,
 	})
 
-	if !s.checkpointManager.IsCheckpoint(ledgerSequence) {
-		localLog.Info("Current ledger is not a checkpoint ledger. Cancelling...")
+	if !s.runStateVerificationOnLedger(ledgerSequence) {
+		localLog.Info("Current ledger is not eligible for state verification. Canceling...")
+		return nil
+	}
+
+	ok, err := historyQ.TryStateVerificationLock(ctx)
+	if err != nil {
+		return errors.Wrap(err, "Error acquiring state verification lock")
+	}
+	if !ok {
+		localLog.Info("State verification is already in progress. Canceling...")
 		return nil
 	}
 
@@ -101,7 +117,7 @@ func (s *system) verifyState(verifyAgainstLatestCheckpoint bool) error {
 			}
 
 			if ledgerSequence < historyLatestSequence {
-				localLog.Info("Current ledger is old. Cancelling...")
+				localLog.Info("Current ledger is old. Canceling...")
 				return nil
 			}
 
@@ -111,14 +127,14 @@ func (s *system) verifyState(verifyAgainstLatestCheckpoint bool) error {
 
 			localLog.Info("Waiting for stellar-core to publish HAS...")
 			select {
-			case <-s.ctx.Done():
+			case <-ctx.Done():
 				localLog.Info("State verifier shut down...")
 				return nil
 			case <-time.After(5 * time.Second):
 				// Wait for stellar-core to publish HAS
 				retries++
 				if retries == 12 {
-					localLog.Info("Checkpoint not published. Cancelling...")
+					localLog.Info("Checkpoint not published. Canceling...")
 					return nil
 				}
 			}
@@ -131,8 +147,8 @@ func (s *system) verifyState(verifyAgainstLatestCheckpoint bool) error {
 	defer func() {
 		duration := time.Since(startTime).Seconds()
 		if updateMetrics {
-			// Don't update metrics if context cancelled.
-			if s.ctx.Err() != context.Canceled {
+			// Don't update metrics if context canceled.
+			if ctx.Err() != context.Canceled {
 				s.Metrics().StateVerifyDuration.Observe(float64(duration))
 				for typ, tot := range totalByType {
 					s.Metrics().StateVerifyLedgerEntriesCount.
@@ -146,7 +162,7 @@ func (s *system) verifyState(verifyAgainstLatestCheckpoint bool) error {
 
 	localLog.Info("Creating state reader...")
 
-	stateReader, err := s.historyAdapter.GetState(s.ctx, ledgerSequence)
+	stateReader, err := s.historyAdapter.GetState(ctx, ledgerSequence)
 	if err != nil {
 		return errors.Wrap(err, "Error running GetState")
 	}
@@ -198,32 +214,32 @@ func (s *system) verifyState(verifyAgainstLatestCheckpoint bool) error {
 			}
 		}
 
-		err = addAccountsToStateVerifier(s.ctx, verifier, historyQ, accounts)
+		err = addAccountsToStateVerifier(ctx, verifier, historyQ, accounts)
 		if err != nil {
 			return errors.Wrap(err, "addAccountsToStateVerifier failed")
 		}
 
-		err = addDataToStateVerifier(s.ctx, verifier, historyQ, data)
+		err = addDataToStateVerifier(ctx, verifier, historyQ, data)
 		if err != nil {
 			return errors.Wrap(err, "addDataToStateVerifier failed")
 		}
 
-		err = addOffersToStateVerifier(s.ctx, verifier, historyQ, offers)
+		err = addOffersToStateVerifier(ctx, verifier, historyQ, offers)
 		if err != nil {
 			return errors.Wrap(err, "addOffersToStateVerifier failed")
 		}
 
-		err = addTrustLinesToStateVerifier(s.ctx, verifier, assetStats, historyQ, trustLines)
+		err = addTrustLinesToStateVerifier(ctx, verifier, assetStats, historyQ, trustLines)
 		if err != nil {
 			return errors.Wrap(err, "addTrustLinesToStateVerifier failed")
 		}
 
-		err = addClaimableBalanceToStateVerifier(s.ctx, verifier, assetStats, historyQ, cBalances)
+		err = addClaimableBalanceToStateVerifier(ctx, verifier, assetStats, historyQ, cBalances)
 		if err != nil {
 			return errors.Wrap(err, "addClaimableBalanceToStateVerifier failed")
 		}
 
-		err = addLiquidityPoolsToStateVerifier(s.ctx, verifier, assetStats, historyQ, lPools)
+		err = addLiquidityPoolsToStateVerifier(ctx, verifier, assetStats, historyQ, lPools)
 		if err != nil {
 			return errors.Wrap(err, "addLiquidityPoolsToStateVerifier failed")
 		}
@@ -234,32 +250,32 @@ func (s *system) verifyState(verifyAgainstLatestCheckpoint bool) error {
 
 	localLog.WithField("total", total).Info("Finished writing to StateVerifier")
 
-	countAccounts, err := historyQ.CountAccounts(s.ctx)
+	countAccounts, err := historyQ.CountAccounts(ctx)
 	if err != nil {
 		return errors.Wrap(err, "Error running historyQ.CountAccounts")
 	}
 
-	countData, err := historyQ.CountAccountsData(s.ctx)
+	countData, err := historyQ.CountAccountsData(ctx)
 	if err != nil {
 		return errors.Wrap(err, "Error running historyQ.CountData")
 	}
 
-	countOffers, err := historyQ.CountOffers(s.ctx)
+	countOffers, err := historyQ.CountOffers(ctx)
 	if err != nil {
 		return errors.Wrap(err, "Error running historyQ.CountOffers")
 	}
 
-	countTrustLines, err := historyQ.CountTrustLines(s.ctx)
+	countTrustLines, err := historyQ.CountTrustLines(ctx)
 	if err != nil {
 		return errors.Wrap(err, "Error running historyQ.CountTrustLines")
 	}
 
-	countClaimableBalances, err := historyQ.CountClaimableBalances(s.ctx)
+	countClaimableBalances, err := historyQ.CountClaimableBalances(ctx)
 	if err != nil {
 		return errors.Wrap(err, "Error running historyQ.CountClaimableBalances")
 	}
 
-	countLiquidityPools, err := historyQ.CountLiquidityPools(s.ctx)
+	countLiquidityPools, err := historyQ.CountLiquidityPools(ctx)
 	if err != nil {
 		return errors.Wrap(err, "Error running historyQ.CountLiquidityPools")
 	}
@@ -269,7 +285,7 @@ func (s *system) verifyState(verifyAgainstLatestCheckpoint bool) error {
 		return errors.Wrap(err, "verifier.Verify failed")
 	}
 
-	err = checkAssetStats(s.ctx, assetStats, historyQ)
+	err = checkAssetStats(ctx, assetStats, historyQ)
 	if err != nil {
 		return errors.Wrap(err, "checkAssetStats failed")
 	}
@@ -394,6 +410,18 @@ func addAccountsToStateVerifier(ctx context.Context, verifier *verify.StateVerif
 			}
 		}
 
+		// Accounts that haven't done anything since Protocol 19 will not have a
+		// V3 extension, so we need to check whether or not this extension needs
+		// to be filled out.
+		v3extension := xdr.AccountEntryExtensionV2Ext{V: 0}
+		if row.SequenceLedger.Valid && row.SequenceTime.Valid {
+			v3extension.V = 3
+			v3extension.V3 = &xdr.AccountEntryExtensionV3{
+				SeqLedger: xdr.Uint32(row.SequenceLedger.Int64),
+				SeqTime:   xdr.TimePoint(row.SequenceTime.Int64),
+			}
+		}
+
 		account := &xdr.AccountEntry{
 			AccountId:     xdr.MustAddress(row.AccountID),
 			Balance:       xdr.Int64(row.Balance),
@@ -422,6 +450,7 @@ func addAccountsToStateVerifier(ctx context.Context, verifier *verify.StateVerif
 							NumSponsored:        xdr.Uint32(row.NumSponsored),
 							NumSponsoring:       xdr.Uint32(row.NumSponsoring),
 							SignerSponsoringIDs: signerSponsoringIDs,
+							Ext:                 v3extension,
 						},
 					},
 				},
@@ -659,6 +688,11 @@ func addClaimableBalanceToStateVerifier(
 		return errors.Wrap(err, "Error running history.Q.GetClaimableBalancesByID")
 	}
 
+	cBalancesClaimants, err := q.GetClaimantsByClaimableBalances(ctx, idStrings)
+	if err != nil {
+		return errors.Wrap(err, "Error running history.Q.GetClaimantsByClaimableBalances")
+	}
+
 	for _, row := range cBalances {
 		claimants := []xdr.Claimant{}
 		for _, claimant := range row.Claimants {
@@ -671,6 +705,31 @@ func addClaimableBalanceToStateVerifier(
 			})
 		}
 		claimants = xdr.SortClaimantsByDestination(claimants)
+
+		// Check if balances in claimable_balance_claimants table match.
+		if len(claimants) != len(cBalancesClaimants[row.BalanceID]) {
+			return ingest.NewStateError(
+				fmt.Errorf(
+					"claimable_balance_claimants length (%d) for claimants doesn't match claimable_balance table (%d)",
+					len(cBalancesClaimants[row.BalanceID]), len(claimants),
+				),
+			)
+		}
+
+		for i, claimant := range claimants {
+			if claimant.MustV0().Destination.Address() != cBalancesClaimants[row.BalanceID][i].Destination ||
+				row.LastModifiedLedger != cBalancesClaimants[row.BalanceID][i].LastModifiedLedger {
+				return fmt.Errorf(
+					"claimable_balance_claimants table for balance %s does not match. expectedDestination=%s actualDestination=%s, expectedLastModifiedLedger=%d actualLastModifiedLedger=%d",
+					row.BalanceID,
+					claimant.MustV0().Destination.Address(),
+					cBalancesClaimants[row.BalanceID][i].Destination,
+					row.LastModifiedLedger,
+					cBalancesClaimants[row.BalanceID][i].LastModifiedLedger,
+				)
+			}
+		}
+
 		var balanceID xdr.ClaimableBalanceId
 		if err := xdr.SafeUnmarshalHex(row.BalanceID, &balanceID); err != nil {
 			return err

@@ -1,6 +1,9 @@
 package history
 
 import (
+	"context"
+	"database/sql"
+	"github.com/stretchr/testify/assert"
 	"strconv"
 	"testing"
 
@@ -105,6 +108,34 @@ func TestGetNonExistentOfferByID(t *testing.T) {
 	tt.Assert.True(q.NoRows(err))
 }
 
+func streamAllOffersInTx(q *Q, ctx context.Context, f func(offer Offer) error) error {
+	err := q.BeginTx(&sql.TxOptions{ReadOnly: true, Isolation: sql.LevelRepeatableRead})
+	if err != nil {
+		return err
+	}
+	defer q.Rollback()
+	return q.StreamAllOffers(ctx, f)
+}
+
+func TestStreamAllOffersRequiresTx(t *testing.T) {
+	tt := test.Start(t)
+	defer tt.Finish()
+	test.ResetHorizonDB(t, tt.HorizonDB)
+	q := &Q{tt.HorizonSession()}
+
+	err := q.StreamAllOffers(tt.Ctx, func(offer Offer) error {
+		return nil
+	})
+	assert.EqualError(t, err, "cannot be called outside of a transaction")
+
+	assert.NoError(t, q.Begin())
+	defer q.Rollback()
+	err = q.StreamAllOffers(tt.Ctx, func(offer Offer) error {
+		return nil
+	})
+	assert.EqualError(t, err, "should only be called in a repeatable read transaction")
+}
+
 func TestQueryEmptyOffers(t *testing.T) {
 	tt := test.Start(t)
 	defer tt.Finish()
@@ -112,7 +143,7 @@ func TestQueryEmptyOffers(t *testing.T) {
 	q := &Q{tt.HorizonSession()}
 
 	var offers []Offer
-	err := q.StreamAllOffers(tt.Ctx, func(offer Offer) error {
+	err := streamAllOffersInTx(q, tt.Ctx, func(offer Offer) error {
 		offers = append(offers, offer)
 		return nil
 	})
@@ -150,7 +181,7 @@ func TestInsertOffers(t *testing.T) {
 	tt.Assert.NoError(err)
 
 	var offers []Offer
-	err = q.StreamAllOffers(tt.Ctx, func(offer Offer) error {
+	err = streamAllOffersInTx(q, tt.Ctx, func(offer Offer) error {
 		offers = append(offers, offer)
 		return nil
 	})
@@ -183,7 +214,7 @@ func TestInsertOffers(t *testing.T) {
 	tt.Assert.Equal(3, afterCompactionCount)
 
 	var afterCompactionOffers []Offer
-	err = q.StreamAllOffers(tt.Ctx, func(offer Offer) error {
+	err = streamAllOffersInTx(q, tt.Ctx, func(offer Offer) error {
 		afterCompactionOffers = append(afterCompactionOffers, offer)
 		return nil
 	})
@@ -201,7 +232,7 @@ func TestUpdateOffer(t *testing.T) {
 	tt.Assert.NoError(err)
 
 	var offers []Offer
-	err = q.StreamAllOffers(tt.Ctx, func(offer Offer) error {
+	err = streamAllOffersInTx(q, tt.Ctx, func(offer Offer) error {
 		offers = append(offers, offer)
 		return nil
 	})
@@ -229,7 +260,7 @@ func TestUpdateOffer(t *testing.T) {
 	tt.Assert.NoError(err)
 
 	offers = nil
-	err = q.StreamAllOffers(tt.Ctx, func(offer Offer) error {
+	err = streamAllOffersInTx(q, tt.Ctx, func(offer Offer) error {
 		offers = append(offers, offer)
 		return nil
 	})
@@ -256,7 +287,7 @@ func TestRemoveOffer(t *testing.T) {
 	err := insertOffer(tt, q, eurOffer)
 	tt.Assert.NoError(err)
 	var offers []Offer
-	err = q.StreamAllOffers(tt.Ctx, func(offer Offer) error {
+	err = streamAllOffersInTx(q, tt.Ctx, func(offer Offer) error {
 		offers = append(offers, offer)
 		return nil
 	})
@@ -274,7 +305,7 @@ func TestRemoveOffer(t *testing.T) {
 	expectedUpdates[0].Deleted = true
 
 	offers = nil
-	err = q.StreamAllOffers(tt.Ctx, func(offer Offer) error {
+	err = streamAllOffersInTx(q, tt.Ctx, func(offer Offer) error {
 		offers = append(offers, offer)
 		return nil
 	})

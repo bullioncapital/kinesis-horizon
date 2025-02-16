@@ -1100,7 +1100,7 @@ func ExampleClient_SubmitFeeBumpTransaction() {
 			IncrementSequenceNum: false,
 			Operations:           []txnbuild.Operation{&op},
 			BaseFee:              txnbuild.MinBaseFee,
-			Timebounds:           txnbuild.NewInfiniteTimeout(), // Use a real timeout in production!
+			Preconditions:        txnbuild.Preconditions{TimeBounds: txnbuild.NewInfiniteTimeout()}, // Use a real timeout in production!
 		},
 	)
 	if err != nil {
@@ -1154,7 +1154,7 @@ func ExampleClient_SubmitFeeBumpTransactionWithOptions() {
 			IncrementSequenceNum: false,
 			Operations:           []txnbuild.Operation{&op},
 			BaseFee:              txnbuild.MinBaseFee,
-			Timebounds:           txnbuild.NewInfiniteTimeout(), // Use a real timeout in production!
+			Preconditions:        txnbuild.Preconditions{TimeBounds: txnbuild.NewInfiniteTimeout()}, // Use a real timeout in production!
 		},
 	)
 	if err != nil {
@@ -1211,7 +1211,7 @@ func ExampleClient_SubmitTransaction() {
 			IncrementSequenceNum: false,
 			Operations:           []txnbuild.Operation{&op},
 			BaseFee:              txnbuild.MinBaseFee,
-			Timebounds:           txnbuild.NewInfiniteTimeout(), // Use a real timeout in production!
+			Preconditions:        txnbuild.Preconditions{TimeBounds: txnbuild.NewInfiniteTimeout()}, // Use a real timeout in production!
 		},
 	)
 	if err != nil {
@@ -1253,7 +1253,7 @@ func ExampleClient_SubmitTransactionWithOptions() {
 			IncrementSequenceNum: false,
 			Operations:           []txnbuild.Operation{&op},
 			BaseFee:              txnbuild.MinBaseFee,
-			Timebounds:           txnbuild.NewInfiniteTimeout(), // Use a real timeout in production!
+			Preconditions:        txnbuild.Preconditions{TimeBounds: txnbuild.NewInfiniteTimeout()}, // Use a real timeout in production!
 		},
 	)
 	if err != nil {
@@ -1295,7 +1295,7 @@ func ExampleClient_SubmitTransactionWithOptions_skip_memo_required_check() {
 			IncrementSequenceNum: false,
 			Operations:           []txnbuild.Operation{&op},
 			BaseFee:              txnbuild.MinBaseFee,
-			Timebounds:           txnbuild.NewInfiniteTimeout(), // Use a real timeout in production!
+			Preconditions:        txnbuild.Preconditions{TimeBounds: txnbuild.NewInfiniteTimeout()}, // Use a real timeout in production!
 		},
 	)
 	if err != nil {

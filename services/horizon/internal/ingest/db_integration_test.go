@@ -83,7 +83,7 @@ func (s *DBTestSuite) SetupTest() {
 	sIface, err := NewSystem(Config{
 		CoreSession:              s.tt.CoreSession(),
 		HistorySession:           s.tt.HorizonSession(),
-		HistoryArchiveURL:        "http://ignore.test",
+		HistoryArchiveURLs:       []string{"http://ignore.test"},
 		DisableStateVerification: false,
 		CheckpointFrequency:      64,
 	})

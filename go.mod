@@ -1,6 +1,6 @@
 module github.com/stellar/go
 
-go 1.17
+go 1.19
 
 require (
 	firebase.google.com/go v3.12.0+incompatible
@@ -51,6 +51,8 @@ require (
 	gopkg.in/tylerb/graceful.v1 v1.2.13
 )
 
+require github.com/andybalholm/brotli v1.0.4 // indirect
+
 require (
 	cloud.google.com/go/compute v1.19.1 // indirect
 	cloud.google.com/go/compute/metadata v0.2.3 // indirect
@@ -82,9 +84,7 @@ require (
 	github.com/imkira/go-interpol v1.1.0 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
-	github.com/klauspost/compress v0.0.0-20161106143436-e3b7981a12dd // indirect
-	github.com/klauspost/cpuid v0.0.0-20160302075316-09cded8978dc // indirect
-	github.com/klauspost/crc32 v0.0.0-20161016154125-cb6bfca970f6 // indirect
+	github.com/klauspost/compress v1.15.0 // indirect
 	github.com/konsorten/go-windows-terminal-sequences v1.0.3 // indirect
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/kr/text v0.1.0 // indirect
@@ -106,7 +106,7 @@ require (
 	github.com/spf13/jwalterweatherman v0.0.0-20141219030609-3d60171a6431 // indirect
 	github.com/stretchr/objx v0.5.0 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
-	github.com/valyala/fasthttp v0.0.0-20170109085056-0a7f0a797cd6 // indirect
+	github.com/valyala/fasthttp v1.34.0 // indirect
 	github.com/xeipuuv/gojsonpointer v0.0.0-20151027082146-e0fe6f683076 // indirect
 	github.com/xeipuuv/gojsonreference v0.0.0-20150808065054-e02fc20de94c // indirect
 	github.com/xeipuuv/gojsonschema v0.0.0-20161231055540-f06f290571ce // indirect
@@ -116,12 +116,13 @@ require (
 	github.com/yudai/pp v2.0.1+incompatible // indirect
 	github.com/ziutek/mymysql v1.5.4 // indirect
 	go.opencensus.io v0.24.0 // indirect
-	golang.org/x/crypto v0.14.0 // indirect
-	golang.org/x/net v0.17.0 // indirect
+	golang.org/x/crypto v0.0.0-20220214200702-86341886e292 // indirect
+	golang.org/x/exp v0.0.0-20220722155223-a9213eeb770e
+	golang.org/x/net v0.9.0 // indirect
 	golang.org/x/oauth2 v0.7.0 // indirect
-	golang.org/x/sys v0.13.0 // indirect
-	golang.org/x/term v0.13.0 // indirect
-	golang.org/x/text v0.13.0 // indirect
+	golang.org/x/sys v0.7.0 // indirect
+	golang.org/x/term v0.7.0 // indirect
+	golang.org/x/text v0.9.0 // indirect
 	golang.org/x/time v0.1.0
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20230410155749-daa745c078e1 // indirect

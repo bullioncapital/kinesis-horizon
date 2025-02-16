@@ -85,3 +85,31 @@ func (account *AccountEntry) SponsorPerSigner() map[string]AccountId {
 
 	return signerToSponsor
 }
+
+func (account *AccountEntry) SeqTime() TimePoint {
+	v1, found := account.Ext.GetV1()
+	if found {
+		v2, foundV2 := v1.Ext.GetV2()
+		if foundV2 {
+			v, foundV3 := v2.Ext.GetV3()
+			if foundV3 {
+				return v.SeqTime
+			}
+		}
+	}
+	return 0
+}
+
+func (account *AccountEntry) SeqLedger() Uint32 {
+	v1, found := account.Ext.GetV1()
+	if found {
+		v2, foundV2 := v1.Ext.GetV2()
+		if foundV2 {
+			v, foundV3 := v2.Ext.GetV3()
+			if foundV3 {
+				return v.SeqLedger
+			}
+		}
+	}
+	return 0
+}

@@ -181,6 +181,12 @@ func SetDuration(co *ConfigOption) error {
 	return nil
 }
 
+// SetDurationMinutes converts a command line minutes value to a duration, and stores it in the final config.
+func SetDurationMinutes(co *ConfigOption) error {
+	*(co.ConfigKey.(*time.Duration)) = time.Duration(viper.GetInt(co.Name)) * time.Minute
+	return nil
+}
+
 // SetURL converts a command line string to a URL, and stores it in the final config.
 func SetURL(co *ConfigOption) error {
 	urlString := viper.GetString(co.Name)

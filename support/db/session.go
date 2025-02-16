@@ -91,6 +91,10 @@ func (s *Session) Commit() error {
 	log.Debug("sql: commit")
 	s.tx = nil
 	s.txOptions = nil
+
+	if knownErr := s.replaceWithKnownError(err, context.Background()); knownErr != nil {
+		return knownErr
+	}
 	return err
 }
 
@@ -231,6 +235,10 @@ func (s *Session) NoRows(err error) bool {
 // replaceWithKnownError tries to replace Postgres error with package error.
 // Returns a new error if the err is known.
 func (s *Session) replaceWithKnownError(err error, ctx context.Context) error {
+	if err == nil {
+		return nil
+	}
+
 	switch {
 	case ctx.Err() == context.Canceled:
 		return ErrCancelled
@@ -243,6 +251,8 @@ func (s *Session) replaceWithKnownError(err error, ctx context.Context) error {
 		return ErrConflictWithRecovery
 	case strings.Contains(err.Error(), "driver: bad connection"):
 		return ErrBadConnection
+	case strings.Contains(err.Error(), "pq: canceling statement due to statement timeout"):
+		return ErrStatementTimeout
 	default:
 		return nil
 	}
@@ -305,6 +315,10 @@ func (s *Session) Rollback() error {
 	log.Debug("sql: rollback")
 	s.tx = nil
 	s.txOptions = nil
+
+	if knownErr := s.replaceWithKnownError(err, context.Background()); knownErr != nil {
+		return knownErr
+	}
 	return err
 }
 

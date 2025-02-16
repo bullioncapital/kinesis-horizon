@@ -1,6 +1,6 @@
 ARG KINESIS_CORE_IMAGE=abxit/kinesis-core:v18.5.0-kinesis.1
 
-FROM golang:1.17 as builder
+FROM golang:1.20 as builder
 ENV DEBIAN_FRONTEND=noninteractive
 ARG VERSION=develop
 RUN apt-get update && apt-get upgrade -y && apt-get clean
@@ -26,7 +26,7 @@ RUN go install ./...
 
 FROM ${KINESIS_CORE_IMAGE} as core
 
-FROM ubuntu:20.04
+FROM ubuntu:22.04
 ENV DEBIAN_FRONTEND=noninteractive
 
 EXPOSE 8000

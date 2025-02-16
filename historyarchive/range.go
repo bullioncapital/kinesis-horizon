@@ -6,8 +6,10 @@ package historyarchive
 
 import (
 	"fmt"
-	"sort"
 	"strings"
+
+	"github.com/stellar/go/support/ordered"
+	"golang.org/x/exp/slices"
 )
 
 const DefaultCheckpointFrequency = uint32(64)
@@ -54,10 +56,8 @@ func (c CheckpointManager) NextCheckpoint(i uint32) uint32 {
 	freq := uint64(c.checkpointFreq)
 	v := uint64(i)
 	n := (((v + freq) / freq) * freq) - 1
-	if n >= 0xffffffff {
-		return 0xffffffff
-	}
-	return uint32(n)
+
+	return uint32(ordered.Min(n, 0xffffffff))
 }
 
 // GetCheckPoint gets the checkpoint containing information about the given ledger sequence
@@ -80,9 +80,7 @@ func (c CheckpointManager) GetCheckpointRange(i uint32) Range {
 }
 
 func (c CheckpointManager) MakeRange(low uint32, high uint32) Range {
-	if high < low {
-		high = low
-	}
+	high = ordered.Max(high, low)
 	return Range{
 		Low:  c.PrevCheckpoint(low),
 		High: c.NextCheckpoint(high),
@@ -90,14 +88,8 @@ func (c CheckpointManager) MakeRange(low uint32, high uint32) Range {
 }
 
 func (r Range) clamp(other Range, cManager CheckpointManager) Range {
-	low := r.Low
-	high := r.High
-	if low < other.Low {
-		low = other.Low
-	}
-	if high > other.High {
-		high = other.High
-	}
+	low := ordered.Max(r.Low, other.Low)
+	high := ordered.Min(r.High, other.High)
 	return cManager.MakeRange(low, high)
 }
 
@@ -123,24 +115,17 @@ func (r Range) SizeInCheckPoints(cManager CheckpointManager) int {
 func (r Range) collapsedString() string {
 	if r.Low == r.High {
 		return fmt.Sprintf("0x%8.8x", r.Low)
-	} else {
-		return fmt.Sprintf("[0x%8.8x-0x%8.8x]", r.Low, r.High)
 	}
+
+	return fmt.Sprintf("[0x%8.8x-0x%8.8x]", r.Low, r.High)
 }
 
 func (r Range) InRange(sequence uint32) bool {
 	return sequence >= r.Low && sequence <= r.High
 }
 
-type byUint32 []uint32
-
-func (a byUint32) Len() int           { return len(a) }
-func (a byUint32) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a byUint32) Less(i, j int) bool { return a[i] < a[j] }
-
 func fmtRangeList(vs []uint32, cManager CheckpointManager) string {
-
-	sort.Sort(byUint32(vs))
+	slices.Sort(vs)
 
 	s := make([]string, 0, 10)
 	var curr *Range

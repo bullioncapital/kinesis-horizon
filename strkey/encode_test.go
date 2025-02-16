@@ -1,6 +1,7 @@
 package strkey
 
 import (
+	"crypto/rand"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -69,11 +70,30 @@ func TestEncode(t *testing.T) {
 			},
 			Expected: "XBU2RRGLXH3E5CQHTD3ODLDF2BWDCYUSSBLLZ5GNW7JXHDIYKXZWGTOG",
 		},
+		{
+			Name:        "SignedPayload",
+			VersionByte: VersionByteSignedPayload,
+			Payload: []byte{
+				// ed25519 (same as test case 1)
+				0x36, 0x3e, 0xaa, 0x38, 0x67, 0x84, 0x1f, 0xba,
+				0xd0, 0xf4, 0xed, 0x88, 0xc7, 0x79, 0xe4, 0xfe,
+				0x66, 0xe5, 0x6a, 0x24, 0x70, 0xdc, 0x98, 0xc0,
+				0xec, 0x9c, 0x07, 0x3d, 0x05, 0xc7, 0xb1, 0x03,
+				// payload length
+				0x00, 0x00, 0x00, 0x09,
+				// payload
+				0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+				0x00,
+				// padding
+				0x00, 0x00, 0x00,
+			},
+			Expected: "PA3D5KRYM6CB7OWQ6TWYRR3Z4T7GNZLKERYNZGGA5SOAOPIFY6YQGAAAAAEQAAAAAAAAAAAAAAAAAABBXA",
+		},
 	}
 
 	for _, kase := range cases {
 		actual, err := Encode(kase.VersionByte, kase.Payload)
-		if assert.NoError(t, err, "An error occured in case %s", kase.Name) {
+		if assert.NoError(t, err, "An error occurred in case %s", kase.Name) {
 			assert.Equal(t, kase.Expected, actual, "Output mismatch in case %s", kase.Name)
 		}
 	}
@@ -83,13 +103,8 @@ func TestEncode(t *testing.T) {
 	assert.Error(t, err)
 
 	// test too long payload
-	_, err = Encode(VersionByteAccountID, []byte{
-		0x69, 0xa8, 0xc4, 0xcb, 0xb9, 0xf6, 0x4e, 0x8a,
-		0x07, 0x98, 0xf6, 0xe1, 0xac, 0x65, 0xd0, 0x6c,
-		0x31, 0x62, 0x92, 0x90, 0x56, 0xbc, 0xf4, 0xcd,
-		0xb7, 0xd3, 0x73, 0x8d, 0x18, 0x55, 0xf3, 0x63,
-		0x69, 0xa8, 0xc4, 0xcb, 0xb9, 0xf6, 0x4e, 0x8a,
-		0x01,
-	})
+	longPayload := make([]byte, maxPayloadSize+1)
+	rand.Read(longPayload)
+	_, err = Encode(VersionByteAccountID, longPayload)
 	assert.EqualError(t, err, "data exceeds maximum payload size for strkey")
 }

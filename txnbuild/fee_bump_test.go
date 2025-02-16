@@ -25,7 +25,7 @@ func TestFeeBumpInvalidFeeSource(t *testing.T) {
 			SourceAccount: &sourceAccount,
 			Operations:    []Operation{&Inflation{}},
 			BaseFee:       MinBaseFee,
-			Timebounds:    NewInfiniteTimeout(),
+			Preconditions: Preconditions{TimeBounds: NewInfiniteTimeout()},
 		},
 	)
 	assert.NoError(t, err)
@@ -51,7 +51,7 @@ func TestFeeBumpUpgradesV0Transaction(t *testing.T) {
 			Operations:           []Operation{&Inflation{}},
 			BaseFee:              2 * MinBaseFee,
 			Memo:                 MemoText("test-memo"),
-			Timebounds:           NewInfiniteTimeout(),
+			Preconditions:        Preconditions{TimeBounds: NewInfiniteTimeout()},
 		},
 	)
 	assert.NoError(t, err)
@@ -105,7 +105,7 @@ func TestFeeBumpInvalidInnerTransactionType(t *testing.T) {
 			Operations:           []Operation{&Inflation{}},
 			BaseFee:              2 * MinBaseFee,
 			Memo:                 MemoText("test-memo"),
-			Timebounds:           NewInfiniteTimeout(),
+			Preconditions:        Preconditions{TimeBounds: NewInfiniteTimeout()},
 		},
 	)
 	assert.NoError(t, err)
@@ -143,7 +143,7 @@ func TestFeeBumpAllowsFeeAccountToEqualInnerSourceAccount(t *testing.T) {
 			SourceAccount: &sourceAccount,
 			Operations:    []Operation{&Inflation{}},
 			BaseFee:       MinBaseFee,
-			Timebounds:    NewInfiniteTimeout(),
+			Preconditions: Preconditions{TimeBounds: NewInfiniteTimeout()},
 		},
 	)
 	assert.NoError(t, err)
@@ -202,7 +202,7 @@ func TestFeeBumpSignWithKeyString(t *testing.T) {
 			SourceAccount: &sourceAccount,
 			Operations:    []Operation{&Inflation{}},
 			BaseFee:       MinBaseFee,
-			Timebounds:    NewInfiniteTimeout(),
+			Preconditions: Preconditions{TimeBounds: NewInfiniteTimeout()},
 		},
 	)
 	assert.NoError(t, err)
@@ -257,7 +257,7 @@ func TestFeeBumpSignHashX(t *testing.T) {
 			IncrementSequenceNum: true,
 			Operations:           []Operation{&payment},
 			BaseFee:              MinBaseFee,
-			Timebounds:           NewInfiniteTimeout(),
+			Preconditions:        Preconditions{TimeBounds: NewInfiniteTimeout()},
 		},
 	)
 	assert.NoError(t, err)
@@ -300,7 +300,7 @@ func TestFeeBumpAddSignatureBase64(t *testing.T) {
 			IncrementSequenceNum: true,
 			Operations:           []Operation{&createAccount},
 			BaseFee:              MinBaseFee,
-			Timebounds:           NewInfiniteTimeout(),
+			Preconditions:        Preconditions{TimeBounds: NewInfiniteTimeout()},
 		},
 	)
 	assert.NoError(t, err)
@@ -363,7 +363,7 @@ func TestFeeBumpMuxedAccounts(t *testing.T) {
 			SourceAccount: &sourceAccount,
 			Operations:    []Operation{&Inflation{}},
 			BaseFee:       MinBaseFee,
-			Timebounds:    NewInfiniteTimeout(),
+			Preconditions: Preconditions{TimeBounds: NewInfiniteTimeout()},
 		},
 	)
 	assert.NoError(t, err)

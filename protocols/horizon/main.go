@@ -21,10 +21,12 @@ import (
 // KeyTypeNames maps from strkey version bytes into json string values to use in
 // horizon responses.
 var KeyTypeNames = map[strkey.VersionByte]string{
-	strkey.VersionByteAccountID: "ed25519_public_key",
-	strkey.VersionByteSeed:      "ed25519_secret_seed",
-	strkey.VersionByteHashX:     "sha256_hash",
-	strkey.VersionByteHashTx:    "preauth_tx",
+	strkey.VersionByteAccountID:     "ed25519_public_key",
+	strkey.VersionByteSeed:          "ed25519_secret_seed",
+	strkey.VersionByteMuxedAccount:  "muxed_account",
+	strkey.VersionByteHashTx:        "preauth_tx",
+	strkey.VersionByteHashX:         "sha256_hash",
+	strkey.VersionByteSignedPayload: "ed25519_signed_payload",
 }
 
 // Account is the summary of an account
@@ -42,7 +44,9 @@ type Account struct {
 
 	ID                   string            `json:"id"`
 	AccountID            string            `json:"account_id"`
-	Sequence             string            `json:"sequence"`
+	Sequence             int64             `json:"sequence,string"`
+	SequenceLedger       uint32            `json:"sequence_ledger,omitempty"`
+	SequenceTime         string            `json:"sequence_time,omitempty"`
 	SubentryCount        int32             `json:"subentry_count"`
 	InflationDestination string            `json:"inflation_destination,omitempty"`
 	HomeDomain           string            `json:"home_domain,omitempty"`
@@ -94,29 +98,20 @@ func (a Account) GetCreditBalance(code string, issuer string) string {
 
 // GetSequenceNumber returns the sequence number of the account,
 // and returns it as a 64-bit integer.
+// TODO: since Account.Sequence was changed to int64, error is no longer needed.
 func (a Account) GetSequenceNumber() (int64, error) {
-	seqNum, err := strconv.ParseInt(a.Sequence, 10, 64)
-	if err != nil {
-		return 0, errors.Wrap(err, "Failed to parse account sequence number")
-	}
-
-	return seqNum, nil
+	return a.Sequence, nil
 }
 
 // IncrementSequenceNumber increments the internal record of the account's sequence
 // number by 1. This is typically used after a transaction build so that the next
 // transaction to be built will be valid.
 func (a *Account) IncrementSequenceNumber() (int64, error) {
-	seqNum, err := a.GetSequenceNumber()
-	if err != nil {
-		return 0, err
-	}
-	if seqNum == math.MaxInt64 {
+	if a.Sequence == math.MaxInt64 {
 		return 0, fmt.Errorf("sequence cannot be increased, it already reached MaxInt64 (%d)", int64(math.MaxInt64))
 	}
-	seqNum++
-	a.Sequence = strconv.FormatInt(seqNum, 10)
-	return seqNum, nil
+	a.Sequence++
+	return a.Sequence, nil
 }
 
 // MustGetData returns decoded value for a given key. If the key does
@@ -353,6 +348,7 @@ type Root struct {
 	CoreSequence                 int32     `json:"core_latest_ledger"`
 	NetworkPassphrase            string    `json:"network_passphrase"`
 	CurrentProtocolVersion       int32     `json:"current_protocol_version"`
+	SupportedProtocolVersion     uint32    `json:"supported_protocol_version"`
 	CoreSupportedProtocolVersion int32     `json:"core_supported_protocol_version"`
 }
 
@@ -502,34 +498,57 @@ type Transaction struct {
 		// When TransactionSuccess is removed from the SDKs we can remove this HAL link
 		Transaction hal.Link `json:"transaction"`
 	} `json:"_links"`
-	ID                 string              `json:"id"`
-	PT                 string              `json:"paging_token"`
-	Successful         bool                `json:"successful"`
-	Hash               string              `json:"hash"`
-	Ledger             int32               `json:"ledger"`
-	LedgerCloseTime    time.Time           `json:"created_at"`
-	Account            string              `json:"source_account"`
-	AccountMuxed       string              `json:"account_muxed,omitempty"`
-	AccountMuxedID     uint64              `json:"account_muxed_id,omitempty,string"`
-	AccountSequence    string              `json:"source_account_sequence"`
-	FeeAccount         string              `json:"fee_account"`
-	FeeAccountMuxed    string              `json:"fee_account_muxed,omitempty"`
-	FeeAccountMuxedID  uint64              `json:"fee_account_muxed_id,omitempty,string"`
-	FeeCharged         int64               `json:"fee_charged,string"`
-	MaxFee             int64               `json:"max_fee,string"`
-	OperationCount     int32               `json:"operation_count"`
-	EnvelopeXdr        string              `json:"envelope_xdr"`
-	ResultXdr          string              `json:"result_xdr"`
-	ResultMetaXdr      string              `json:"result_meta_xdr"`
-	FeeMetaXdr         string              `json:"fee_meta_xdr"`
-	MemoType           string              `json:"memo_type"`
-	MemoBytes          string              `json:"memo_bytes,omitempty"`
-	Memo               string              `json:"memo,omitempty"`
-	Signatures         []string            `json:"signatures"`
-	ValidAfter         string              `json:"valid_after,omitempty"`
-	ValidBefore        string              `json:"valid_before,omitempty"`
-	FeeBumpTransaction *FeeBumpTransaction `json:"fee_bump_transaction,omitempty"`
-	InnerTransaction   *InnerTransaction   `json:"inner_transaction,omitempty"`
+	ID                string    `json:"id"`
+	PT                string    `json:"paging_token"`
+	Successful        bool      `json:"successful"`
+	Hash              string    `json:"hash"`
+	Ledger            int32     `json:"ledger"`
+	LedgerCloseTime   time.Time `json:"created_at"`
+	Account           string    `json:"source_account"`
+	AccountMuxed      string    `json:"account_muxed,omitempty"`
+	AccountMuxedID    uint64    `json:"account_muxed_id,omitempty,string"`
+	AccountSequence   int64     `json:"source_account_sequence,string"`
+	FeeAccount        string    `json:"fee_account"`
+	FeeAccountMuxed   string    `json:"fee_account_muxed,omitempty"`
+	FeeAccountMuxedID uint64    `json:"fee_account_muxed_id,omitempty,string"`
+	FeeCharged        int64     `json:"fee_charged,string"`
+	MaxFee            int64     `json:"max_fee,string"`
+	OperationCount    int32     `json:"operation_count"`
+	EnvelopeXdr       string    `json:"envelope_xdr"`
+	ResultXdr         string    `json:"result_xdr"`
+	ResultMetaXdr     string    `json:"result_meta_xdr"`
+	FeeMetaXdr        string    `json:"fee_meta_xdr"`
+	MemoType          string    `json:"memo_type"`
+	MemoBytes         string    `json:"memo_bytes,omitempty"`
+	Memo              string    `json:"memo,omitempty"`
+	Signatures        []string  `json:"signatures"`
+	// Action needed in release: horizon-v3.0.0: remove valid_(after|before)
+	ValidAfter         string                    `json:"valid_after,omitempty"`
+	ValidBefore        string                    `json:"valid_before,omitempty"`
+	Preconditions      *TransactionPreconditions `json:"preconditions,omitempty"`
+	FeeBumpTransaction *FeeBumpTransaction       `json:"fee_bump_transaction,omitempty"`
+	InnerTransaction   *InnerTransaction         `json:"inner_transaction,omitempty"`
+}
+
+type TransactionPreconditions struct {
+	TimeBounds   *TransactionPreconditionsTimebounds   `json:"timebounds,omitempty"`
+	LedgerBounds *TransactionPreconditionsLedgerbounds `json:"ledgerbounds,omitempty"`
+
+	MinAccountSequence          string `json:"min_account_sequence,omitempty"`
+	MinAccountSequenceAge       string `json:"min_account_sequence_age,omitempty"`
+	MinAccountSequenceLedgerGap uint32 `json:"min_account_sequence_ledger_gap,omitempty"`
+
+	ExtraSigners []string `json:"extra_signers,omitempty"`
+}
+
+type TransactionPreconditionsTimebounds struct {
+	MinTime string `json:"min_time,omitempty"`
+	MaxTime string `json:"max_time,omitempty"`
+}
+
+type TransactionPreconditionsLedgerbounds struct {
+	MinLedger uint32 `json:"min_ledger"`
+	MaxLedger uint32 `json:"max_ledger,omitempty"`
 }
 
 // FeeBumpTransaction contains information about a fee bump transaction
@@ -849,4 +868,56 @@ type KinesisDailyCoinInCirculationByLedger struct {
 	Redemption  string `json:"redemption"`
 	Timestamp   string `json:"last_ledger_timestamp"`
 	Ledger      uint32 `json:"last_ledger"`
+}
+
+type AssetFilterConfig struct {
+	Whitelist    []string `json:"whitelist"`
+	Enabled      *bool    `json:"enabled"`
+	LastModified int64    `json:"last_modified,omitempty"`
+}
+
+type AccountFilterConfig struct {
+	Whitelist    []string `json:"whitelist"`
+	Enabled      *bool    `json:"enabled"`
+	LastModified int64    `json:"last_modified,omitempty"`
+}
+
+func (f *AccountFilterConfig) UnmarshalJSON(data []byte) error {
+	type accountFilterConfig AccountFilterConfig
+	var config = accountFilterConfig{}
+
+	if err := json.Unmarshal(data, &config); err != nil {
+		return err
+	}
+
+	if config.Whitelist == nil {
+		return errors.New("missing required whitelist")
+	}
+
+	if config.Enabled == nil {
+		return errors.New("missing required enabled")
+	}
+
+	*f = AccountFilterConfig(config)
+	return nil
+}
+
+func (f *AssetFilterConfig) UnmarshalJSON(data []byte) error {
+	type assetFilterConfig AssetFilterConfig
+	var config = assetFilterConfig{}
+
+	if err := json.Unmarshal(data, &config); err != nil {
+		return err
+	}
+
+	if config.Whitelist == nil {
+		return errors.New("missing required whitelist")
+	}
+
+	if config.Enabled == nil {
+		return errors.New("missing required enabled")
+	}
+
+	*f = AssetFilterConfig(config)
+	return nil
 }

@@ -2,6 +2,13 @@
 
 Using the following command to build `kinesis-horizon`.
 
+## XDR Generate
+
+```bash
+make xdr
+```
+
+## Docker
 To build your local docker image use this command:
 
 ```bash

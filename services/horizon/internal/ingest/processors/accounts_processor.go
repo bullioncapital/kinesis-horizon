@@ -3,6 +3,7 @@ package processors
 import (
 	"context"
 
+	"github.com/guregu/null/zero"
 	"github.com/stellar/go/ingest"
 	"github.com/stellar/go/services/horizon/internal/db2/history"
 	"github.com/stellar/go/support/errors"
@@ -117,6 +118,8 @@ func (p *AccountsProcessor) ledgerEntryToRow(entry xdr.LedgerEntry) history.Acco
 		BuyingLiabilities:    int64(liabilities.Buying),
 		SellingLiabilities:   int64(liabilities.Selling),
 		SequenceNumber:       int64(account.SeqNum),
+		SequenceLedger:       zero.IntFrom(int64(account.SeqLedger())),
+		SequenceTime:         zero.IntFrom(int64(account.SeqTime())),
 		NumSubEntries:        uint32(account.NumSubEntries),
 		InflationDestination: inflationDestination,
 		Flags:                uint32(account.Flags),

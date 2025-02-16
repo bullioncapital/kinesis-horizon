@@ -1,13 +1,14 @@
 //lint:file-ignore S1005 The issue should be fixed in xdrgen. Unfortunately, there's no way to ignore a single file in staticcheck.
 //lint:file-ignore U1000 fmtTest is not needed anywhere, should be removed in xdrgen.
+
 // Package xdr is generated from:
 //
-//  xdr/Stellar-SCP.x
-//  xdr/Stellar-ledger-entries.x
-//  xdr/Stellar-ledger.x
-//  xdr/Stellar-overlay.x
-//  xdr/Stellar-transaction.x
-//  xdr/Stellar-types.x
+//	xdr/Stellar-SCP.x
+//	xdr/Stellar-ledger-entries.x
+//	xdr/Stellar-ledger.x
+//	xdr/Stellar-overlay.x
+//	xdr/Stellar-transaction.x
+//	xdr/Stellar-types.x
 //
 // DO NOT EDIT or your changes may be overwritten
 package xdr
@@ -20,6 +21,16 @@ import (
 
 	"github.com/stellar/go-xdr/xdr3"
 )
+
+// XdrFilesSHA256 is the SHA256 hashes of source files.
+var XdrFilesSHA256 = map[string]string{
+	"xdr/Stellar-SCP.x":            "8f32b04d008f8bc33b8843d075e69837231a673691ee41d8b821ca229a6e802a",
+	"xdr/Stellar-ledger-entries.x": "3aa135c309c2d67883f165961739b4940c90df59240d8aeef55deced8d7708b5",
+	"xdr/Stellar-ledger.x":         "96ac88de23d2b0f2f23a0495527c8aefb8623b4db0e39ba34f357d10a211c214",
+	"xdr/Stellar-overlay.x":        "3093b425866f34b32702d80d5298f9f2dc00736b0fdaac7efa653490a39fb231",
+	"xdr/Stellar-transaction.x":    "45fdeb428e68d6b07e3e3157b6404567e0efb712c9d4c90a61a1035854c32b90",
+	"xdr/Stellar-types.x":          "60b7588e573f5e5518766eb5e6b6ea42f0e53144663cbe557e485cceb6306c85",
+}
 
 type xdrType interface {
 	xdrType()
@@ -1680,6 +1691,61 @@ func (s TimePoint) xdrType() {}
 
 var _ xdrType = (*TimePoint)(nil)
 
+// Duration is an XDR Typedef defines as:
+//
+//	typedef uint64 Duration;
+type Duration Uint64
+
+// EncodeTo encodes this value using the Encoder.
+func (s Duration) EncodeTo(e *xdr.Encoder) error {
+	var err error
+	if err = Uint64(s).EncodeTo(e); err != nil {
+		return err
+	}
+	return nil
+}
+
+var _ decoderFrom = (*Duration)(nil)
+
+// DecodeFrom decodes this value using the Decoder.
+func (s *Duration) DecodeFrom(d *xdr.Decoder) (int, error) {
+	var err error
+	var n, nTmp int
+	nTmp, err = (*Uint64)(s).DecodeFrom(d)
+	n += nTmp
+	if err != nil {
+		return n, fmt.Errorf("decoding Uint64: %s", err)
+	}
+	return n, nil
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler.
+func (s Duration) MarshalBinary() ([]byte, error) {
+	b := bytes.Buffer{}
+	e := xdr.NewEncoder(&b)
+	err := s.EncodeTo(e)
+	return b.Bytes(), err
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler.
+func (s *Duration) UnmarshalBinary(inp []byte) error {
+	r := bytes.NewReader(inp)
+	d := xdr.NewDecoder(r)
+	_, err := s.DecodeFrom(d)
+	return err
+}
+
+var (
+	_ encoding.BinaryMarshaler   = (*Duration)(nil)
+	_ encoding.BinaryUnmarshaler = (*Duration)(nil)
+)
+
+// xdrType signals that this type is an type representing
+// representing XDR values defined by this package.
+func (s Duration) xdrType() {}
+
+var _ xdrType = (*Duration)(nil)
+
 // DataValue is an XDR Typedef defines as:
 //
 //	typedef opaque DataValue<64>;
@@ -3046,15 +3112,104 @@ const MaxSigners = 20
 //	typedef AccountID* SponsorshipDescriptor;
 type SponsorshipDescriptor = *AccountId
 
+// AccountEntryExtensionV3 is an XDR Struct defines as:
+//
+//	struct AccountEntryExtensionV3
+//	 {
+//	     // We can use this to add more fields, or because it is first, to
+//	     // change AccountEntryExtensionV3 into a union.
+//	     ExtensionPoint ext;
+//
+//	     // Ledger number at which `seqNum` took on its present value.
+//	     uint32 seqLedger;
+//
+//	     // Time at which `seqNum` took on its present value.
+//	     TimePoint seqTime;
+//	 };
+type AccountEntryExtensionV3 struct {
+	Ext       ExtensionPoint
+	SeqLedger Uint32
+	SeqTime   TimePoint
+}
+
+// EncodeTo encodes this value using the Encoder.
+func (s *AccountEntryExtensionV3) EncodeTo(e *xdr.Encoder) error {
+	var err error
+	if err = s.Ext.EncodeTo(e); err != nil {
+		return err
+	}
+	if err = s.SeqLedger.EncodeTo(e); err != nil {
+		return err
+	}
+	if err = s.SeqTime.EncodeTo(e); err != nil {
+		return err
+	}
+	return nil
+}
+
+var _ decoderFrom = (*AccountEntryExtensionV3)(nil)
+
+// DecodeFrom decodes this value using the Decoder.
+func (s *AccountEntryExtensionV3) DecodeFrom(d *xdr.Decoder) (int, error) {
+	var err error
+	var n, nTmp int
+	nTmp, err = s.Ext.DecodeFrom(d)
+	n += nTmp
+	if err != nil {
+		return n, fmt.Errorf("decoding ExtensionPoint: %s", err)
+	}
+	nTmp, err = s.SeqLedger.DecodeFrom(d)
+	n += nTmp
+	if err != nil {
+		return n, fmt.Errorf("decoding Uint32: %s", err)
+	}
+	nTmp, err = s.SeqTime.DecodeFrom(d)
+	n += nTmp
+	if err != nil {
+		return n, fmt.Errorf("decoding TimePoint: %s", err)
+	}
+	return n, nil
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler.
+func (s AccountEntryExtensionV3) MarshalBinary() ([]byte, error) {
+	b := bytes.Buffer{}
+	e := xdr.NewEncoder(&b)
+	err := s.EncodeTo(e)
+	return b.Bytes(), err
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler.
+func (s *AccountEntryExtensionV3) UnmarshalBinary(inp []byte) error {
+	r := bytes.NewReader(inp)
+	d := xdr.NewDecoder(r)
+	_, err := s.DecodeFrom(d)
+	return err
+}
+
+var (
+	_ encoding.BinaryMarshaler   = (*AccountEntryExtensionV3)(nil)
+	_ encoding.BinaryUnmarshaler = (*AccountEntryExtensionV3)(nil)
+)
+
+// xdrType signals that this type is an type representing
+// representing XDR values defined by this package.
+func (s AccountEntryExtensionV3) xdrType() {}
+
+var _ xdrType = (*AccountEntryExtensionV3)(nil)
+
 // AccountEntryExtensionV2Ext is an XDR NestedUnion defines as:
 //
 //	union switch (int v)
 //	     {
 //	     case 0:
 //	         void;
+//	     case 3:
+//	         AccountEntryExtensionV3 v3;
 //	     }
 type AccountEntryExtensionV2Ext struct {
-	V int32
+	V  int32
+	V3 *AccountEntryExtensionV3
 }
 
 // SwitchFieldName returns the field name in which this union's
@@ -3069,6 +3224,8 @@ func (u AccountEntryExtensionV2Ext) ArmForSwitch(sw int32) (string, bool) {
 	switch int32(sw) {
 	case 0:
 		return "", true
+	case 3:
+		return "V3", true
 	}
 	return "-", false
 }
@@ -3079,7 +3236,39 @@ func NewAccountEntryExtensionV2Ext(v int32, value interface{}) (result AccountEn
 	switch int32(v) {
 	case 0:
 		// void
+	case 3:
+		tv, ok := value.(AccountEntryExtensionV3)
+		if !ok {
+			err = fmt.Errorf("invalid value, must be AccountEntryExtensionV3")
+			return
+		}
+		result.V3 = &tv
 	}
+	return
+}
+
+// MustV3 retrieves the V3 value from the union,
+// panicing if the value is not set.
+func (u AccountEntryExtensionV2Ext) MustV3() AccountEntryExtensionV3 {
+	val, ok := u.GetV3()
+
+	if !ok {
+		panic("arm V3 is not set")
+	}
+
+	return val
+}
+
+// GetV3 retrieves the V3 value from the union,
+// returning ok if the union's switch indicated the value is valid.
+func (u AccountEntryExtensionV2Ext) GetV3() (result AccountEntryExtensionV3, ok bool) {
+	armName, _ := u.ArmForSwitch(int32(u.V))
+
+	if armName == "V3" {
+		result = *u.V3
+		ok = true
+	}
+
 	return
 }
 
@@ -3092,6 +3281,11 @@ func (u AccountEntryExtensionV2Ext) EncodeTo(e *xdr.Encoder) error {
 	switch int32(u.V) {
 	case 0:
 		// Void
+		return nil
+	case 3:
+		if err = (*u.V3).EncodeTo(e); err != nil {
+			return err
+		}
 		return nil
 	}
 	return fmt.Errorf("V (int32) switch value '%d' is not valid for union AccountEntryExtensionV2Ext", u.V)
@@ -3111,6 +3305,14 @@ func (u *AccountEntryExtensionV2Ext) DecodeFrom(d *xdr.Decoder) (int, error) {
 	switch int32(u.V) {
 	case 0:
 		// Void
+		return n, nil
+	case 3:
+		u.V3 = new(AccountEntryExtensionV3)
+		nTmp, err = (*u.V3).DecodeFrom(d)
+		n += nTmp
+		if err != nil {
+			return n, fmt.Errorf("decoding AccountEntryExtensionV3: %s", err)
+		}
 		return n, nil
 	}
 	return n, fmt.Errorf("union AccountEntryExtensionV2Ext has invalid V (int32) switch value '%d'", u.V)
@@ -3155,6 +3357,8 @@ var _ xdrType = (*AccountEntryExtensionV2Ext)(nil)
 //	     {
 //	     case 0:
 //	         void;
+//	     case 3:
+//	         AccountEntryExtensionV3 v3;
 //	     }
 //	     ext;
 //	 };
@@ -4978,7 +5182,8 @@ var _ xdrType = (*TrustLineEntry)(nil)
 //
 //	enum OfferEntryFlags
 //	 {
-//	     // issuer has authorized account to perform transactions with its credit
+//	     // an offer with this flag will not act on and take a reverse offer of equal
+//	     // price
 //	     PASSIVE_FLAG = 1
 //	 };
 type OfferEntryFlags int32
@@ -7045,7 +7250,7 @@ var _ xdrType = (*ClaimableBalanceEntry)(nil)
 //	 {
 //	     Asset assetA; // assetA < assetB
 //	     Asset assetB;
-//	     int32 fee;    // Fee is in basis points, so the actual rate is (fee/100)%
+//	     int32 fee; // Fee is in basis points, so the actual rate is (fee/100)%
 //	 };
 type LiquidityPoolConstantProductParameters struct {
 	AssetA Asset
@@ -7128,7 +7333,8 @@ var _ xdrType = (*LiquidityPoolConstantProductParameters)(nil)
 //	             int64 reserveA;        // amount of A in the pool
 //	             int64 reserveB;        // amount of B in the pool
 //	             int64 totalPoolShares; // total number of pool shares issued
-//	             int64 poolSharesTrustLineCount; // number of trust lines for the associated pool shares
+//	             int64 poolSharesTrustLineCount; // number of trust lines for the
+//	                                             // associated pool shares
 //	         }
 type LiquidityPoolEntryConstantProduct struct {
 	Params                   LiquidityPoolConstantProductParameters
@@ -7232,7 +7438,8 @@ var _ xdrType = (*LiquidityPoolEntryConstantProduct)(nil)
 //	             int64 reserveA;        // amount of A in the pool
 //	             int64 reserveB;        // amount of B in the pool
 //	             int64 totalPoolShares; // total number of pool shares issued
-//	             int64 poolSharesTrustLineCount; // number of trust lines for the associated pool shares
+//	             int64 poolSharesTrustLineCount; // number of trust lines for the
+//	                                             // associated pool shares
 //	         } constantProduct;
 //	     }
 type LiquidityPoolEntryBody struct {
@@ -7379,7 +7586,8 @@ var _ xdrType = (*LiquidityPoolEntryBody)(nil)
 //	             int64 reserveA;        // amount of A in the pool
 //	             int64 reserveB;        // amount of B in the pool
 //	             int64 totalPoolShares; // total number of pool shares issued
-//	             int64 poolSharesTrustLineCount; // number of trust lines for the associated pool shares
+//	             int64 poolSharesTrustLineCount; // number of trust lines for the
+//	                                             // associated pool shares
 //	         } constantProduct;
 //	     }
 //	     body;
@@ -10091,8 +10299,6 @@ var _ xdrType = (*LedgerHeaderExt)(nil)
 //	     uint64 idPool; // last used global ID, used for generating objects
 //
 //	     uint32 baseFee;     // base fee per operation in stroops
-//	     uint32 basePercentageFee; // percentage fee in basis points
-//	     uint64 maxFee; // max fee in basis points
 //	     uint32 baseReserve; // account base reserve in stroops
 //
 //	     uint32 maxTxSetSize; // maximum size a transaction set can be
@@ -10323,9 +10529,7 @@ var _ xdrType = (*LedgerHeader)(nil)
 //	     LEDGER_UPGRADE_BASE_FEE = 2,
 //	     LEDGER_UPGRADE_MAX_TX_SET_SIZE = 3,
 //	     LEDGER_UPGRADE_BASE_RESERVE = 4,
-//	     LEDGER_UPGRADE_BASE_PERCENTAGE_FEE = 5,
-//	     LEDGER_UPGRADE_MAX_FEE = 6,
-//	     LEDGER_UPGRADE_FLAGS = 7
+//	     LEDGER_UPGRADE_FLAGS = 5
 //	 };
 type LedgerUpgradeType int32
 
@@ -10425,10 +10629,6 @@ var _ xdrType = (*LedgerUpgradeType)(nil)
 //	     uint32 newMaxTxSetSize; // update maxTxSetSize
 //	 case LEDGER_UPGRADE_BASE_RESERVE:
 //	     uint32 newBaseReserve; // update baseReserve
-//	 case LEDGER_UPGRADE_BASE_PERCENTAGE_FEE:
-//	     uint32 newBasePercentageFee; // update basePercentageFee
-//	 case LEDGER_UPGRADE_MAX_FEE:
-//	     uint64 newMaxFee; // update maxFee
 //	 case LEDGER_UPGRADE_FLAGS:
 //	     uint32 newFlags; // update flags
 //	 };
@@ -11373,6 +11573,481 @@ func (s BucketEntry) xdrType() {}
 
 var _ xdrType = (*BucketEntry)(nil)
 
+// TxSetComponentType is an XDR Enum defines as:
+//
+//	enum TxSetComponentType
+//	 {
+//	   // txs with effective fee <= bid derived from a base fee (if any).
+//	   // If base fee is not specified, no discount is applied.
+//	   TXSET_COMP_TXS_MAYBE_DISCOUNTED_FEE = 0
+//	 };
+type TxSetComponentType int32
+
+const (
+	TxSetComponentTypeTxsetCompTxsMaybeDiscountedFee TxSetComponentType = 0
+)
+
+var txSetComponentTypeMap = map[int32]string{
+	0: "TxSetComponentTypeTxsetCompTxsMaybeDiscountedFee",
+}
+
+// ValidEnum validates a proposed value for this enum.  Implements
+// the Enum interface for TxSetComponentType
+func (e TxSetComponentType) ValidEnum(v int32) bool {
+	_, ok := txSetComponentTypeMap[v]
+	return ok
+}
+
+// String returns the name of `e`
+func (e TxSetComponentType) String() string {
+	name, _ := txSetComponentTypeMap[int32(e)]
+	return name
+}
+
+// EncodeTo encodes this value using the Encoder.
+func (e TxSetComponentType) EncodeTo(enc *xdr.Encoder) error {
+	if _, ok := txSetComponentTypeMap[int32(e)]; !ok {
+		return fmt.Errorf("'%d' is not a valid TxSetComponentType enum value", e)
+	}
+	_, err := enc.EncodeInt(int32(e))
+	return err
+}
+
+var _ decoderFrom = (*TxSetComponentType)(nil)
+
+// DecodeFrom decodes this value using the Decoder.
+func (e *TxSetComponentType) DecodeFrom(d *xdr.Decoder) (int, error) {
+	v, n, err := d.DecodeInt()
+	if err != nil {
+		return n, fmt.Errorf("decoding TxSetComponentType: %s", err)
+	}
+	if _, ok := txSetComponentTypeMap[v]; !ok {
+		return n, fmt.Errorf("'%d' is not a valid TxSetComponentType enum value", v)
+	}
+	*e = TxSetComponentType(v)
+	return n, nil
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler.
+func (s TxSetComponentType) MarshalBinary() ([]byte, error) {
+	b := bytes.Buffer{}
+	e := xdr.NewEncoder(&b)
+	err := s.EncodeTo(e)
+	return b.Bytes(), err
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler.
+func (s *TxSetComponentType) UnmarshalBinary(inp []byte) error {
+	r := bytes.NewReader(inp)
+	d := xdr.NewDecoder(r)
+	_, err := s.DecodeFrom(d)
+	return err
+}
+
+var (
+	_ encoding.BinaryMarshaler   = (*TxSetComponentType)(nil)
+	_ encoding.BinaryUnmarshaler = (*TxSetComponentType)(nil)
+)
+
+// xdrType signals that this type is an type representing
+// representing XDR values defined by this package.
+func (s TxSetComponentType) xdrType() {}
+
+var _ xdrType = (*TxSetComponentType)(nil)
+
+// TxSetComponentTxsMaybeDiscountedFee is an XDR NestedStruct defines as:
+//
+//	struct
+//	   {
+//	     int64* baseFee;
+//	     TransactionEnvelope txs<>;
+//	   }
+type TxSetComponentTxsMaybeDiscountedFee struct {
+	BaseFee *Int64
+	Txs     []TransactionEnvelope
+}
+
+// EncodeTo encodes this value using the Encoder.
+func (s *TxSetComponentTxsMaybeDiscountedFee) EncodeTo(e *xdr.Encoder) error {
+	var err error
+	if _, err = e.EncodeBool(s.BaseFee != nil); err != nil {
+		return err
+	}
+	if s.BaseFee != nil {
+		if err = (*s.BaseFee).EncodeTo(e); err != nil {
+			return err
+		}
+	}
+	if _, err = e.EncodeUint(uint32(len(s.Txs))); err != nil {
+		return err
+	}
+	for i := 0; i < len(s.Txs); i++ {
+		if err = s.Txs[i].EncodeTo(e); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+var _ decoderFrom = (*TxSetComponentTxsMaybeDiscountedFee)(nil)
+
+// DecodeFrom decodes this value using the Decoder.
+func (s *TxSetComponentTxsMaybeDiscountedFee) DecodeFrom(d *xdr.Decoder) (int, error) {
+	var err error
+	var n, nTmp int
+	var b bool
+	b, nTmp, err = d.DecodeBool()
+	n += nTmp
+	if err != nil {
+		return n, fmt.Errorf("decoding Int64: %s", err)
+	}
+	s.BaseFee = nil
+	if b {
+		s.BaseFee = new(Int64)
+		nTmp, err = s.BaseFee.DecodeFrom(d)
+		n += nTmp
+		if err != nil {
+			return n, fmt.Errorf("decoding Int64: %s", err)
+		}
+	}
+	var l uint32
+	l, nTmp, err = d.DecodeUint()
+	n += nTmp
+	if err != nil {
+		return n, fmt.Errorf("decoding TransactionEnvelope: %s", err)
+	}
+	s.Txs = nil
+	if l > 0 {
+		s.Txs = make([]TransactionEnvelope, l)
+		for i := uint32(0); i < l; i++ {
+			nTmp, err = s.Txs[i].DecodeFrom(d)
+			n += nTmp
+			if err != nil {
+				return n, fmt.Errorf("decoding TransactionEnvelope: %s", err)
+			}
+		}
+	}
+	return n, nil
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler.
+func (s TxSetComponentTxsMaybeDiscountedFee) MarshalBinary() ([]byte, error) {
+	b := bytes.Buffer{}
+	e := xdr.NewEncoder(&b)
+	err := s.EncodeTo(e)
+	return b.Bytes(), err
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler.
+func (s *TxSetComponentTxsMaybeDiscountedFee) UnmarshalBinary(inp []byte) error {
+	r := bytes.NewReader(inp)
+	d := xdr.NewDecoder(r)
+	_, err := s.DecodeFrom(d)
+	return err
+}
+
+var (
+	_ encoding.BinaryMarshaler   = (*TxSetComponentTxsMaybeDiscountedFee)(nil)
+	_ encoding.BinaryUnmarshaler = (*TxSetComponentTxsMaybeDiscountedFee)(nil)
+)
+
+// xdrType signals that this type is an type representing
+// representing XDR values defined by this package.
+func (s TxSetComponentTxsMaybeDiscountedFee) xdrType() {}
+
+var _ xdrType = (*TxSetComponentTxsMaybeDiscountedFee)(nil)
+
+// TxSetComponent is an XDR Union defines as:
+//
+//	union TxSetComponent switch (TxSetComponentType type)
+//	 {
+//	 case TXSET_COMP_TXS_MAYBE_DISCOUNTED_FEE:
+//	   struct
+//	   {
+//	     int64* baseFee;
+//	     TransactionEnvelope txs<>;
+//	   } txsMaybeDiscountedFee;
+//	 };
+type TxSetComponent struct {
+	Type                  TxSetComponentType
+	TxsMaybeDiscountedFee *TxSetComponentTxsMaybeDiscountedFee
+}
+
+// SwitchFieldName returns the field name in which this union's
+// discriminant is stored
+func (u TxSetComponent) SwitchFieldName() string {
+	return "Type"
+}
+
+// ArmForSwitch returns which field name should be used for storing
+// the value for an instance of TxSetComponent
+func (u TxSetComponent) ArmForSwitch(sw int32) (string, bool) {
+	switch TxSetComponentType(sw) {
+	case TxSetComponentTypeTxsetCompTxsMaybeDiscountedFee:
+		return "TxsMaybeDiscountedFee", true
+	}
+	return "-", false
+}
+
+// NewTxSetComponent creates a new  TxSetComponent.
+func NewTxSetComponent(aType TxSetComponentType, value interface{}) (result TxSetComponent, err error) {
+	result.Type = aType
+	switch TxSetComponentType(aType) {
+	case TxSetComponentTypeTxsetCompTxsMaybeDiscountedFee:
+		tv, ok := value.(TxSetComponentTxsMaybeDiscountedFee)
+		if !ok {
+			err = fmt.Errorf("invalid value, must be TxSetComponentTxsMaybeDiscountedFee")
+			return
+		}
+		result.TxsMaybeDiscountedFee = &tv
+	}
+	return
+}
+
+// MustTxsMaybeDiscountedFee retrieves the TxsMaybeDiscountedFee value from the union,
+// panicing if the value is not set.
+func (u TxSetComponent) MustTxsMaybeDiscountedFee() TxSetComponentTxsMaybeDiscountedFee {
+	val, ok := u.GetTxsMaybeDiscountedFee()
+
+	if !ok {
+		panic("arm TxsMaybeDiscountedFee is not set")
+	}
+
+	return val
+}
+
+// GetTxsMaybeDiscountedFee retrieves the TxsMaybeDiscountedFee value from the union,
+// returning ok if the union's switch indicated the value is valid.
+func (u TxSetComponent) GetTxsMaybeDiscountedFee() (result TxSetComponentTxsMaybeDiscountedFee, ok bool) {
+	armName, _ := u.ArmForSwitch(int32(u.Type))
+
+	if armName == "TxsMaybeDiscountedFee" {
+		result = *u.TxsMaybeDiscountedFee
+		ok = true
+	}
+
+	return
+}
+
+// EncodeTo encodes this value using the Encoder.
+func (u TxSetComponent) EncodeTo(e *xdr.Encoder) error {
+	var err error
+	if err = u.Type.EncodeTo(e); err != nil {
+		return err
+	}
+	switch TxSetComponentType(u.Type) {
+	case TxSetComponentTypeTxsetCompTxsMaybeDiscountedFee:
+		if err = (*u.TxsMaybeDiscountedFee).EncodeTo(e); err != nil {
+			return err
+		}
+		return nil
+	}
+	return fmt.Errorf("Type (TxSetComponentType) switch value '%d' is not valid for union TxSetComponent", u.Type)
+}
+
+var _ decoderFrom = (*TxSetComponent)(nil)
+
+// DecodeFrom decodes this value using the Decoder.
+func (u *TxSetComponent) DecodeFrom(d *xdr.Decoder) (int, error) {
+	var err error
+	var n, nTmp int
+	nTmp, err = u.Type.DecodeFrom(d)
+	n += nTmp
+	if err != nil {
+		return n, fmt.Errorf("decoding TxSetComponentType: %s", err)
+	}
+	switch TxSetComponentType(u.Type) {
+	case TxSetComponentTypeTxsetCompTxsMaybeDiscountedFee:
+		u.TxsMaybeDiscountedFee = new(TxSetComponentTxsMaybeDiscountedFee)
+		nTmp, err = (*u.TxsMaybeDiscountedFee).DecodeFrom(d)
+		n += nTmp
+		if err != nil {
+			return n, fmt.Errorf("decoding TxSetComponentTxsMaybeDiscountedFee: %s", err)
+		}
+		return n, nil
+	}
+	return n, fmt.Errorf("union TxSetComponent has invalid Type (TxSetComponentType) switch value '%d'", u.Type)
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler.
+func (s TxSetComponent) MarshalBinary() ([]byte, error) {
+	b := bytes.Buffer{}
+	e := xdr.NewEncoder(&b)
+	err := s.EncodeTo(e)
+	return b.Bytes(), err
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler.
+func (s *TxSetComponent) UnmarshalBinary(inp []byte) error {
+	r := bytes.NewReader(inp)
+	d := xdr.NewDecoder(r)
+	_, err := s.DecodeFrom(d)
+	return err
+}
+
+var (
+	_ encoding.BinaryMarshaler   = (*TxSetComponent)(nil)
+	_ encoding.BinaryUnmarshaler = (*TxSetComponent)(nil)
+)
+
+// xdrType signals that this type is an type representing
+// representing XDR values defined by this package.
+func (s TxSetComponent) xdrType() {}
+
+var _ xdrType = (*TxSetComponent)(nil)
+
+// TransactionPhase is an XDR Union defines as:
+//
+//	union TransactionPhase switch (int v)
+//	 {
+//	 case 0:
+//	     TxSetComponent v0Components<>;
+//	 };
+type TransactionPhase struct {
+	V            int32
+	V0Components *[]TxSetComponent
+}
+
+// SwitchFieldName returns the field name in which this union's
+// discriminant is stored
+func (u TransactionPhase) SwitchFieldName() string {
+	return "V"
+}
+
+// ArmForSwitch returns which field name should be used for storing
+// the value for an instance of TransactionPhase
+func (u TransactionPhase) ArmForSwitch(sw int32) (string, bool) {
+	switch int32(sw) {
+	case 0:
+		return "V0Components", true
+	}
+	return "-", false
+}
+
+// NewTransactionPhase creates a new  TransactionPhase.
+func NewTransactionPhase(v int32, value interface{}) (result TransactionPhase, err error) {
+	result.V = v
+	switch int32(v) {
+	case 0:
+		tv, ok := value.([]TxSetComponent)
+		if !ok {
+			err = fmt.Errorf("invalid value, must be []TxSetComponent")
+			return
+		}
+		result.V0Components = &tv
+	}
+	return
+}
+
+// MustV0Components retrieves the V0Components value from the union,
+// panicing if the value is not set.
+func (u TransactionPhase) MustV0Components() []TxSetComponent {
+	val, ok := u.GetV0Components()
+
+	if !ok {
+		panic("arm V0Components is not set")
+	}
+
+	return val
+}
+
+// GetV0Components retrieves the V0Components value from the union,
+// returning ok if the union's switch indicated the value is valid.
+func (u TransactionPhase) GetV0Components() (result []TxSetComponent, ok bool) {
+	armName, _ := u.ArmForSwitch(int32(u.V))
+
+	if armName == "V0Components" {
+		result = *u.V0Components
+		ok = true
+	}
+
+	return
+}
+
+// EncodeTo encodes this value using the Encoder.
+func (u TransactionPhase) EncodeTo(e *xdr.Encoder) error {
+	var err error
+	if _, err = e.EncodeInt(int32(u.V)); err != nil {
+		return err
+	}
+	switch int32(u.V) {
+	case 0:
+		if _, err = e.EncodeUint(uint32(len((*u.V0Components)))); err != nil {
+			return err
+		}
+		for i := 0; i < len((*u.V0Components)); i++ {
+			if err = (*u.V0Components)[i].EncodeTo(e); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	return fmt.Errorf("V (int32) switch value '%d' is not valid for union TransactionPhase", u.V)
+}
+
+var _ decoderFrom = (*TransactionPhase)(nil)
+
+// DecodeFrom decodes this value using the Decoder.
+func (u *TransactionPhase) DecodeFrom(d *xdr.Decoder) (int, error) {
+	var err error
+	var n, nTmp int
+	u.V, nTmp, err = d.DecodeInt()
+	n += nTmp
+	if err != nil {
+		return n, fmt.Errorf("decoding Int: %s", err)
+	}
+	switch int32(u.V) {
+	case 0:
+		u.V0Components = new([]TxSetComponent)
+		var l uint32
+		l, nTmp, err = d.DecodeUint()
+		n += nTmp
+		if err != nil {
+			return n, fmt.Errorf("decoding TxSetComponent: %s", err)
+		}
+		(*u.V0Components) = nil
+		if l > 0 {
+			(*u.V0Components) = make([]TxSetComponent, l)
+			for i := uint32(0); i < l; i++ {
+				nTmp, err = (*u.V0Components)[i].DecodeFrom(d)
+				n += nTmp
+				if err != nil {
+					return n, fmt.Errorf("decoding TxSetComponent: %s", err)
+				}
+			}
+		}
+		return n, nil
+	}
+	return n, fmt.Errorf("union TransactionPhase has invalid V (int32) switch value '%d'", u.V)
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler.
+func (s TransactionPhase) MarshalBinary() ([]byte, error) {
+	b := bytes.Buffer{}
+	e := xdr.NewEncoder(&b)
+	err := s.EncodeTo(e)
+	return b.Bytes(), err
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler.
+func (s *TransactionPhase) UnmarshalBinary(inp []byte) error {
+	r := bytes.NewReader(inp)
+	d := xdr.NewDecoder(r)
+	_, err := s.DecodeFrom(d)
+	return err
+}
+
+var (
+	_ encoding.BinaryMarshaler   = (*TransactionPhase)(nil)
+	_ encoding.BinaryUnmarshaler = (*TransactionPhase)(nil)
+)
+
+// xdrType signals that this type is an type representing
+// representing XDR values defined by this package.
+func (s TransactionPhase) xdrType() {}
+
+var _ xdrType = (*TransactionPhase)(nil)
+
 // TransactionSet is an XDR Struct defines as:
 //
 //	struct TransactionSet
@@ -11459,6 +12134,229 @@ var (
 func (s TransactionSet) xdrType() {}
 
 var _ xdrType = (*TransactionSet)(nil)
+
+// TransactionSetV1 is an XDR Struct defines as:
+//
+//	struct TransactionSetV1
+//	 {
+//	     Hash previousLedgerHash;
+//	     TransactionPhase phases<>;
+//	 };
+type TransactionSetV1 struct {
+	PreviousLedgerHash Hash
+	Phases             []TransactionPhase
+}
+
+// EncodeTo encodes this value using the Encoder.
+func (s *TransactionSetV1) EncodeTo(e *xdr.Encoder) error {
+	var err error
+	if err = s.PreviousLedgerHash.EncodeTo(e); err != nil {
+		return err
+	}
+	if _, err = e.EncodeUint(uint32(len(s.Phases))); err != nil {
+		return err
+	}
+	for i := 0; i < len(s.Phases); i++ {
+		if err = s.Phases[i].EncodeTo(e); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+var _ decoderFrom = (*TransactionSetV1)(nil)
+
+// DecodeFrom decodes this value using the Decoder.
+func (s *TransactionSetV1) DecodeFrom(d *xdr.Decoder) (int, error) {
+	var err error
+	var n, nTmp int
+	nTmp, err = s.PreviousLedgerHash.DecodeFrom(d)
+	n += nTmp
+	if err != nil {
+		return n, fmt.Errorf("decoding Hash: %s", err)
+	}
+	var l uint32
+	l, nTmp, err = d.DecodeUint()
+	n += nTmp
+	if err != nil {
+		return n, fmt.Errorf("decoding TransactionPhase: %s", err)
+	}
+	s.Phases = nil
+	if l > 0 {
+		s.Phases = make([]TransactionPhase, l)
+		for i := uint32(0); i < l; i++ {
+			nTmp, err = s.Phases[i].DecodeFrom(d)
+			n += nTmp
+			if err != nil {
+				return n, fmt.Errorf("decoding TransactionPhase: %s", err)
+			}
+		}
+	}
+	return n, nil
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler.
+func (s TransactionSetV1) MarshalBinary() ([]byte, error) {
+	b := bytes.Buffer{}
+	e := xdr.NewEncoder(&b)
+	err := s.EncodeTo(e)
+	return b.Bytes(), err
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler.
+func (s *TransactionSetV1) UnmarshalBinary(inp []byte) error {
+	r := bytes.NewReader(inp)
+	d := xdr.NewDecoder(r)
+	_, err := s.DecodeFrom(d)
+	return err
+}
+
+var (
+	_ encoding.BinaryMarshaler   = (*TransactionSetV1)(nil)
+	_ encoding.BinaryUnmarshaler = (*TransactionSetV1)(nil)
+)
+
+// xdrType signals that this type is an type representing
+// representing XDR values defined by this package.
+func (s TransactionSetV1) xdrType() {}
+
+var _ xdrType = (*TransactionSetV1)(nil)
+
+// GeneralizedTransactionSet is an XDR Union defines as:
+//
+//	union GeneralizedTransactionSet switch (int v)
+//	 {
+//	 // We consider the legacy TransactionSet to be v0.
+//	 case 1:
+//	     TransactionSetV1 v1TxSet;
+//	 };
+type GeneralizedTransactionSet struct {
+	V       int32
+	V1TxSet *TransactionSetV1
+}
+
+// SwitchFieldName returns the field name in which this union's
+// discriminant is stored
+func (u GeneralizedTransactionSet) SwitchFieldName() string {
+	return "V"
+}
+
+// ArmForSwitch returns which field name should be used for storing
+// the value for an instance of GeneralizedTransactionSet
+func (u GeneralizedTransactionSet) ArmForSwitch(sw int32) (string, bool) {
+	switch int32(sw) {
+	case 1:
+		return "V1TxSet", true
+	}
+	return "-", false
+}
+
+// NewGeneralizedTransactionSet creates a new  GeneralizedTransactionSet.
+func NewGeneralizedTransactionSet(v int32, value interface{}) (result GeneralizedTransactionSet, err error) {
+	result.V = v
+	switch int32(v) {
+	case 1:
+		tv, ok := value.(TransactionSetV1)
+		if !ok {
+			err = fmt.Errorf("invalid value, must be TransactionSetV1")
+			return
+		}
+		result.V1TxSet = &tv
+	}
+	return
+}
+
+// MustV1TxSet retrieves the V1TxSet value from the union,
+// panicing if the value is not set.
+func (u GeneralizedTransactionSet) MustV1TxSet() TransactionSetV1 {
+	val, ok := u.GetV1TxSet()
+
+	if !ok {
+		panic("arm V1TxSet is not set")
+	}
+
+	return val
+}
+
+// GetV1TxSet retrieves the V1TxSet value from the union,
+// returning ok if the union's switch indicated the value is valid.
+func (u GeneralizedTransactionSet) GetV1TxSet() (result TransactionSetV1, ok bool) {
+	armName, _ := u.ArmForSwitch(int32(u.V))
+
+	if armName == "V1TxSet" {
+		result = *u.V1TxSet
+		ok = true
+	}
+
+	return
+}
+
+// EncodeTo encodes this value using the Encoder.
+func (u GeneralizedTransactionSet) EncodeTo(e *xdr.Encoder) error {
+	var err error
+	if _, err = e.EncodeInt(int32(u.V)); err != nil {
+		return err
+	}
+	switch int32(u.V) {
+	case 1:
+		if err = (*u.V1TxSet).EncodeTo(e); err != nil {
+			return err
+		}
+		return nil
+	}
+	return fmt.Errorf("V (int32) switch value '%d' is not valid for union GeneralizedTransactionSet", u.V)
+}
+
+var _ decoderFrom = (*GeneralizedTransactionSet)(nil)
+
+// DecodeFrom decodes this value using the Decoder.
+func (u *GeneralizedTransactionSet) DecodeFrom(d *xdr.Decoder) (int, error) {
+	var err error
+	var n, nTmp int
+	u.V, nTmp, err = d.DecodeInt()
+	n += nTmp
+	if err != nil {
+		return n, fmt.Errorf("decoding Int: %s", err)
+	}
+	switch int32(u.V) {
+	case 1:
+		u.V1TxSet = new(TransactionSetV1)
+		nTmp, err = (*u.V1TxSet).DecodeFrom(d)
+		n += nTmp
+		if err != nil {
+			return n, fmt.Errorf("decoding TransactionSetV1: %s", err)
+		}
+		return n, nil
+	}
+	return n, fmt.Errorf("union GeneralizedTransactionSet has invalid V (int32) switch value '%d'", u.V)
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler.
+func (s GeneralizedTransactionSet) MarshalBinary() ([]byte, error) {
+	b := bytes.Buffer{}
+	e := xdr.NewEncoder(&b)
+	err := s.EncodeTo(e)
+	return b.Bytes(), err
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler.
+func (s *GeneralizedTransactionSet) UnmarshalBinary(inp []byte) error {
+	r := bytes.NewReader(inp)
+	d := xdr.NewDecoder(r)
+	_, err := s.DecodeFrom(d)
+	return err
+}
+
+var (
+	_ encoding.BinaryMarshaler   = (*GeneralizedTransactionSet)(nil)
+	_ encoding.BinaryUnmarshaler = (*GeneralizedTransactionSet)(nil)
+)
+
+// xdrType signals that this type is an type representing
+// representing XDR values defined by this package.
+func (s GeneralizedTransactionSet) xdrType() {}
+
+var _ xdrType = (*GeneralizedTransactionSet)(nil)
 
 // TransactionResultPair is an XDR Struct defines as:
 //
@@ -11613,9 +12511,12 @@ var _ xdrType = (*TransactionResultSet)(nil)
 //	     {
 //	     case 0:
 //	         void;
+//	     case 1:
+//	         GeneralizedTransactionSet generalizedTxSet;
 //	     }
 type TransactionHistoryEntryExt struct {
-	V int32
+	V                int32
+	GeneralizedTxSet *GeneralizedTransactionSet
 }
 
 // SwitchFieldName returns the field name in which this union's
@@ -11630,6 +12531,8 @@ func (u TransactionHistoryEntryExt) ArmForSwitch(sw int32) (string, bool) {
 	switch int32(sw) {
 	case 0:
 		return "", true
+	case 1:
+		return "GeneralizedTxSet", true
 	}
 	return "-", false
 }
@@ -11640,7 +12543,39 @@ func NewTransactionHistoryEntryExt(v int32, value interface{}) (result Transacti
 	switch int32(v) {
 	case 0:
 		// void
+	case 1:
+		tv, ok := value.(GeneralizedTransactionSet)
+		if !ok {
+			err = fmt.Errorf("invalid value, must be GeneralizedTransactionSet")
+			return
+		}
+		result.GeneralizedTxSet = &tv
 	}
+	return
+}
+
+// MustGeneralizedTxSet retrieves the GeneralizedTxSet value from the union,
+// panicing if the value is not set.
+func (u TransactionHistoryEntryExt) MustGeneralizedTxSet() GeneralizedTransactionSet {
+	val, ok := u.GetGeneralizedTxSet()
+
+	if !ok {
+		panic("arm GeneralizedTxSet is not set")
+	}
+
+	return val
+}
+
+// GetGeneralizedTxSet retrieves the GeneralizedTxSet value from the union,
+// returning ok if the union's switch indicated the value is valid.
+func (u TransactionHistoryEntryExt) GetGeneralizedTxSet() (result GeneralizedTransactionSet, ok bool) {
+	armName, _ := u.ArmForSwitch(int32(u.V))
+
+	if armName == "GeneralizedTxSet" {
+		result = *u.GeneralizedTxSet
+		ok = true
+	}
+
 	return
 }
 
@@ -11653,6 +12588,11 @@ func (u TransactionHistoryEntryExt) EncodeTo(e *xdr.Encoder) error {
 	switch int32(u.V) {
 	case 0:
 		// Void
+		return nil
+	case 1:
+		if err = (*u.GeneralizedTxSet).EncodeTo(e); err != nil {
+			return err
+		}
 		return nil
 	}
 	return fmt.Errorf("V (int32) switch value '%d' is not valid for union TransactionHistoryEntryExt", u.V)
@@ -11672,6 +12612,14 @@ func (u *TransactionHistoryEntryExt) DecodeFrom(d *xdr.Decoder) (int, error) {
 	switch int32(u.V) {
 	case 0:
 		// Void
+		return n, nil
+	case 1:
+		u.GeneralizedTxSet = new(GeneralizedTransactionSet)
+		nTmp, err = (*u.GeneralizedTxSet).DecodeFrom(d)
+		n += nTmp
+		if err != nil {
+			return n, fmt.Errorf("decoding GeneralizedTransactionSet: %s", err)
+		}
 		return n, nil
 	}
 	return n, fmt.Errorf("union TransactionHistoryEntryExt has invalid V (int32) switch value '%d'", u.V)
@@ -11711,11 +12659,13 @@ var _ xdrType = (*TransactionHistoryEntryExt)(nil)
 //	     uint32 ledgerSeq;
 //	     TransactionSet txSet;
 //
-//	     // reserved for future use
+//	     // when v != 0, txSet must be empty
 //	     union switch (int v)
 //	     {
 //	     case 0:
 //	         void;
+//	     case 1:
+//	         GeneralizedTransactionSet generalizedTxSet;
 //	     }
 //	     ext;
 //	 };
@@ -13720,16 +14670,177 @@ func (s LedgerCloseMetaV0) xdrType() {}
 
 var _ xdrType = (*LedgerCloseMetaV0)(nil)
 
+// LedgerCloseMetaV1 is an XDR Struct defines as:
+//
+//	struct LedgerCloseMetaV1
+//	 {
+//	     LedgerHeaderHistoryEntry ledgerHeader;
+//
+//	     GeneralizedTransactionSet txSet;
+//
+//	     // NB: transactions are sorted in apply order here
+//	     // fees for all transactions are processed first
+//	     // followed by applying transactions
+//	     TransactionResultMeta txProcessing<>;
+//
+//	     // upgrades are applied last
+//	     UpgradeEntryMeta upgradesProcessing<>;
+//
+//	     // other misc information attached to the ledger close
+//	     SCPHistoryEntry scpInfo<>;
+//	 };
+type LedgerCloseMetaV1 struct {
+	LedgerHeader       LedgerHeaderHistoryEntry
+	TxSet              GeneralizedTransactionSet
+	TxProcessing       []TransactionResultMeta
+	UpgradesProcessing []UpgradeEntryMeta
+	ScpInfo            []ScpHistoryEntry
+}
+
+// EncodeTo encodes this value using the Encoder.
+func (s *LedgerCloseMetaV1) EncodeTo(e *xdr.Encoder) error {
+	var err error
+	if err = s.LedgerHeader.EncodeTo(e); err != nil {
+		return err
+	}
+	if err = s.TxSet.EncodeTo(e); err != nil {
+		return err
+	}
+	if _, err = e.EncodeUint(uint32(len(s.TxProcessing))); err != nil {
+		return err
+	}
+	for i := 0; i < len(s.TxProcessing); i++ {
+		if err = s.TxProcessing[i].EncodeTo(e); err != nil {
+			return err
+		}
+	}
+	if _, err = e.EncodeUint(uint32(len(s.UpgradesProcessing))); err != nil {
+		return err
+	}
+	for i := 0; i < len(s.UpgradesProcessing); i++ {
+		if err = s.UpgradesProcessing[i].EncodeTo(e); err != nil {
+			return err
+		}
+	}
+	if _, err = e.EncodeUint(uint32(len(s.ScpInfo))); err != nil {
+		return err
+	}
+	for i := 0; i < len(s.ScpInfo); i++ {
+		if err = s.ScpInfo[i].EncodeTo(e); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+var _ decoderFrom = (*LedgerCloseMetaV1)(nil)
+
+// DecodeFrom decodes this value using the Decoder.
+func (s *LedgerCloseMetaV1) DecodeFrom(d *xdr.Decoder) (int, error) {
+	var err error
+	var n, nTmp int
+	nTmp, err = s.LedgerHeader.DecodeFrom(d)
+	n += nTmp
+	if err != nil {
+		return n, fmt.Errorf("decoding LedgerHeaderHistoryEntry: %s", err)
+	}
+	nTmp, err = s.TxSet.DecodeFrom(d)
+	n += nTmp
+	if err != nil {
+		return n, fmt.Errorf("decoding GeneralizedTransactionSet: %s", err)
+	}
+	var l uint32
+	l, nTmp, err = d.DecodeUint()
+	n += nTmp
+	if err != nil {
+		return n, fmt.Errorf("decoding TransactionResultMeta: %s", err)
+	}
+	s.TxProcessing = nil
+	if l > 0 {
+		s.TxProcessing = make([]TransactionResultMeta, l)
+		for i := uint32(0); i < l; i++ {
+			nTmp, err = s.TxProcessing[i].DecodeFrom(d)
+			n += nTmp
+			if err != nil {
+				return n, fmt.Errorf("decoding TransactionResultMeta: %s", err)
+			}
+		}
+	}
+	l, nTmp, err = d.DecodeUint()
+	n += nTmp
+	if err != nil {
+		return n, fmt.Errorf("decoding UpgradeEntryMeta: %s", err)
+	}
+	s.UpgradesProcessing = nil
+	if l > 0 {
+		s.UpgradesProcessing = make([]UpgradeEntryMeta, l)
+		for i := uint32(0); i < l; i++ {
+			nTmp, err = s.UpgradesProcessing[i].DecodeFrom(d)
+			n += nTmp
+			if err != nil {
+				return n, fmt.Errorf("decoding UpgradeEntryMeta: %s", err)
+			}
+		}
+	}
+	l, nTmp, err = d.DecodeUint()
+	n += nTmp
+	if err != nil {
+		return n, fmt.Errorf("decoding ScpHistoryEntry: %s", err)
+	}
+	s.ScpInfo = nil
+	if l > 0 {
+		s.ScpInfo = make([]ScpHistoryEntry, l)
+		for i := uint32(0); i < l; i++ {
+			nTmp, err = s.ScpInfo[i].DecodeFrom(d)
+			n += nTmp
+			if err != nil {
+				return n, fmt.Errorf("decoding ScpHistoryEntry: %s", err)
+			}
+		}
+	}
+	return n, nil
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler.
+func (s LedgerCloseMetaV1) MarshalBinary() ([]byte, error) {
+	b := bytes.Buffer{}
+	e := xdr.NewEncoder(&b)
+	err := s.EncodeTo(e)
+	return b.Bytes(), err
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler.
+func (s *LedgerCloseMetaV1) UnmarshalBinary(inp []byte) error {
+	r := bytes.NewReader(inp)
+	d := xdr.NewDecoder(r)
+	_, err := s.DecodeFrom(d)
+	return err
+}
+
+var (
+	_ encoding.BinaryMarshaler   = (*LedgerCloseMetaV1)(nil)
+	_ encoding.BinaryUnmarshaler = (*LedgerCloseMetaV1)(nil)
+)
+
+// xdrType signals that this type is an type representing
+// representing XDR values defined by this package.
+func (s LedgerCloseMetaV1) xdrType() {}
+
+var _ xdrType = (*LedgerCloseMetaV1)(nil)
+
 // LedgerCloseMeta is an XDR Union defines as:
 //
 //	union LedgerCloseMeta switch (int v)
 //	 {
 //	 case 0:
 //	     LedgerCloseMetaV0 v0;
+//	 case 1:
+//	     LedgerCloseMetaV1 v1;
 //	 };
 type LedgerCloseMeta struct {
 	V  int32
 	V0 *LedgerCloseMetaV0
+	V1 *LedgerCloseMetaV1
 }
 
 // SwitchFieldName returns the field name in which this union's
@@ -13744,6 +14855,8 @@ func (u LedgerCloseMeta) ArmForSwitch(sw int32) (string, bool) {
 	switch int32(sw) {
 	case 0:
 		return "V0", true
+	case 1:
+		return "V1", true
 	}
 	return "-", false
 }
@@ -13759,6 +14872,13 @@ func NewLedgerCloseMeta(v int32, value interface{}) (result LedgerCloseMeta, err
 			return
 		}
 		result.V0 = &tv
+	case 1:
+		tv, ok := value.(LedgerCloseMetaV1)
+		if !ok {
+			err = fmt.Errorf("invalid value, must be LedgerCloseMetaV1")
+			return
+		}
+		result.V1 = &tv
 	}
 	return
 }
@@ -13788,6 +14908,31 @@ func (u LedgerCloseMeta) GetV0() (result LedgerCloseMetaV0, ok bool) {
 	return
 }
 
+// MustV1 retrieves the V1 value from the union,
+// panicing if the value is not set.
+func (u LedgerCloseMeta) MustV1() LedgerCloseMetaV1 {
+	val, ok := u.GetV1()
+
+	if !ok {
+		panic("arm V1 is not set")
+	}
+
+	return val
+}
+
+// GetV1 retrieves the V1 value from the union,
+// returning ok if the union's switch indicated the value is valid.
+func (u LedgerCloseMeta) GetV1() (result LedgerCloseMetaV1, ok bool) {
+	armName, _ := u.ArmForSwitch(int32(u.V))
+
+	if armName == "V1" {
+		result = *u.V1
+		ok = true
+	}
+
+	return
+}
+
 // EncodeTo encodes this value using the Encoder.
 func (u LedgerCloseMeta) EncodeTo(e *xdr.Encoder) error {
 	var err error
@@ -13797,6 +14942,11 @@ func (u LedgerCloseMeta) EncodeTo(e *xdr.Encoder) error {
 	switch int32(u.V) {
 	case 0:
 		if err = (*u.V0).EncodeTo(e); err != nil {
+			return err
+		}
+		return nil
+	case 1:
+		if err = (*u.V1).EncodeTo(e); err != nil {
 			return err
 		}
 		return nil
@@ -13822,6 +14972,14 @@ func (u *LedgerCloseMeta) DecodeFrom(d *xdr.Decoder) (int, error) {
 		n += nTmp
 		if err != nil {
 			return n, fmt.Errorf("decoding LedgerCloseMetaV0: %s", err)
+		}
+		return n, nil
+	case 1:
+		u.V1 = new(LedgerCloseMetaV1)
+		nTmp, err = (*u.V1).DecodeFrom(d)
+		n += nTmp
+		if err != nil {
+			return n, fmt.Errorf("decoding LedgerCloseMetaV1: %s", err)
 		}
 		return n, nil
 	}
@@ -14016,6 +15174,66 @@ var (
 func (s Error) xdrType() {}
 
 var _ xdrType = (*Error)(nil)
+
+// SendMore is an XDR Struct defines as:
+//
+//	struct SendMore
+//	 {
+//	     uint32 numMessages;
+//	 };
+type SendMore struct {
+	NumMessages Uint32
+}
+
+// EncodeTo encodes this value using the Encoder.
+func (s *SendMore) EncodeTo(e *xdr.Encoder) error {
+	var err error
+	if err = s.NumMessages.EncodeTo(e); err != nil {
+		return err
+	}
+	return nil
+}
+
+var _ decoderFrom = (*SendMore)(nil)
+
+// DecodeFrom decodes this value using the Decoder.
+func (s *SendMore) DecodeFrom(d *xdr.Decoder) (int, error) {
+	var err error
+	var n, nTmp int
+	nTmp, err = s.NumMessages.DecodeFrom(d)
+	n += nTmp
+	if err != nil {
+		return n, fmt.Errorf("decoding Uint32: %s", err)
+	}
+	return n, nil
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler.
+func (s SendMore) MarshalBinary() ([]byte, error) {
+	b := bytes.Buffer{}
+	e := xdr.NewEncoder(&b)
+	err := s.EncodeTo(e)
+	return b.Bytes(), err
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler.
+func (s *SendMore) UnmarshalBinary(inp []byte) error {
+	r := bytes.NewReader(inp)
+	d := xdr.NewDecoder(r)
+	_, err := s.DecodeFrom(d)
+	return err
+}
+
+var (
+	_ encoding.BinaryMarshaler   = (*SendMore)(nil)
+	_ encoding.BinaryUnmarshaler = (*SendMore)(nil)
+)
+
+// xdrType signals that this type is an type representing
+// representing XDR values defined by this package.
+func (s SendMore) xdrType() {}
+
+var _ xdrType = (*SendMore)(nil)
 
 // AuthCert is an XDR Struct defines as:
 //
@@ -14237,22 +15455,25 @@ func (s Hello) xdrType() {}
 
 var _ xdrType = (*Hello)(nil)
 
+// AuthMsgFlagPullModeRequested is an XDR Const defines as:
+//
+//	const AUTH_MSG_FLAG_PULL_MODE_REQUESTED = 100;
+const AuthMsgFlagPullModeRequested = 100
+
 // Auth is an XDR Struct defines as:
 //
 //	struct Auth
 //	 {
-//	     // Empty message, just to confirm
-//	     // establishment of MAC keys.
-//	     int unused;
+//	     int flags;
 //	 };
 type Auth struct {
-	Unused int32
+	Flags int32
 }
 
 // EncodeTo encodes this value using the Encoder.
 func (s *Auth) EncodeTo(e *xdr.Encoder) error {
 	var err error
-	if _, err = e.EncodeInt(int32(s.Unused)); err != nil {
+	if _, err = e.EncodeInt(int32(s.Flags)); err != nil {
 		return err
 	}
 	return nil
@@ -14264,7 +15485,7 @@ var _ decoderFrom = (*Auth)(nil)
 func (s *Auth) DecodeFrom(d *xdr.Decoder) (int, error) {
 	var err error
 	var n, nTmp int
-	s.Unused, nTmp, err = d.DecodeInt()
+	s.Flags, nTmp, err = d.DecodeInt()
 	n += nTmp
 	if err != nil {
 		return n, fmt.Errorf("decoding Int: %s", err)
@@ -14667,6 +15888,7 @@ var _ xdrType = (*PeerAddress)(nil)
 //
 //	     GET_TX_SET = 6, // gets a particular txset by hash
 //	     TX_SET = 7,
+//	     GENERALIZED_TX_SET = 17,
 //
 //	     TRANSACTION = 8, // pass on a tx you have heard about
 //
@@ -14680,26 +15902,34 @@ var _ xdrType = (*PeerAddress)(nil)
 //	     HELLO = 13,
 //
 //	     SURVEY_REQUEST = 14,
-//	     SURVEY_RESPONSE = 15
+//	     SURVEY_RESPONSE = 15,
+//
+//	     SEND_MORE = 16,
+//	     FLOOD_ADVERT = 18,
+//	     FLOOD_DEMAND = 19
 //	 };
 type MessageType int32
 
 const (
-	MessageTypeErrorMsg        MessageType = 0
-	MessageTypeAuth            MessageType = 2
-	MessageTypeDontHave        MessageType = 3
-	MessageTypeGetPeers        MessageType = 4
-	MessageTypePeers           MessageType = 5
-	MessageTypeGetTxSet        MessageType = 6
-	MessageTypeTxSet           MessageType = 7
-	MessageTypeTransaction     MessageType = 8
-	MessageTypeGetScpQuorumset MessageType = 9
-	MessageTypeScpQuorumset    MessageType = 10
-	MessageTypeScpMessage      MessageType = 11
-	MessageTypeGetScpState     MessageType = 12
-	MessageTypeHello           MessageType = 13
-	MessageTypeSurveyRequest   MessageType = 14
-	MessageTypeSurveyResponse  MessageType = 15
+	MessageTypeErrorMsg         MessageType = 0
+	MessageTypeAuth             MessageType = 2
+	MessageTypeDontHave         MessageType = 3
+	MessageTypeGetPeers         MessageType = 4
+	MessageTypePeers            MessageType = 5
+	MessageTypeGetTxSet         MessageType = 6
+	MessageTypeTxSet            MessageType = 7
+	MessageTypeGeneralizedTxSet MessageType = 17
+	MessageTypeTransaction      MessageType = 8
+	MessageTypeGetScpQuorumset  MessageType = 9
+	MessageTypeScpQuorumset     MessageType = 10
+	MessageTypeScpMessage       MessageType = 11
+	MessageTypeGetScpState      MessageType = 12
+	MessageTypeHello            MessageType = 13
+	MessageTypeSurveyRequest    MessageType = 14
+	MessageTypeSurveyResponse   MessageType = 15
+	MessageTypeSendMore         MessageType = 16
+	MessageTypeFloodAdvert      MessageType = 18
+	MessageTypeFloodDemand      MessageType = 19
 )
 
 var messageTypeMap = map[int32]string{
@@ -14710,6 +15940,7 @@ var messageTypeMap = map[int32]string{
 	5:  "MessageTypePeers",
 	6:  "MessageTypeGetTxSet",
 	7:  "MessageTypeTxSet",
+	17: "MessageTypeGeneralizedTxSet",
 	8:  "MessageTypeTransaction",
 	9:  "MessageTypeGetScpQuorumset",
 	10: "MessageTypeScpQuorumset",
@@ -14718,6 +15949,9 @@ var messageTypeMap = map[int32]string{
 	13: "MessageTypeHello",
 	14: "MessageTypeSurveyRequest",
 	15: "MessageTypeSurveyResponse",
+	16: "MessageTypeSendMore",
+	18: "MessageTypeFloodAdvert",
+	19: "MessageTypeFloodDemand",
 }
 
 // ValidEnum validates a proposed value for this enum.  Implements
@@ -15842,6 +17076,296 @@ func (s SurveyResponseBody) xdrType() {}
 
 var _ xdrType = (*SurveyResponseBody)(nil)
 
+// TxAdvertVectorMaxSize is an XDR Const defines as:
+//
+//	const TX_ADVERT_VECTOR_MAX_SIZE = 1000;
+const TxAdvertVectorMaxSize = 1000
+
+// TxAdvertVector is an XDR Typedef defines as:
+//
+//	typedef Hash TxAdvertVector<TX_ADVERT_VECTOR_MAX_SIZE>;
+type TxAdvertVector []Hash
+
+// XDRMaxSize implements the Sized interface for TxAdvertVector
+func (e TxAdvertVector) XDRMaxSize() int {
+	return 1000
+}
+
+// EncodeTo encodes this value using the Encoder.
+func (s TxAdvertVector) EncodeTo(e *xdr.Encoder) error {
+	var err error
+	if _, err = e.EncodeUint(uint32(len(s))); err != nil {
+		return err
+	}
+	for i := 0; i < len(s); i++ {
+		if err = s[i].EncodeTo(e); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+var _ decoderFrom = (*TxAdvertVector)(nil)
+
+// DecodeFrom decodes this value using the Decoder.
+func (s *TxAdvertVector) DecodeFrom(d *xdr.Decoder) (int, error) {
+	var err error
+	var n, nTmp int
+	var l uint32
+	l, nTmp, err = d.DecodeUint()
+	n += nTmp
+	if err != nil {
+		return n, fmt.Errorf("decoding Hash: %s", err)
+	}
+	if l > 1000 {
+		return n, fmt.Errorf("decoding Hash: data size (%d) exceeds size limit (1000)", l)
+	}
+	(*s) = nil
+	if l > 0 {
+		(*s) = make([]Hash, l)
+		for i := uint32(0); i < l; i++ {
+			nTmp, err = (*s)[i].DecodeFrom(d)
+			n += nTmp
+			if err != nil {
+				return n, fmt.Errorf("decoding Hash: %s", err)
+			}
+		}
+	}
+	return n, nil
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler.
+func (s TxAdvertVector) MarshalBinary() ([]byte, error) {
+	b := bytes.Buffer{}
+	e := xdr.NewEncoder(&b)
+	err := s.EncodeTo(e)
+	return b.Bytes(), err
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler.
+func (s *TxAdvertVector) UnmarshalBinary(inp []byte) error {
+	r := bytes.NewReader(inp)
+	d := xdr.NewDecoder(r)
+	_, err := s.DecodeFrom(d)
+	return err
+}
+
+var (
+	_ encoding.BinaryMarshaler   = (*TxAdvertVector)(nil)
+	_ encoding.BinaryUnmarshaler = (*TxAdvertVector)(nil)
+)
+
+// xdrType signals that this type is an type representing
+// representing XDR values defined by this package.
+func (s TxAdvertVector) xdrType() {}
+
+var _ xdrType = (*TxAdvertVector)(nil)
+
+// FloodAdvert is an XDR Struct defines as:
+//
+//	struct FloodAdvert
+//	 {
+//	     TxAdvertVector txHashes;
+//	 };
+type FloodAdvert struct {
+	TxHashes TxAdvertVector
+}
+
+// EncodeTo encodes this value using the Encoder.
+func (s *FloodAdvert) EncodeTo(e *xdr.Encoder) error {
+	var err error
+	if err = s.TxHashes.EncodeTo(e); err != nil {
+		return err
+	}
+	return nil
+}
+
+var _ decoderFrom = (*FloodAdvert)(nil)
+
+// DecodeFrom decodes this value using the Decoder.
+func (s *FloodAdvert) DecodeFrom(d *xdr.Decoder) (int, error) {
+	var err error
+	var n, nTmp int
+	nTmp, err = s.TxHashes.DecodeFrom(d)
+	n += nTmp
+	if err != nil {
+		return n, fmt.Errorf("decoding TxAdvertVector: %s", err)
+	}
+	return n, nil
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler.
+func (s FloodAdvert) MarshalBinary() ([]byte, error) {
+	b := bytes.Buffer{}
+	e := xdr.NewEncoder(&b)
+	err := s.EncodeTo(e)
+	return b.Bytes(), err
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler.
+func (s *FloodAdvert) UnmarshalBinary(inp []byte) error {
+	r := bytes.NewReader(inp)
+	d := xdr.NewDecoder(r)
+	_, err := s.DecodeFrom(d)
+	return err
+}
+
+var (
+	_ encoding.BinaryMarshaler   = (*FloodAdvert)(nil)
+	_ encoding.BinaryUnmarshaler = (*FloodAdvert)(nil)
+)
+
+// xdrType signals that this type is an type representing
+// representing XDR values defined by this package.
+func (s FloodAdvert) xdrType() {}
+
+var _ xdrType = (*FloodAdvert)(nil)
+
+// TxDemandVectorMaxSize is an XDR Const defines as:
+//
+//	const TX_DEMAND_VECTOR_MAX_SIZE = 1000;
+const TxDemandVectorMaxSize = 1000
+
+// TxDemandVector is an XDR Typedef defines as:
+//
+//	typedef Hash TxDemandVector<TX_DEMAND_VECTOR_MAX_SIZE>;
+type TxDemandVector []Hash
+
+// XDRMaxSize implements the Sized interface for TxDemandVector
+func (e TxDemandVector) XDRMaxSize() int {
+	return 1000
+}
+
+// EncodeTo encodes this value using the Encoder.
+func (s TxDemandVector) EncodeTo(e *xdr.Encoder) error {
+	var err error
+	if _, err = e.EncodeUint(uint32(len(s))); err != nil {
+		return err
+	}
+	for i := 0; i < len(s); i++ {
+		if err = s[i].EncodeTo(e); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+var _ decoderFrom = (*TxDemandVector)(nil)
+
+// DecodeFrom decodes this value using the Decoder.
+func (s *TxDemandVector) DecodeFrom(d *xdr.Decoder) (int, error) {
+	var err error
+	var n, nTmp int
+	var l uint32
+	l, nTmp, err = d.DecodeUint()
+	n += nTmp
+	if err != nil {
+		return n, fmt.Errorf("decoding Hash: %s", err)
+	}
+	if l > 1000 {
+		return n, fmt.Errorf("decoding Hash: data size (%d) exceeds size limit (1000)", l)
+	}
+	(*s) = nil
+	if l > 0 {
+		(*s) = make([]Hash, l)
+		for i := uint32(0); i < l; i++ {
+			nTmp, err = (*s)[i].DecodeFrom(d)
+			n += nTmp
+			if err != nil {
+				return n, fmt.Errorf("decoding Hash: %s", err)
+			}
+		}
+	}
+	return n, nil
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler.
+func (s TxDemandVector) MarshalBinary() ([]byte, error) {
+	b := bytes.Buffer{}
+	e := xdr.NewEncoder(&b)
+	err := s.EncodeTo(e)
+	return b.Bytes(), err
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler.
+func (s *TxDemandVector) UnmarshalBinary(inp []byte) error {
+	r := bytes.NewReader(inp)
+	d := xdr.NewDecoder(r)
+	_, err := s.DecodeFrom(d)
+	return err
+}
+
+var (
+	_ encoding.BinaryMarshaler   = (*TxDemandVector)(nil)
+	_ encoding.BinaryUnmarshaler = (*TxDemandVector)(nil)
+)
+
+// xdrType signals that this type is an type representing
+// representing XDR values defined by this package.
+func (s TxDemandVector) xdrType() {}
+
+var _ xdrType = (*TxDemandVector)(nil)
+
+// FloodDemand is an XDR Struct defines as:
+//
+//	struct FloodDemand
+//	 {
+//	     TxDemandVector txHashes;
+//	 };
+type FloodDemand struct {
+	TxHashes TxDemandVector
+}
+
+// EncodeTo encodes this value using the Encoder.
+func (s *FloodDemand) EncodeTo(e *xdr.Encoder) error {
+	var err error
+	if err = s.TxHashes.EncodeTo(e); err != nil {
+		return err
+	}
+	return nil
+}
+
+var _ decoderFrom = (*FloodDemand)(nil)
+
+// DecodeFrom decodes this value using the Decoder.
+func (s *FloodDemand) DecodeFrom(d *xdr.Decoder) (int, error) {
+	var err error
+	var n, nTmp int
+	nTmp, err = s.TxHashes.DecodeFrom(d)
+	n += nTmp
+	if err != nil {
+		return n, fmt.Errorf("decoding TxDemandVector: %s", err)
+	}
+	return n, nil
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler.
+func (s FloodDemand) MarshalBinary() ([]byte, error) {
+	b := bytes.Buffer{}
+	e := xdr.NewEncoder(&b)
+	err := s.EncodeTo(e)
+	return b.Bytes(), err
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler.
+func (s *FloodDemand) UnmarshalBinary(inp []byte) error {
+	r := bytes.NewReader(inp)
+	d := xdr.NewDecoder(r)
+	_, err := s.DecodeFrom(d)
+	return err
+}
+
+var (
+	_ encoding.BinaryMarshaler   = (*FloodDemand)(nil)
+	_ encoding.BinaryUnmarshaler = (*FloodDemand)(nil)
+)
+
+// xdrType signals that this type is an type representing
+// representing XDR values defined by this package.
+func (s FloodDemand) xdrType() {}
+
+var _ xdrType = (*FloodDemand)(nil)
+
 // StellarMessage is an XDR Union defines as:
 //
 //	union StellarMessage switch (MessageType type)
@@ -15863,6 +17387,8 @@ var _ xdrType = (*SurveyResponseBody)(nil)
 //	     uint256 txSetHash;
 //	 case TX_SET:
 //	     TransactionSet txSet;
+//	 case GENERALIZED_TX_SET:
+//	     GeneralizedTransactionSet generalizedTxSet;
 //
 //	 case TRANSACTION:
 //	     TransactionEnvelope transaction;
@@ -15882,6 +17408,14 @@ var _ xdrType = (*SurveyResponseBody)(nil)
 //	     SCPEnvelope envelope;
 //	 case GET_SCP_STATE:
 //	     uint32 getSCPLedgerSeq; // ledger seq requested ; if 0, requests the latest
+//	 case SEND_MORE:
+//	     SendMore sendMoreMessage;
+//
+//	 // Pull mode
+//	 case FLOOD_ADVERT:
+//	      FloodAdvert floodAdvert;
+//	 case FLOOD_DEMAND:
+//	      FloodDemand floodDemand;
 //	 };
 type StellarMessage struct {
 	Type                        MessageType
@@ -15892,6 +17426,7 @@ type StellarMessage struct {
 	Peers                       *[]PeerAddress `xdrmaxsize:"100"`
 	TxSetHash                   *Uint256
 	TxSet                       *TransactionSet
+	GeneralizedTxSet            *GeneralizedTransactionSet
 	Transaction                 *TransactionEnvelope
 	SignedSurveyRequestMessage  *SignedSurveyRequestMessage
 	SignedSurveyResponseMessage *SignedSurveyResponseMessage
@@ -15899,6 +17434,9 @@ type StellarMessage struct {
 	QSet                        *ScpQuorumSet
 	Envelope                    *ScpEnvelope
 	GetScpLedgerSeq             *Uint32
+	SendMoreMessage             *SendMore
+	FloodAdvert                 *FloodAdvert
+	FloodDemand                 *FloodDemand
 }
 
 // SwitchFieldName returns the field name in which this union's
@@ -15927,6 +17465,8 @@ func (u StellarMessage) ArmForSwitch(sw int32) (string, bool) {
 		return "TxSetHash", true
 	case MessageTypeTxSet:
 		return "TxSet", true
+	case MessageTypeGeneralizedTxSet:
+		return "GeneralizedTxSet", true
 	case MessageTypeTransaction:
 		return "Transaction", true
 	case MessageTypeSurveyRequest:
@@ -15941,6 +17481,12 @@ func (u StellarMessage) ArmForSwitch(sw int32) (string, bool) {
 		return "Envelope", true
 	case MessageTypeGetScpState:
 		return "GetScpLedgerSeq", true
+	case MessageTypeSendMore:
+		return "SendMoreMessage", true
+	case MessageTypeFloodAdvert:
+		return "FloodAdvert", true
+	case MessageTypeFloodDemand:
+		return "FloodDemand", true
 	}
 	return "-", false
 }
@@ -16000,6 +17546,13 @@ func NewStellarMessage(aType MessageType, value interface{}) (result StellarMess
 			return
 		}
 		result.TxSet = &tv
+	case MessageTypeGeneralizedTxSet:
+		tv, ok := value.(GeneralizedTransactionSet)
+		if !ok {
+			err = fmt.Errorf("invalid value, must be GeneralizedTransactionSet")
+			return
+		}
+		result.GeneralizedTxSet = &tv
 	case MessageTypeTransaction:
 		tv, ok := value.(TransactionEnvelope)
 		if !ok {
@@ -16049,6 +17602,27 @@ func NewStellarMessage(aType MessageType, value interface{}) (result StellarMess
 			return
 		}
 		result.GetScpLedgerSeq = &tv
+	case MessageTypeSendMore:
+		tv, ok := value.(SendMore)
+		if !ok {
+			err = fmt.Errorf("invalid value, must be SendMore")
+			return
+		}
+		result.SendMoreMessage = &tv
+	case MessageTypeFloodAdvert:
+		tv, ok := value.(FloodAdvert)
+		if !ok {
+			err = fmt.Errorf("invalid value, must be FloodAdvert")
+			return
+		}
+		result.FloodAdvert = &tv
+	case MessageTypeFloodDemand:
+		tv, ok := value.(FloodDemand)
+		if !ok {
+			err = fmt.Errorf("invalid value, must be FloodDemand")
+			return
+		}
+		result.FloodDemand = &tv
 	}
 	return
 }
@@ -16222,6 +17796,31 @@ func (u StellarMessage) GetTxSet() (result TransactionSet, ok bool) {
 
 	if armName == "TxSet" {
 		result = *u.TxSet
+		ok = true
+	}
+
+	return
+}
+
+// MustGeneralizedTxSet retrieves the GeneralizedTxSet value from the union,
+// panicing if the value is not set.
+func (u StellarMessage) MustGeneralizedTxSet() GeneralizedTransactionSet {
+	val, ok := u.GetGeneralizedTxSet()
+
+	if !ok {
+		panic("arm GeneralizedTxSet is not set")
+	}
+
+	return val
+}
+
+// GetGeneralizedTxSet retrieves the GeneralizedTxSet value from the union,
+// returning ok if the union's switch indicated the value is valid.
+func (u StellarMessage) GetGeneralizedTxSet() (result GeneralizedTransactionSet, ok bool) {
+	armName, _ := u.ArmForSwitch(int32(u.Type))
+
+	if armName == "GeneralizedTxSet" {
+		result = *u.GeneralizedTxSet
 		ok = true
 	}
 
@@ -16403,6 +18002,81 @@ func (u StellarMessage) GetGetScpLedgerSeq() (result Uint32, ok bool) {
 	return
 }
 
+// MustSendMoreMessage retrieves the SendMoreMessage value from the union,
+// panicing if the value is not set.
+func (u StellarMessage) MustSendMoreMessage() SendMore {
+	val, ok := u.GetSendMoreMessage()
+
+	if !ok {
+		panic("arm SendMoreMessage is not set")
+	}
+
+	return val
+}
+
+// GetSendMoreMessage retrieves the SendMoreMessage value from the union,
+// returning ok if the union's switch indicated the value is valid.
+func (u StellarMessage) GetSendMoreMessage() (result SendMore, ok bool) {
+	armName, _ := u.ArmForSwitch(int32(u.Type))
+
+	if armName == "SendMoreMessage" {
+		result = *u.SendMoreMessage
+		ok = true
+	}
+
+	return
+}
+
+// MustFloodAdvert retrieves the FloodAdvert value from the union,
+// panicing if the value is not set.
+func (u StellarMessage) MustFloodAdvert() FloodAdvert {
+	val, ok := u.GetFloodAdvert()
+
+	if !ok {
+		panic("arm FloodAdvert is not set")
+	}
+
+	return val
+}
+
+// GetFloodAdvert retrieves the FloodAdvert value from the union,
+// returning ok if the union's switch indicated the value is valid.
+func (u StellarMessage) GetFloodAdvert() (result FloodAdvert, ok bool) {
+	armName, _ := u.ArmForSwitch(int32(u.Type))
+
+	if armName == "FloodAdvert" {
+		result = *u.FloodAdvert
+		ok = true
+	}
+
+	return
+}
+
+// MustFloodDemand retrieves the FloodDemand value from the union,
+// panicing if the value is not set.
+func (u StellarMessage) MustFloodDemand() FloodDemand {
+	val, ok := u.GetFloodDemand()
+
+	if !ok {
+		panic("arm FloodDemand is not set")
+	}
+
+	return val
+}
+
+// GetFloodDemand retrieves the FloodDemand value from the union,
+// returning ok if the union's switch indicated the value is valid.
+func (u StellarMessage) GetFloodDemand() (result FloodDemand, ok bool) {
+	armName, _ := u.ArmForSwitch(int32(u.Type))
+
+	if armName == "FloodDemand" {
+		result = *u.FloodDemand
+		ok = true
+	}
+
+	return
+}
+
 // EncodeTo encodes this value using the Encoder.
 func (u StellarMessage) EncodeTo(e *xdr.Encoder) error {
 	var err error
@@ -16453,6 +18127,11 @@ func (u StellarMessage) EncodeTo(e *xdr.Encoder) error {
 			return err
 		}
 		return nil
+	case MessageTypeGeneralizedTxSet:
+		if err = (*u.GeneralizedTxSet).EncodeTo(e); err != nil {
+			return err
+		}
+		return nil
 	case MessageTypeTransaction:
 		if err = (*u.Transaction).EncodeTo(e); err != nil {
 			return err
@@ -16485,6 +18164,21 @@ func (u StellarMessage) EncodeTo(e *xdr.Encoder) error {
 		return nil
 	case MessageTypeGetScpState:
 		if err = (*u.GetScpLedgerSeq).EncodeTo(e); err != nil {
+			return err
+		}
+		return nil
+	case MessageTypeSendMore:
+		if err = (*u.SendMoreMessage).EncodeTo(e); err != nil {
+			return err
+		}
+		return nil
+	case MessageTypeFloodAdvert:
+		if err = (*u.FloodAdvert).EncodeTo(e); err != nil {
+			return err
+		}
+		return nil
+	case MessageTypeFloodDemand:
+		if err = (*u.FloodDemand).EncodeTo(e); err != nil {
 			return err
 		}
 		return nil
@@ -16578,6 +18272,14 @@ func (u *StellarMessage) DecodeFrom(d *xdr.Decoder) (int, error) {
 			return n, fmt.Errorf("decoding TransactionSet: %s", err)
 		}
 		return n, nil
+	case MessageTypeGeneralizedTxSet:
+		u.GeneralizedTxSet = new(GeneralizedTransactionSet)
+		nTmp, err = (*u.GeneralizedTxSet).DecodeFrom(d)
+		n += nTmp
+		if err != nil {
+			return n, fmt.Errorf("decoding GeneralizedTransactionSet: %s", err)
+		}
+		return n, nil
 	case MessageTypeTransaction:
 		u.Transaction = new(TransactionEnvelope)
 		nTmp, err = (*u.Transaction).DecodeFrom(d)
@@ -16632,6 +18334,30 @@ func (u *StellarMessage) DecodeFrom(d *xdr.Decoder) (int, error) {
 		n += nTmp
 		if err != nil {
 			return n, fmt.Errorf("decoding Uint32: %s", err)
+		}
+		return n, nil
+	case MessageTypeSendMore:
+		u.SendMoreMessage = new(SendMore)
+		nTmp, err = (*u.SendMoreMessage).DecodeFrom(d)
+		n += nTmp
+		if err != nil {
+			return n, fmt.Errorf("decoding SendMore: %s", err)
+		}
+		return n, nil
+	case MessageTypeFloodAdvert:
+		u.FloodAdvert = new(FloodAdvert)
+		nTmp, err = (*u.FloodAdvert).DecodeFrom(d)
+		n += nTmp
+		if err != nil {
+			return n, fmt.Errorf("decoding FloodAdvert: %s", err)
+		}
+		return n, nil
+	case MessageTypeFloodDemand:
+		u.FloodDemand = new(FloodDemand)
+		nTmp, err = (*u.FloodDemand).DecodeFrom(d)
+		n += nTmp
+		if err != nil {
+			return n, fmt.Errorf("decoding FloodDemand: %s", err)
 		}
 		return n, nil
 	}
@@ -19839,10 +21565,10 @@ const LiquidityPoolFeeV18 = 30
 //	struct LiquidityPoolDepositOp
 //	 {
 //	     PoolID liquidityPoolID;
-//	     int64 maxAmountA;     // maximum amount of first asset to deposit
-//	     int64 maxAmountB;     // maximum amount of second asset to deposit
-//	     Price minPrice;       // minimum depositA/depositB
-//	     Price maxPrice;       // maximum depositA/depositB
+//	     int64 maxAmountA; // maximum amount of first asset to deposit
+//	     int64 maxAmountB; // maximum amount of second asset to deposit
+//	     Price minPrice;   // minimum depositA/depositB
+//	     Price maxPrice;   // maximum depositA/depositB
 //	 };
 type LiquidityPoolDepositOp struct {
 	LiquidityPoolId PoolId
@@ -19939,9 +21665,9 @@ var _ xdrType = (*LiquidityPoolDepositOp)(nil)
 //	struct LiquidityPoolWithdrawOp
 //	 {
 //	     PoolID liquidityPoolID;
-//	     int64 amount;         // amount of pool shares to withdraw
-//	     int64 minAmountA;     // minimum amount of first asset to withdraw
-//	     int64 minAmountB;     // minimum amount of second asset to withdraw
+//	     int64 amount;     // amount of pool shares to withdraw
+//	     int64 minAmountA; // minimum amount of first asset to withdraw
+//	     int64 minAmountB; // minimum amount of second asset to withdraw
 //	 };
 type LiquidityPoolWithdrawOp struct {
 	LiquidityPoolId PoolId
@@ -22209,6 +23935,555 @@ func (s TimeBounds) xdrType() {}
 
 var _ xdrType = (*TimeBounds)(nil)
 
+// LedgerBounds is an XDR Struct defines as:
+//
+//	struct LedgerBounds
+//	 {
+//	     uint32 minLedger;
+//	     uint32 maxLedger; // 0 here means no maxLedger
+//	 };
+type LedgerBounds struct {
+	MinLedger Uint32
+	MaxLedger Uint32
+}
+
+// EncodeTo encodes this value using the Encoder.
+func (s *LedgerBounds) EncodeTo(e *xdr.Encoder) error {
+	var err error
+	if err = s.MinLedger.EncodeTo(e); err != nil {
+		return err
+	}
+	if err = s.MaxLedger.EncodeTo(e); err != nil {
+		return err
+	}
+	return nil
+}
+
+var _ decoderFrom = (*LedgerBounds)(nil)
+
+// DecodeFrom decodes this value using the Decoder.
+func (s *LedgerBounds) DecodeFrom(d *xdr.Decoder) (int, error) {
+	var err error
+	var n, nTmp int
+	nTmp, err = s.MinLedger.DecodeFrom(d)
+	n += nTmp
+	if err != nil {
+		return n, fmt.Errorf("decoding Uint32: %s", err)
+	}
+	nTmp, err = s.MaxLedger.DecodeFrom(d)
+	n += nTmp
+	if err != nil {
+		return n, fmt.Errorf("decoding Uint32: %s", err)
+	}
+	return n, nil
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler.
+func (s LedgerBounds) MarshalBinary() ([]byte, error) {
+	b := bytes.Buffer{}
+	e := xdr.NewEncoder(&b)
+	err := s.EncodeTo(e)
+	return b.Bytes(), err
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler.
+func (s *LedgerBounds) UnmarshalBinary(inp []byte) error {
+	r := bytes.NewReader(inp)
+	d := xdr.NewDecoder(r)
+	_, err := s.DecodeFrom(d)
+	return err
+}
+
+var (
+	_ encoding.BinaryMarshaler   = (*LedgerBounds)(nil)
+	_ encoding.BinaryUnmarshaler = (*LedgerBounds)(nil)
+)
+
+// xdrType signals that this type is an type representing
+// representing XDR values defined by this package.
+func (s LedgerBounds) xdrType() {}
+
+var _ xdrType = (*LedgerBounds)(nil)
+
+// PreconditionsV2 is an XDR Struct defines as:
+//
+//	struct PreconditionsV2
+//	 {
+//	     TimeBounds* timeBounds;
+//
+//	     // Transaction only valid for ledger numbers n such that
+//	     // minLedger <= n < maxLedger (if maxLedger == 0, then
+//	     // only minLedger is checked)
+//	     LedgerBounds* ledgerBounds;
+//
+//	     // If NULL, only valid when sourceAccount's sequence number
+//	     // is seqNum - 1.  Otherwise, valid when sourceAccount's
+//	     // sequence number n satisfies minSeqNum <= n < tx.seqNum.
+//	     // Note that after execution the account's sequence number
+//	     // is always raised to tx.seqNum, and a transaction is not
+//	     // valid if tx.seqNum is too high to ensure replay protection.
+//	     SequenceNumber* minSeqNum;
+//
+//	     // For the transaction to be valid, the current ledger time must
+//	     // be at least minSeqAge greater than sourceAccount's seqTime.
+//	     Duration minSeqAge;
+//
+//	     // For the transaction to be valid, the current ledger number
+//	     // must be at least minSeqLedgerGap greater than sourceAccount's
+//	     // seqLedger.
+//	     uint32 minSeqLedgerGap;
+//
+//	     // For the transaction to be valid, there must be a signature
+//	     // corresponding to every Signer in this array, even if the
+//	     // signature is not otherwise required by the sourceAccount or
+//	     // operations.
+//	     SignerKey extraSigners<2>;
+//	 };
+type PreconditionsV2 struct {
+	TimeBounds      *TimeBounds
+	LedgerBounds    *LedgerBounds
+	MinSeqNum       *SequenceNumber
+	MinSeqAge       Duration
+	MinSeqLedgerGap Uint32
+	ExtraSigners    []SignerKey `xdrmaxsize:"2"`
+}
+
+// EncodeTo encodes this value using the Encoder.
+func (s *PreconditionsV2) EncodeTo(e *xdr.Encoder) error {
+	var err error
+	if _, err = e.EncodeBool(s.TimeBounds != nil); err != nil {
+		return err
+	}
+	if s.TimeBounds != nil {
+		if err = (*s.TimeBounds).EncodeTo(e); err != nil {
+			return err
+		}
+	}
+	if _, err = e.EncodeBool(s.LedgerBounds != nil); err != nil {
+		return err
+	}
+	if s.LedgerBounds != nil {
+		if err = (*s.LedgerBounds).EncodeTo(e); err != nil {
+			return err
+		}
+	}
+	if _, err = e.EncodeBool(s.MinSeqNum != nil); err != nil {
+		return err
+	}
+	if s.MinSeqNum != nil {
+		if err = (*s.MinSeqNum).EncodeTo(e); err != nil {
+			return err
+		}
+	}
+	if err = s.MinSeqAge.EncodeTo(e); err != nil {
+		return err
+	}
+	if err = s.MinSeqLedgerGap.EncodeTo(e); err != nil {
+		return err
+	}
+	if _, err = e.EncodeUint(uint32(len(s.ExtraSigners))); err != nil {
+		return err
+	}
+	for i := 0; i < len(s.ExtraSigners); i++ {
+		if err = s.ExtraSigners[i].EncodeTo(e); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+var _ decoderFrom = (*PreconditionsV2)(nil)
+
+// DecodeFrom decodes this value using the Decoder.
+func (s *PreconditionsV2) DecodeFrom(d *xdr.Decoder) (int, error) {
+	var err error
+	var n, nTmp int
+	var b bool
+	b, nTmp, err = d.DecodeBool()
+	n += nTmp
+	if err != nil {
+		return n, fmt.Errorf("decoding TimeBounds: %s", err)
+	}
+	s.TimeBounds = nil
+	if b {
+		s.TimeBounds = new(TimeBounds)
+		nTmp, err = s.TimeBounds.DecodeFrom(d)
+		n += nTmp
+		if err != nil {
+			return n, fmt.Errorf("decoding TimeBounds: %s", err)
+		}
+	}
+	b, nTmp, err = d.DecodeBool()
+	n += nTmp
+	if err != nil {
+		return n, fmt.Errorf("decoding LedgerBounds: %s", err)
+	}
+	s.LedgerBounds = nil
+	if b {
+		s.LedgerBounds = new(LedgerBounds)
+		nTmp, err = s.LedgerBounds.DecodeFrom(d)
+		n += nTmp
+		if err != nil {
+			return n, fmt.Errorf("decoding LedgerBounds: %s", err)
+		}
+	}
+	b, nTmp, err = d.DecodeBool()
+	n += nTmp
+	if err != nil {
+		return n, fmt.Errorf("decoding SequenceNumber: %s", err)
+	}
+	s.MinSeqNum = nil
+	if b {
+		s.MinSeqNum = new(SequenceNumber)
+		nTmp, err = s.MinSeqNum.DecodeFrom(d)
+		n += nTmp
+		if err != nil {
+			return n, fmt.Errorf("decoding SequenceNumber: %s", err)
+		}
+	}
+	nTmp, err = s.MinSeqAge.DecodeFrom(d)
+	n += nTmp
+	if err != nil {
+		return n, fmt.Errorf("decoding Duration: %s", err)
+	}
+	nTmp, err = s.MinSeqLedgerGap.DecodeFrom(d)
+	n += nTmp
+	if err != nil {
+		return n, fmt.Errorf("decoding Uint32: %s", err)
+	}
+	var l uint32
+	l, nTmp, err = d.DecodeUint()
+	n += nTmp
+	if err != nil {
+		return n, fmt.Errorf("decoding SignerKey: %s", err)
+	}
+	if l > 2 {
+		return n, fmt.Errorf("decoding SignerKey: data size (%d) exceeds size limit (2)", l)
+	}
+	s.ExtraSigners = nil
+	if l > 0 {
+		s.ExtraSigners = make([]SignerKey, l)
+		for i := uint32(0); i < l; i++ {
+			nTmp, err = s.ExtraSigners[i].DecodeFrom(d)
+			n += nTmp
+			if err != nil {
+				return n, fmt.Errorf("decoding SignerKey: %s", err)
+			}
+		}
+	}
+	return n, nil
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler.
+func (s PreconditionsV2) MarshalBinary() ([]byte, error) {
+	b := bytes.Buffer{}
+	e := xdr.NewEncoder(&b)
+	err := s.EncodeTo(e)
+	return b.Bytes(), err
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler.
+func (s *PreconditionsV2) UnmarshalBinary(inp []byte) error {
+	r := bytes.NewReader(inp)
+	d := xdr.NewDecoder(r)
+	_, err := s.DecodeFrom(d)
+	return err
+}
+
+var (
+	_ encoding.BinaryMarshaler   = (*PreconditionsV2)(nil)
+	_ encoding.BinaryUnmarshaler = (*PreconditionsV2)(nil)
+)
+
+// xdrType signals that this type is an type representing
+// representing XDR values defined by this package.
+func (s PreconditionsV2) xdrType() {}
+
+var _ xdrType = (*PreconditionsV2)(nil)
+
+// PreconditionType is an XDR Enum defines as:
+//
+//	enum PreconditionType
+//	 {
+//	     PRECOND_NONE = 0,
+//	     PRECOND_TIME = 1,
+//	     PRECOND_V2 = 2
+//	 };
+type PreconditionType int32
+
+const (
+	PreconditionTypePrecondNone PreconditionType = 0
+	PreconditionTypePrecondTime PreconditionType = 1
+	PreconditionTypePrecondV2   PreconditionType = 2
+)
+
+var preconditionTypeMap = map[int32]string{
+	0: "PreconditionTypePrecondNone",
+	1: "PreconditionTypePrecondTime",
+	2: "PreconditionTypePrecondV2",
+}
+
+// ValidEnum validates a proposed value for this enum.  Implements
+// the Enum interface for PreconditionType
+func (e PreconditionType) ValidEnum(v int32) bool {
+	_, ok := preconditionTypeMap[v]
+	return ok
+}
+
+// String returns the name of `e`
+func (e PreconditionType) String() string {
+	name, _ := preconditionTypeMap[int32(e)]
+	return name
+}
+
+// EncodeTo encodes this value using the Encoder.
+func (e PreconditionType) EncodeTo(enc *xdr.Encoder) error {
+	if _, ok := preconditionTypeMap[int32(e)]; !ok {
+		return fmt.Errorf("'%d' is not a valid PreconditionType enum value", e)
+	}
+	_, err := enc.EncodeInt(int32(e))
+	return err
+}
+
+var _ decoderFrom = (*PreconditionType)(nil)
+
+// DecodeFrom decodes this value using the Decoder.
+func (e *PreconditionType) DecodeFrom(d *xdr.Decoder) (int, error) {
+	v, n, err := d.DecodeInt()
+	if err != nil {
+		return n, fmt.Errorf("decoding PreconditionType: %s", err)
+	}
+	if _, ok := preconditionTypeMap[v]; !ok {
+		return n, fmt.Errorf("'%d' is not a valid PreconditionType enum value", v)
+	}
+	*e = PreconditionType(v)
+	return n, nil
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler.
+func (s PreconditionType) MarshalBinary() ([]byte, error) {
+	b := bytes.Buffer{}
+	e := xdr.NewEncoder(&b)
+	err := s.EncodeTo(e)
+	return b.Bytes(), err
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler.
+func (s *PreconditionType) UnmarshalBinary(inp []byte) error {
+	r := bytes.NewReader(inp)
+	d := xdr.NewDecoder(r)
+	_, err := s.DecodeFrom(d)
+	return err
+}
+
+var (
+	_ encoding.BinaryMarshaler   = (*PreconditionType)(nil)
+	_ encoding.BinaryUnmarshaler = (*PreconditionType)(nil)
+)
+
+// xdrType signals that this type is an type representing
+// representing XDR values defined by this package.
+func (s PreconditionType) xdrType() {}
+
+var _ xdrType = (*PreconditionType)(nil)
+
+// Preconditions is an XDR Union defines as:
+//
+//	union Preconditions switch (PreconditionType type)
+//	 {
+//	 case PRECOND_NONE:
+//	     void;
+//	 case PRECOND_TIME:
+//	     TimeBounds timeBounds;
+//	 case PRECOND_V2:
+//	     PreconditionsV2 v2;
+//	 };
+type Preconditions struct {
+	Type       PreconditionType
+	TimeBounds *TimeBounds
+	V2         *PreconditionsV2
+}
+
+// SwitchFieldName returns the field name in which this union's
+// discriminant is stored
+func (u Preconditions) SwitchFieldName() string {
+	return "Type"
+}
+
+// ArmForSwitch returns which field name should be used for storing
+// the value for an instance of Preconditions
+func (u Preconditions) ArmForSwitch(sw int32) (string, bool) {
+	switch PreconditionType(sw) {
+	case PreconditionTypePrecondNone:
+		return "", true
+	case PreconditionTypePrecondTime:
+		return "TimeBounds", true
+	case PreconditionTypePrecondV2:
+		return "V2", true
+	}
+	return "-", false
+}
+
+// NewPreconditions creates a new  Preconditions.
+func NewPreconditions(aType PreconditionType, value interface{}) (result Preconditions, err error) {
+	result.Type = aType
+	switch PreconditionType(aType) {
+	case PreconditionTypePrecondNone:
+		// void
+	case PreconditionTypePrecondTime:
+		tv, ok := value.(TimeBounds)
+		if !ok {
+			err = fmt.Errorf("invalid value, must be TimeBounds")
+			return
+		}
+		result.TimeBounds = &tv
+	case PreconditionTypePrecondV2:
+		tv, ok := value.(PreconditionsV2)
+		if !ok {
+			err = fmt.Errorf("invalid value, must be PreconditionsV2")
+			return
+		}
+		result.V2 = &tv
+	}
+	return
+}
+
+// MustTimeBounds retrieves the TimeBounds value from the union,
+// panicing if the value is not set.
+func (u Preconditions) MustTimeBounds() TimeBounds {
+	val, ok := u.GetTimeBounds()
+
+	if !ok {
+		panic("arm TimeBounds is not set")
+	}
+
+	return val
+}
+
+// GetTimeBounds retrieves the TimeBounds value from the union,
+// returning ok if the union's switch indicated the value is valid.
+func (u Preconditions) GetTimeBounds() (result TimeBounds, ok bool) {
+	armName, _ := u.ArmForSwitch(int32(u.Type))
+
+	if armName == "TimeBounds" {
+		result = *u.TimeBounds
+		ok = true
+	}
+
+	return
+}
+
+// MustV2 retrieves the V2 value from the union,
+// panicing if the value is not set.
+func (u Preconditions) MustV2() PreconditionsV2 {
+	val, ok := u.GetV2()
+
+	if !ok {
+		panic("arm V2 is not set")
+	}
+
+	return val
+}
+
+// GetV2 retrieves the V2 value from the union,
+// returning ok if the union's switch indicated the value is valid.
+func (u Preconditions) GetV2() (result PreconditionsV2, ok bool) {
+	armName, _ := u.ArmForSwitch(int32(u.Type))
+
+	if armName == "V2" {
+		result = *u.V2
+		ok = true
+	}
+
+	return
+}
+
+// EncodeTo encodes this value using the Encoder.
+func (u Preconditions) EncodeTo(e *xdr.Encoder) error {
+	var err error
+	if err = u.Type.EncodeTo(e); err != nil {
+		return err
+	}
+	switch PreconditionType(u.Type) {
+	case PreconditionTypePrecondNone:
+		// Void
+		return nil
+	case PreconditionTypePrecondTime:
+		if err = (*u.TimeBounds).EncodeTo(e); err != nil {
+			return err
+		}
+		return nil
+	case PreconditionTypePrecondV2:
+		if err = (*u.V2).EncodeTo(e); err != nil {
+			return err
+		}
+		return nil
+	}
+	return fmt.Errorf("Type (PreconditionType) switch value '%d' is not valid for union Preconditions", u.Type)
+}
+
+var _ decoderFrom = (*Preconditions)(nil)
+
+// DecodeFrom decodes this value using the Decoder.
+func (u *Preconditions) DecodeFrom(d *xdr.Decoder) (int, error) {
+	var err error
+	var n, nTmp int
+	nTmp, err = u.Type.DecodeFrom(d)
+	n += nTmp
+	if err != nil {
+		return n, fmt.Errorf("decoding PreconditionType: %s", err)
+	}
+	switch PreconditionType(u.Type) {
+	case PreconditionTypePrecondNone:
+		// Void
+		return n, nil
+	case PreconditionTypePrecondTime:
+		u.TimeBounds = new(TimeBounds)
+		nTmp, err = (*u.TimeBounds).DecodeFrom(d)
+		n += nTmp
+		if err != nil {
+			return n, fmt.Errorf("decoding TimeBounds: %s", err)
+		}
+		return n, nil
+	case PreconditionTypePrecondV2:
+		u.V2 = new(PreconditionsV2)
+		nTmp, err = (*u.V2).DecodeFrom(d)
+		n += nTmp
+		if err != nil {
+			return n, fmt.Errorf("decoding PreconditionsV2: %s", err)
+		}
+		return n, nil
+	}
+	return n, fmt.Errorf("union Preconditions has invalid Type (PreconditionType) switch value '%d'", u.Type)
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler.
+func (s Preconditions) MarshalBinary() ([]byte, error) {
+	b := bytes.Buffer{}
+	e := xdr.NewEncoder(&b)
+	err := s.EncodeTo(e)
+	return b.Bytes(), err
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler.
+func (s *Preconditions) UnmarshalBinary(inp []byte) error {
+	r := bytes.NewReader(inp)
+	d := xdr.NewDecoder(r)
+	_, err := s.DecodeFrom(d)
+	return err
+}
+
+var (
+	_ encoding.BinaryMarshaler   = (*Preconditions)(nil)
+	_ encoding.BinaryUnmarshaler = (*Preconditions)(nil)
+)
+
+// xdrType signals that this type is an type representing
+// representing XDR values defined by this package.
+func (s Preconditions) xdrType() {}
+
+var _ xdrType = (*Preconditions)(nil)
+
 // MaxOpsPerTx is an XDR Const defines as:
 //
 //	const MAX_OPS_PER_TX = 100;
@@ -22316,7 +24591,7 @@ var _ xdrType = (*TransactionV0Ext)(nil)
 //	struct TransactionV0
 //	 {
 //	     uint256 sourceAccountEd25519;
-//	     uint64 fee;
+//	     uint32 fee;
 //	     SequenceNumber seqNum;
 //	     TimeBounds* timeBounds;
 //	     Memo memo;
@@ -22668,13 +24943,13 @@ var _ xdrType = (*TransactionExt)(nil)
 //	     MuxedAccount sourceAccount;
 //
 //	     // the fee the sourceAccount will pay
-//	     uint64 fee;
+//	     uint32 fee;
 //
 //	     // sequence number to consume in the account
 //	     SequenceNumber seqNum;
 //
-//	     // validity range (inclusive) for the last ledger close time
-//	     TimeBounds* timeBounds;
+//	     // validity conditions
+//	     Preconditions cond;
 //
 //	     Memo memo;
 //
@@ -22692,7 +24967,7 @@ type Transaction struct {
 	SourceAccount MuxedAccount
 	Fee           Uint64
 	SeqNum        SequenceNumber
-	TimeBounds    *TimeBounds
+	Cond          Preconditions
 	Memo          Memo
 	Operations    []Operation `xdrmaxsize:"100"`
 	Ext           TransactionExt
@@ -22710,13 +24985,8 @@ func (s *Transaction) EncodeTo(e *xdr.Encoder) error {
 	if err = s.SeqNum.EncodeTo(e); err != nil {
 		return err
 	}
-	if _, err = e.EncodeBool(s.TimeBounds != nil); err != nil {
+	if err = s.Cond.EncodeTo(e); err != nil {
 		return err
-	}
-	if s.TimeBounds != nil {
-		if err = (*s.TimeBounds).EncodeTo(e); err != nil {
-			return err
-		}
 	}
 	if err = s.Memo.EncodeTo(e); err != nil {
 		return err
@@ -22756,20 +25026,10 @@ func (s *Transaction) DecodeFrom(d *xdr.Decoder) (int, error) {
 	if err != nil {
 		return n, fmt.Errorf("decoding SequenceNumber: %s", err)
 	}
-	var b bool
-	b, nTmp, err = d.DecodeBool()
+	nTmp, err = s.Cond.DecodeFrom(d)
 	n += nTmp
 	if err != nil {
-		return n, fmt.Errorf("decoding TimeBounds: %s", err)
-	}
-	s.TimeBounds = nil
-	if b {
-		s.TimeBounds = new(TimeBounds)
-		nTmp, err = s.TimeBounds.DecodeFrom(d)
-		n += nTmp
-		if err != nil {
-			return n, fmt.Errorf("decoding TimeBounds: %s", err)
-		}
+		return n, fmt.Errorf("decoding Preconditions: %s", err)
 	}
 	nTmp, err = s.Memo.DecodeFrom(d)
 	n += nTmp
@@ -24603,7 +26863,10 @@ var _ xdrType = (*CreateAccountResultCode)(nil)
 //	 {
 //	 case CREATE_ACCOUNT_SUCCESS:
 //	     void;
-//	 default:
+//	 case CREATE_ACCOUNT_MALFORMED:
+//	 case CREATE_ACCOUNT_UNDERFUNDED:
+//	 case CREATE_ACCOUNT_LOW_RESERVE:
+//	 case CREATE_ACCOUNT_ALREADY_EXIST:
 //	     void;
 //	 };
 type CreateAccountResult struct {
@@ -24622,9 +26885,16 @@ func (u CreateAccountResult) ArmForSwitch(sw int32) (string, bool) {
 	switch CreateAccountResultCode(sw) {
 	case CreateAccountResultCodeCreateAccountSuccess:
 		return "", true
-	default:
+	case CreateAccountResultCodeCreateAccountMalformed:
+		return "", true
+	case CreateAccountResultCodeCreateAccountUnderfunded:
+		return "", true
+	case CreateAccountResultCodeCreateAccountLowReserve:
+		return "", true
+	case CreateAccountResultCodeCreateAccountAlreadyExist:
 		return "", true
 	}
+	return "-", false
 }
 
 // NewCreateAccountResult creates a new  CreateAccountResult.
@@ -24633,7 +26903,13 @@ func NewCreateAccountResult(code CreateAccountResultCode, value interface{}) (re
 	switch CreateAccountResultCode(code) {
 	case CreateAccountResultCodeCreateAccountSuccess:
 		// void
-	default:
+	case CreateAccountResultCodeCreateAccountMalformed:
+		// void
+	case CreateAccountResultCodeCreateAccountUnderfunded:
+		// void
+	case CreateAccountResultCodeCreateAccountLowReserve:
+		// void
+	case CreateAccountResultCodeCreateAccountAlreadyExist:
 		// void
 	}
 	return
@@ -24649,10 +26925,20 @@ func (u CreateAccountResult) EncodeTo(e *xdr.Encoder) error {
 	case CreateAccountResultCodeCreateAccountSuccess:
 		// Void
 		return nil
-	default:
+	case CreateAccountResultCodeCreateAccountMalformed:
+		// Void
+		return nil
+	case CreateAccountResultCodeCreateAccountUnderfunded:
+		// Void
+		return nil
+	case CreateAccountResultCodeCreateAccountLowReserve:
+		// Void
+		return nil
+	case CreateAccountResultCodeCreateAccountAlreadyExist:
 		// Void
 		return nil
 	}
+	return fmt.Errorf("Code (CreateAccountResultCode) switch value '%d' is not valid for union CreateAccountResult", u.Code)
 }
 
 var _ decoderFrom = (*CreateAccountResult)(nil)
@@ -24670,10 +26956,20 @@ func (u *CreateAccountResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 	case CreateAccountResultCodeCreateAccountSuccess:
 		// Void
 		return n, nil
-	default:
+	case CreateAccountResultCodeCreateAccountMalformed:
+		// Void
+		return n, nil
+	case CreateAccountResultCodeCreateAccountUnderfunded:
+		// Void
+		return n, nil
+	case CreateAccountResultCodeCreateAccountLowReserve:
+		// Void
+		return n, nil
+	case CreateAccountResultCodeCreateAccountAlreadyExist:
 		// Void
 		return n, nil
 	}
+	return n, fmt.Errorf("union CreateAccountResult has invalid Code (CreateAccountResultCode) switch value '%d'", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -24819,7 +27115,15 @@ var _ xdrType = (*PaymentResultCode)(nil)
 //	 {
 //	 case PAYMENT_SUCCESS:
 //	     void;
-//	 default:
+//	 case PAYMENT_MALFORMED:
+//	 case PAYMENT_UNDERFUNDED:
+//	 case PAYMENT_SRC_NO_TRUST:
+//	 case PAYMENT_SRC_NOT_AUTHORIZED:
+//	 case PAYMENT_NO_DESTINATION:
+//	 case PAYMENT_NO_TRUST:
+//	 case PAYMENT_NOT_AUTHORIZED:
+//	 case PAYMENT_LINE_FULL:
+//	 case PAYMENT_NO_ISSUER:
 //	     void;
 //	 };
 type PaymentResult struct {
@@ -24838,9 +27142,26 @@ func (u PaymentResult) ArmForSwitch(sw int32) (string, bool) {
 	switch PaymentResultCode(sw) {
 	case PaymentResultCodePaymentSuccess:
 		return "", true
-	default:
+	case PaymentResultCodePaymentMalformed:
+		return "", true
+	case PaymentResultCodePaymentUnderfunded:
+		return "", true
+	case PaymentResultCodePaymentSrcNoTrust:
+		return "", true
+	case PaymentResultCodePaymentSrcNotAuthorized:
+		return "", true
+	case PaymentResultCodePaymentNoDestination:
+		return "", true
+	case PaymentResultCodePaymentNoTrust:
+		return "", true
+	case PaymentResultCodePaymentNotAuthorized:
+		return "", true
+	case PaymentResultCodePaymentLineFull:
+		return "", true
+	case PaymentResultCodePaymentNoIssuer:
 		return "", true
 	}
+	return "-", false
 }
 
 // NewPaymentResult creates a new  PaymentResult.
@@ -24849,7 +27170,23 @@ func NewPaymentResult(code PaymentResultCode, value interface{}) (result Payment
 	switch PaymentResultCode(code) {
 	case PaymentResultCodePaymentSuccess:
 		// void
-	default:
+	case PaymentResultCodePaymentMalformed:
+		// void
+	case PaymentResultCodePaymentUnderfunded:
+		// void
+	case PaymentResultCodePaymentSrcNoTrust:
+		// void
+	case PaymentResultCodePaymentSrcNotAuthorized:
+		// void
+	case PaymentResultCodePaymentNoDestination:
+		// void
+	case PaymentResultCodePaymentNoTrust:
+		// void
+	case PaymentResultCodePaymentNotAuthorized:
+		// void
+	case PaymentResultCodePaymentLineFull:
+		// void
+	case PaymentResultCodePaymentNoIssuer:
 		// void
 	}
 	return
@@ -24865,10 +27202,35 @@ func (u PaymentResult) EncodeTo(e *xdr.Encoder) error {
 	case PaymentResultCodePaymentSuccess:
 		// Void
 		return nil
-	default:
+	case PaymentResultCodePaymentMalformed:
+		// Void
+		return nil
+	case PaymentResultCodePaymentUnderfunded:
+		// Void
+		return nil
+	case PaymentResultCodePaymentSrcNoTrust:
+		// Void
+		return nil
+	case PaymentResultCodePaymentSrcNotAuthorized:
+		// Void
+		return nil
+	case PaymentResultCodePaymentNoDestination:
+		// Void
+		return nil
+	case PaymentResultCodePaymentNoTrust:
+		// Void
+		return nil
+	case PaymentResultCodePaymentNotAuthorized:
+		// Void
+		return nil
+	case PaymentResultCodePaymentLineFull:
+		// Void
+		return nil
+	case PaymentResultCodePaymentNoIssuer:
 		// Void
 		return nil
 	}
+	return fmt.Errorf("Code (PaymentResultCode) switch value '%d' is not valid for union PaymentResult", u.Code)
 }
 
 var _ decoderFrom = (*PaymentResult)(nil)
@@ -24886,10 +27248,35 @@ func (u *PaymentResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 	case PaymentResultCodePaymentSuccess:
 		// Void
 		return n, nil
-	default:
+	case PaymentResultCodePaymentMalformed:
+		// Void
+		return n, nil
+	case PaymentResultCodePaymentUnderfunded:
+		// Void
+		return n, nil
+	case PaymentResultCodePaymentSrcNoTrust:
+		// Void
+		return n, nil
+	case PaymentResultCodePaymentSrcNotAuthorized:
+		// Void
+		return n, nil
+	case PaymentResultCodePaymentNoDestination:
+		// Void
+		return n, nil
+	case PaymentResultCodePaymentNoTrust:
+		// Void
+		return n, nil
+	case PaymentResultCodePaymentNotAuthorized:
+		// Void
+		return n, nil
+	case PaymentResultCodePaymentLineFull:
+		// Void
+		return n, nil
+	case PaymentResultCodePaymentNoIssuer:
 		// Void
 		return n, nil
 	}
+	return n, fmt.Errorf("union PaymentResult has invalid Code (PaymentResultCode) switch value '%d'", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -25225,9 +27612,20 @@ var _ xdrType = (*PathPaymentStrictReceiveResultSuccess)(nil)
 //	         ClaimAtom offers<>;
 //	         SimplePaymentResult last;
 //	     } success;
+//	 case PATH_PAYMENT_STRICT_RECEIVE_MALFORMED:
+//	 case PATH_PAYMENT_STRICT_RECEIVE_UNDERFUNDED:
+//	 case PATH_PAYMENT_STRICT_RECEIVE_SRC_NO_TRUST:
+//	 case PATH_PAYMENT_STRICT_RECEIVE_SRC_NOT_AUTHORIZED:
+//	 case PATH_PAYMENT_STRICT_RECEIVE_NO_DESTINATION:
+//	 case PATH_PAYMENT_STRICT_RECEIVE_NO_TRUST:
+//	 case PATH_PAYMENT_STRICT_RECEIVE_NOT_AUTHORIZED:
+//	 case PATH_PAYMENT_STRICT_RECEIVE_LINE_FULL:
+//	     void;
 //	 case PATH_PAYMENT_STRICT_RECEIVE_NO_ISSUER:
 //	     Asset noIssuer; // the asset that caused the error
-//	 default:
+//	 case PATH_PAYMENT_STRICT_RECEIVE_TOO_FEW_OFFERS:
+//	 case PATH_PAYMENT_STRICT_RECEIVE_OFFER_CROSS_SELF:
+//	 case PATH_PAYMENT_STRICT_RECEIVE_OVER_SENDMAX:
 //	     void;
 //	 };
 type PathPaymentStrictReceiveResult struct {
@@ -25248,11 +27646,32 @@ func (u PathPaymentStrictReceiveResult) ArmForSwitch(sw int32) (string, bool) {
 	switch PathPaymentStrictReceiveResultCode(sw) {
 	case PathPaymentStrictReceiveResultCodePathPaymentStrictReceiveSuccess:
 		return "Success", true
+	case PathPaymentStrictReceiveResultCodePathPaymentStrictReceiveMalformed:
+		return "", true
+	case PathPaymentStrictReceiveResultCodePathPaymentStrictReceiveUnderfunded:
+		return "", true
+	case PathPaymentStrictReceiveResultCodePathPaymentStrictReceiveSrcNoTrust:
+		return "", true
+	case PathPaymentStrictReceiveResultCodePathPaymentStrictReceiveSrcNotAuthorized:
+		return "", true
+	case PathPaymentStrictReceiveResultCodePathPaymentStrictReceiveNoDestination:
+		return "", true
+	case PathPaymentStrictReceiveResultCodePathPaymentStrictReceiveNoTrust:
+		return "", true
+	case PathPaymentStrictReceiveResultCodePathPaymentStrictReceiveNotAuthorized:
+		return "", true
+	case PathPaymentStrictReceiveResultCodePathPaymentStrictReceiveLineFull:
+		return "", true
 	case PathPaymentStrictReceiveResultCodePathPaymentStrictReceiveNoIssuer:
 		return "NoIssuer", true
-	default:
+	case PathPaymentStrictReceiveResultCodePathPaymentStrictReceiveTooFewOffers:
+		return "", true
+	case PathPaymentStrictReceiveResultCodePathPaymentStrictReceiveOfferCrossSelf:
+		return "", true
+	case PathPaymentStrictReceiveResultCodePathPaymentStrictReceiveOverSendmax:
 		return "", true
 	}
+	return "-", false
 }
 
 // NewPathPaymentStrictReceiveResult creates a new  PathPaymentStrictReceiveResult.
@@ -25266,6 +27685,22 @@ func NewPathPaymentStrictReceiveResult(code PathPaymentStrictReceiveResultCode, 
 			return
 		}
 		result.Success = &tv
+	case PathPaymentStrictReceiveResultCodePathPaymentStrictReceiveMalformed:
+		// void
+	case PathPaymentStrictReceiveResultCodePathPaymentStrictReceiveUnderfunded:
+		// void
+	case PathPaymentStrictReceiveResultCodePathPaymentStrictReceiveSrcNoTrust:
+		// void
+	case PathPaymentStrictReceiveResultCodePathPaymentStrictReceiveSrcNotAuthorized:
+		// void
+	case PathPaymentStrictReceiveResultCodePathPaymentStrictReceiveNoDestination:
+		// void
+	case PathPaymentStrictReceiveResultCodePathPaymentStrictReceiveNoTrust:
+		// void
+	case PathPaymentStrictReceiveResultCodePathPaymentStrictReceiveNotAuthorized:
+		// void
+	case PathPaymentStrictReceiveResultCodePathPaymentStrictReceiveLineFull:
+		// void
 	case PathPaymentStrictReceiveResultCodePathPaymentStrictReceiveNoIssuer:
 		tv, ok := value.(Asset)
 		if !ok {
@@ -25273,7 +27708,11 @@ func NewPathPaymentStrictReceiveResult(code PathPaymentStrictReceiveResultCode, 
 			return
 		}
 		result.NoIssuer = &tv
-	default:
+	case PathPaymentStrictReceiveResultCodePathPaymentStrictReceiveTooFewOffers:
+		// void
+	case PathPaymentStrictReceiveResultCodePathPaymentStrictReceiveOfferCrossSelf:
+		// void
+	case PathPaymentStrictReceiveResultCodePathPaymentStrictReceiveOverSendmax:
 		// void
 	}
 	return
@@ -25341,15 +27780,46 @@ func (u PathPaymentStrictReceiveResult) EncodeTo(e *xdr.Encoder) error {
 			return err
 		}
 		return nil
+	case PathPaymentStrictReceiveResultCodePathPaymentStrictReceiveMalformed:
+		// Void
+		return nil
+	case PathPaymentStrictReceiveResultCodePathPaymentStrictReceiveUnderfunded:
+		// Void
+		return nil
+	case PathPaymentStrictReceiveResultCodePathPaymentStrictReceiveSrcNoTrust:
+		// Void
+		return nil
+	case PathPaymentStrictReceiveResultCodePathPaymentStrictReceiveSrcNotAuthorized:
+		// Void
+		return nil
+	case PathPaymentStrictReceiveResultCodePathPaymentStrictReceiveNoDestination:
+		// Void
+		return nil
+	case PathPaymentStrictReceiveResultCodePathPaymentStrictReceiveNoTrust:
+		// Void
+		return nil
+	case PathPaymentStrictReceiveResultCodePathPaymentStrictReceiveNotAuthorized:
+		// Void
+		return nil
+	case PathPaymentStrictReceiveResultCodePathPaymentStrictReceiveLineFull:
+		// Void
+		return nil
 	case PathPaymentStrictReceiveResultCodePathPaymentStrictReceiveNoIssuer:
 		if err = (*u.NoIssuer).EncodeTo(e); err != nil {
 			return err
 		}
 		return nil
-	default:
+	case PathPaymentStrictReceiveResultCodePathPaymentStrictReceiveTooFewOffers:
+		// Void
+		return nil
+	case PathPaymentStrictReceiveResultCodePathPaymentStrictReceiveOfferCrossSelf:
+		// Void
+		return nil
+	case PathPaymentStrictReceiveResultCodePathPaymentStrictReceiveOverSendmax:
 		// Void
 		return nil
 	}
+	return fmt.Errorf("Code (PathPaymentStrictReceiveResultCode) switch value '%d' is not valid for union PathPaymentStrictReceiveResult", u.Code)
 }
 
 var _ decoderFrom = (*PathPaymentStrictReceiveResult)(nil)
@@ -25372,6 +27842,30 @@ func (u *PathPaymentStrictReceiveResult) DecodeFrom(d *xdr.Decoder) (int, error)
 			return n, fmt.Errorf("decoding PathPaymentStrictReceiveResultSuccess: %s", err)
 		}
 		return n, nil
+	case PathPaymentStrictReceiveResultCodePathPaymentStrictReceiveMalformed:
+		// Void
+		return n, nil
+	case PathPaymentStrictReceiveResultCodePathPaymentStrictReceiveUnderfunded:
+		// Void
+		return n, nil
+	case PathPaymentStrictReceiveResultCodePathPaymentStrictReceiveSrcNoTrust:
+		// Void
+		return n, nil
+	case PathPaymentStrictReceiveResultCodePathPaymentStrictReceiveSrcNotAuthorized:
+		// Void
+		return n, nil
+	case PathPaymentStrictReceiveResultCodePathPaymentStrictReceiveNoDestination:
+		// Void
+		return n, nil
+	case PathPaymentStrictReceiveResultCodePathPaymentStrictReceiveNoTrust:
+		// Void
+		return n, nil
+	case PathPaymentStrictReceiveResultCodePathPaymentStrictReceiveNotAuthorized:
+		// Void
+		return n, nil
+	case PathPaymentStrictReceiveResultCodePathPaymentStrictReceiveLineFull:
+		// Void
+		return n, nil
 	case PathPaymentStrictReceiveResultCodePathPaymentStrictReceiveNoIssuer:
 		u.NoIssuer = new(Asset)
 		nTmp, err = (*u.NoIssuer).DecodeFrom(d)
@@ -25380,10 +27874,17 @@ func (u *PathPaymentStrictReceiveResult) DecodeFrom(d *xdr.Decoder) (int, error)
 			return n, fmt.Errorf("decoding Asset: %s", err)
 		}
 		return n, nil
-	default:
+	case PathPaymentStrictReceiveResultCodePathPaymentStrictReceiveTooFewOffers:
+		// Void
+		return n, nil
+	case PathPaymentStrictReceiveResultCodePathPaymentStrictReceiveOfferCrossSelf:
+		// Void
+		return n, nil
+	case PathPaymentStrictReceiveResultCodePathPaymentStrictReceiveOverSendmax:
 		// Void
 		return n, nil
 	}
+	return n, fmt.Errorf("union PathPaymentStrictReceiveResult has invalid Code (PathPaymentStrictReceiveResultCode) switch value '%d'", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -25637,9 +28138,20 @@ var _ xdrType = (*PathPaymentStrictSendResultSuccess)(nil)
 //	         ClaimAtom offers<>;
 //	         SimplePaymentResult last;
 //	     } success;
+//	 case PATH_PAYMENT_STRICT_SEND_MALFORMED:
+//	 case PATH_PAYMENT_STRICT_SEND_UNDERFUNDED:
+//	 case PATH_PAYMENT_STRICT_SEND_SRC_NO_TRUST:
+//	 case PATH_PAYMENT_STRICT_SEND_SRC_NOT_AUTHORIZED:
+//	 case PATH_PAYMENT_STRICT_SEND_NO_DESTINATION:
+//	 case PATH_PAYMENT_STRICT_SEND_NO_TRUST:
+//	 case PATH_PAYMENT_STRICT_SEND_NOT_AUTHORIZED:
+//	 case PATH_PAYMENT_STRICT_SEND_LINE_FULL:
+//	     void;
 //	 case PATH_PAYMENT_STRICT_SEND_NO_ISSUER:
 //	     Asset noIssuer; // the asset that caused the error
-//	 default:
+//	 case PATH_PAYMENT_STRICT_SEND_TOO_FEW_OFFERS:
+//	 case PATH_PAYMENT_STRICT_SEND_OFFER_CROSS_SELF:
+//	 case PATH_PAYMENT_STRICT_SEND_UNDER_DESTMIN:
 //	     void;
 //	 };
 type PathPaymentStrictSendResult struct {
@@ -25660,11 +28172,32 @@ func (u PathPaymentStrictSendResult) ArmForSwitch(sw int32) (string, bool) {
 	switch PathPaymentStrictSendResultCode(sw) {
 	case PathPaymentStrictSendResultCodePathPaymentStrictSendSuccess:
 		return "Success", true
+	case PathPaymentStrictSendResultCodePathPaymentStrictSendMalformed:
+		return "", true
+	case PathPaymentStrictSendResultCodePathPaymentStrictSendUnderfunded:
+		return "", true
+	case PathPaymentStrictSendResultCodePathPaymentStrictSendSrcNoTrust:
+		return "", true
+	case PathPaymentStrictSendResultCodePathPaymentStrictSendSrcNotAuthorized:
+		return "", true
+	case PathPaymentStrictSendResultCodePathPaymentStrictSendNoDestination:
+		return "", true
+	case PathPaymentStrictSendResultCodePathPaymentStrictSendNoTrust:
+		return "", true
+	case PathPaymentStrictSendResultCodePathPaymentStrictSendNotAuthorized:
+		return "", true
+	case PathPaymentStrictSendResultCodePathPaymentStrictSendLineFull:
+		return "", true
 	case PathPaymentStrictSendResultCodePathPaymentStrictSendNoIssuer:
 		return "NoIssuer", true
-	default:
+	case PathPaymentStrictSendResultCodePathPaymentStrictSendTooFewOffers:
+		return "", true
+	case PathPaymentStrictSendResultCodePathPaymentStrictSendOfferCrossSelf:
+		return "", true
+	case PathPaymentStrictSendResultCodePathPaymentStrictSendUnderDestmin:
 		return "", true
 	}
+	return "-", false
 }
 
 // NewPathPaymentStrictSendResult creates a new  PathPaymentStrictSendResult.
@@ -25678,6 +28211,22 @@ func NewPathPaymentStrictSendResult(code PathPaymentStrictSendResultCode, value 
 			return
 		}
 		result.Success = &tv
+	case PathPaymentStrictSendResultCodePathPaymentStrictSendMalformed:
+		// void
+	case PathPaymentStrictSendResultCodePathPaymentStrictSendUnderfunded:
+		// void
+	case PathPaymentStrictSendResultCodePathPaymentStrictSendSrcNoTrust:
+		// void
+	case PathPaymentStrictSendResultCodePathPaymentStrictSendSrcNotAuthorized:
+		// void
+	case PathPaymentStrictSendResultCodePathPaymentStrictSendNoDestination:
+		// void
+	case PathPaymentStrictSendResultCodePathPaymentStrictSendNoTrust:
+		// void
+	case PathPaymentStrictSendResultCodePathPaymentStrictSendNotAuthorized:
+		// void
+	case PathPaymentStrictSendResultCodePathPaymentStrictSendLineFull:
+		// void
 	case PathPaymentStrictSendResultCodePathPaymentStrictSendNoIssuer:
 		tv, ok := value.(Asset)
 		if !ok {
@@ -25685,7 +28234,11 @@ func NewPathPaymentStrictSendResult(code PathPaymentStrictSendResultCode, value 
 			return
 		}
 		result.NoIssuer = &tv
-	default:
+	case PathPaymentStrictSendResultCodePathPaymentStrictSendTooFewOffers:
+		// void
+	case PathPaymentStrictSendResultCodePathPaymentStrictSendOfferCrossSelf:
+		// void
+	case PathPaymentStrictSendResultCodePathPaymentStrictSendUnderDestmin:
 		// void
 	}
 	return
@@ -25753,15 +28306,46 @@ func (u PathPaymentStrictSendResult) EncodeTo(e *xdr.Encoder) error {
 			return err
 		}
 		return nil
+	case PathPaymentStrictSendResultCodePathPaymentStrictSendMalformed:
+		// Void
+		return nil
+	case PathPaymentStrictSendResultCodePathPaymentStrictSendUnderfunded:
+		// Void
+		return nil
+	case PathPaymentStrictSendResultCodePathPaymentStrictSendSrcNoTrust:
+		// Void
+		return nil
+	case PathPaymentStrictSendResultCodePathPaymentStrictSendSrcNotAuthorized:
+		// Void
+		return nil
+	case PathPaymentStrictSendResultCodePathPaymentStrictSendNoDestination:
+		// Void
+		return nil
+	case PathPaymentStrictSendResultCodePathPaymentStrictSendNoTrust:
+		// Void
+		return nil
+	case PathPaymentStrictSendResultCodePathPaymentStrictSendNotAuthorized:
+		// Void
+		return nil
+	case PathPaymentStrictSendResultCodePathPaymentStrictSendLineFull:
+		// Void
+		return nil
 	case PathPaymentStrictSendResultCodePathPaymentStrictSendNoIssuer:
 		if err = (*u.NoIssuer).EncodeTo(e); err != nil {
 			return err
 		}
 		return nil
-	default:
+	case PathPaymentStrictSendResultCodePathPaymentStrictSendTooFewOffers:
+		// Void
+		return nil
+	case PathPaymentStrictSendResultCodePathPaymentStrictSendOfferCrossSelf:
+		// Void
+		return nil
+	case PathPaymentStrictSendResultCodePathPaymentStrictSendUnderDestmin:
 		// Void
 		return nil
 	}
+	return fmt.Errorf("Code (PathPaymentStrictSendResultCode) switch value '%d' is not valid for union PathPaymentStrictSendResult", u.Code)
 }
 
 var _ decoderFrom = (*PathPaymentStrictSendResult)(nil)
@@ -25784,6 +28368,30 @@ func (u *PathPaymentStrictSendResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 			return n, fmt.Errorf("decoding PathPaymentStrictSendResultSuccess: %s", err)
 		}
 		return n, nil
+	case PathPaymentStrictSendResultCodePathPaymentStrictSendMalformed:
+		// Void
+		return n, nil
+	case PathPaymentStrictSendResultCodePathPaymentStrictSendUnderfunded:
+		// Void
+		return n, nil
+	case PathPaymentStrictSendResultCodePathPaymentStrictSendSrcNoTrust:
+		// Void
+		return n, nil
+	case PathPaymentStrictSendResultCodePathPaymentStrictSendSrcNotAuthorized:
+		// Void
+		return n, nil
+	case PathPaymentStrictSendResultCodePathPaymentStrictSendNoDestination:
+		// Void
+		return n, nil
+	case PathPaymentStrictSendResultCodePathPaymentStrictSendNoTrust:
+		// Void
+		return n, nil
+	case PathPaymentStrictSendResultCodePathPaymentStrictSendNotAuthorized:
+		// Void
+		return n, nil
+	case PathPaymentStrictSendResultCodePathPaymentStrictSendLineFull:
+		// Void
+		return n, nil
 	case PathPaymentStrictSendResultCodePathPaymentStrictSendNoIssuer:
 		u.NoIssuer = new(Asset)
 		nTmp, err = (*u.NoIssuer).DecodeFrom(d)
@@ -25792,10 +28400,17 @@ func (u *PathPaymentStrictSendResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 			return n, fmt.Errorf("decoding Asset: %s", err)
 		}
 		return n, nil
-	default:
+	case PathPaymentStrictSendResultCodePathPaymentStrictSendTooFewOffers:
+		// Void
+		return n, nil
+	case PathPaymentStrictSendResultCodePathPaymentStrictSendOfferCrossSelf:
+		// Void
+		return n, nil
+	case PathPaymentStrictSendResultCodePathPaymentStrictSendUnderDestmin:
 		// Void
 		return n, nil
 	}
+	return n, fmt.Errorf("union PathPaymentStrictSendResult has invalid Code (PathPaymentStrictSendResultCode) switch value '%d'", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -26044,7 +28659,7 @@ var _ xdrType = (*ManageOfferEffect)(nil)
 //	     case MANAGE_OFFER_CREATED:
 //	     case MANAGE_OFFER_UPDATED:
 //	         OfferEntry offer;
-//	     default:
+//	     case MANAGE_OFFER_DELETED:
 //	         void;
 //	     }
 type ManageOfferSuccessResultOffer struct {
@@ -26066,9 +28681,10 @@ func (u ManageOfferSuccessResultOffer) ArmForSwitch(sw int32) (string, bool) {
 		return "Offer", true
 	case ManageOfferEffectManageOfferUpdated:
 		return "Offer", true
-	default:
+	case ManageOfferEffectManageOfferDeleted:
 		return "", true
 	}
+	return "-", false
 }
 
 // NewManageOfferSuccessResultOffer creates a new  ManageOfferSuccessResultOffer.
@@ -26089,7 +28705,7 @@ func NewManageOfferSuccessResultOffer(effect ManageOfferEffect, value interface{
 			return
 		}
 		result.Offer = &tv
-	default:
+	case ManageOfferEffectManageOfferDeleted:
 		// void
 	}
 	return
@@ -26137,10 +28753,11 @@ func (u ManageOfferSuccessResultOffer) EncodeTo(e *xdr.Encoder) error {
 			return err
 		}
 		return nil
-	default:
+	case ManageOfferEffectManageOfferDeleted:
 		// Void
 		return nil
 	}
+	return fmt.Errorf("Effect (ManageOfferEffect) switch value '%d' is not valid for union ManageOfferSuccessResultOffer", u.Effect)
 }
 
 var _ decoderFrom = (*ManageOfferSuccessResultOffer)(nil)
@@ -26171,10 +28788,11 @@ func (u *ManageOfferSuccessResultOffer) DecodeFrom(d *xdr.Decoder) (int, error) 
 			return n, fmt.Errorf("decoding OfferEntry: %s", err)
 		}
 		return n, nil
-	default:
+	case ManageOfferEffectManageOfferDeleted:
 		// Void
 		return n, nil
 	}
+	return n, fmt.Errorf("union ManageOfferSuccessResultOffer has invalid Effect (ManageOfferEffect) switch value '%d'", u.Effect)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -26216,7 +28834,7 @@ var _ xdrType = (*ManageOfferSuccessResultOffer)(nil)
 //	     case MANAGE_OFFER_CREATED:
 //	     case MANAGE_OFFER_UPDATED:
 //	         OfferEntry offer;
-//	     default:
+//	     case MANAGE_OFFER_DELETED:
 //	         void;
 //	     }
 //	     offer;
@@ -26307,7 +28925,18 @@ var _ xdrType = (*ManageOfferSuccessResult)(nil)
 //	 {
 //	 case MANAGE_SELL_OFFER_SUCCESS:
 //	     ManageOfferSuccessResult success;
-//	 default:
+//	 case MANAGE_SELL_OFFER_MALFORMED:
+//	 case MANAGE_SELL_OFFER_SELL_NO_TRUST:
+//	 case MANAGE_SELL_OFFER_BUY_NO_TRUST:
+//	 case MANAGE_SELL_OFFER_SELL_NOT_AUTHORIZED:
+//	 case MANAGE_SELL_OFFER_BUY_NOT_AUTHORIZED:
+//	 case MANAGE_SELL_OFFER_LINE_FULL:
+//	 case MANAGE_SELL_OFFER_UNDERFUNDED:
+//	 case MANAGE_SELL_OFFER_CROSS_SELF:
+//	 case MANAGE_SELL_OFFER_SELL_NO_ISSUER:
+//	 case MANAGE_SELL_OFFER_BUY_NO_ISSUER:
+//	 case MANAGE_SELL_OFFER_NOT_FOUND:
+//	 case MANAGE_SELL_OFFER_LOW_RESERVE:
 //	     void;
 //	 };
 type ManageSellOfferResult struct {
@@ -26327,9 +28956,32 @@ func (u ManageSellOfferResult) ArmForSwitch(sw int32) (string, bool) {
 	switch ManageSellOfferResultCode(sw) {
 	case ManageSellOfferResultCodeManageSellOfferSuccess:
 		return "Success", true
-	default:
+	case ManageSellOfferResultCodeManageSellOfferMalformed:
+		return "", true
+	case ManageSellOfferResultCodeManageSellOfferSellNoTrust:
+		return "", true
+	case ManageSellOfferResultCodeManageSellOfferBuyNoTrust:
+		return "", true
+	case ManageSellOfferResultCodeManageSellOfferSellNotAuthorized:
+		return "", true
+	case ManageSellOfferResultCodeManageSellOfferBuyNotAuthorized:
+		return "", true
+	case ManageSellOfferResultCodeManageSellOfferLineFull:
+		return "", true
+	case ManageSellOfferResultCodeManageSellOfferUnderfunded:
+		return "", true
+	case ManageSellOfferResultCodeManageSellOfferCrossSelf:
+		return "", true
+	case ManageSellOfferResultCodeManageSellOfferSellNoIssuer:
+		return "", true
+	case ManageSellOfferResultCodeManageSellOfferBuyNoIssuer:
+		return "", true
+	case ManageSellOfferResultCodeManageSellOfferNotFound:
+		return "", true
+	case ManageSellOfferResultCodeManageSellOfferLowReserve:
 		return "", true
 	}
+	return "-", false
 }
 
 // NewManageSellOfferResult creates a new  ManageSellOfferResult.
@@ -26343,7 +28995,29 @@ func NewManageSellOfferResult(code ManageSellOfferResultCode, value interface{})
 			return
 		}
 		result.Success = &tv
-	default:
+	case ManageSellOfferResultCodeManageSellOfferMalformed:
+		// void
+	case ManageSellOfferResultCodeManageSellOfferSellNoTrust:
+		// void
+	case ManageSellOfferResultCodeManageSellOfferBuyNoTrust:
+		// void
+	case ManageSellOfferResultCodeManageSellOfferSellNotAuthorized:
+		// void
+	case ManageSellOfferResultCodeManageSellOfferBuyNotAuthorized:
+		// void
+	case ManageSellOfferResultCodeManageSellOfferLineFull:
+		// void
+	case ManageSellOfferResultCodeManageSellOfferUnderfunded:
+		// void
+	case ManageSellOfferResultCodeManageSellOfferCrossSelf:
+		// void
+	case ManageSellOfferResultCodeManageSellOfferSellNoIssuer:
+		// void
+	case ManageSellOfferResultCodeManageSellOfferBuyNoIssuer:
+		// void
+	case ManageSellOfferResultCodeManageSellOfferNotFound:
+		// void
+	case ManageSellOfferResultCodeManageSellOfferLowReserve:
 		// void
 	}
 	return
@@ -26386,10 +29060,44 @@ func (u ManageSellOfferResult) EncodeTo(e *xdr.Encoder) error {
 			return err
 		}
 		return nil
-	default:
+	case ManageSellOfferResultCodeManageSellOfferMalformed:
+		// Void
+		return nil
+	case ManageSellOfferResultCodeManageSellOfferSellNoTrust:
+		// Void
+		return nil
+	case ManageSellOfferResultCodeManageSellOfferBuyNoTrust:
+		// Void
+		return nil
+	case ManageSellOfferResultCodeManageSellOfferSellNotAuthorized:
+		// Void
+		return nil
+	case ManageSellOfferResultCodeManageSellOfferBuyNotAuthorized:
+		// Void
+		return nil
+	case ManageSellOfferResultCodeManageSellOfferLineFull:
+		// Void
+		return nil
+	case ManageSellOfferResultCodeManageSellOfferUnderfunded:
+		// Void
+		return nil
+	case ManageSellOfferResultCodeManageSellOfferCrossSelf:
+		// Void
+		return nil
+	case ManageSellOfferResultCodeManageSellOfferSellNoIssuer:
+		// Void
+		return nil
+	case ManageSellOfferResultCodeManageSellOfferBuyNoIssuer:
+		// Void
+		return nil
+	case ManageSellOfferResultCodeManageSellOfferNotFound:
+		// Void
+		return nil
+	case ManageSellOfferResultCodeManageSellOfferLowReserve:
 		// Void
 		return nil
 	}
+	return fmt.Errorf("Code (ManageSellOfferResultCode) switch value '%d' is not valid for union ManageSellOfferResult", u.Code)
 }
 
 var _ decoderFrom = (*ManageSellOfferResult)(nil)
@@ -26412,10 +29120,44 @@ func (u *ManageSellOfferResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 			return n, fmt.Errorf("decoding ManageOfferSuccessResult: %s", err)
 		}
 		return n, nil
-	default:
+	case ManageSellOfferResultCodeManageSellOfferMalformed:
+		// Void
+		return n, nil
+	case ManageSellOfferResultCodeManageSellOfferSellNoTrust:
+		// Void
+		return n, nil
+	case ManageSellOfferResultCodeManageSellOfferBuyNoTrust:
+		// Void
+		return n, nil
+	case ManageSellOfferResultCodeManageSellOfferSellNotAuthorized:
+		// Void
+		return n, nil
+	case ManageSellOfferResultCodeManageSellOfferBuyNotAuthorized:
+		// Void
+		return n, nil
+	case ManageSellOfferResultCodeManageSellOfferLineFull:
+		// Void
+		return n, nil
+	case ManageSellOfferResultCodeManageSellOfferUnderfunded:
+		// Void
+		return n, nil
+	case ManageSellOfferResultCodeManageSellOfferCrossSelf:
+		// Void
+		return n, nil
+	case ManageSellOfferResultCodeManageSellOfferSellNoIssuer:
+		// Void
+		return n, nil
+	case ManageSellOfferResultCodeManageSellOfferBuyNoIssuer:
+		// Void
+		return n, nil
+	case ManageSellOfferResultCodeManageSellOfferNotFound:
+		// Void
+		return n, nil
+	case ManageSellOfferResultCodeManageSellOfferLowReserve:
 		// Void
 		return n, nil
 	}
+	return n, fmt.Errorf("union ManageSellOfferResult has invalid Code (ManageSellOfferResultCode) switch value '%d'", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -26574,7 +29316,18 @@ var _ xdrType = (*ManageBuyOfferResultCode)(nil)
 //	 {
 //	 case MANAGE_BUY_OFFER_SUCCESS:
 //	     ManageOfferSuccessResult success;
-//	 default:
+//	 case MANAGE_BUY_OFFER_MALFORMED:
+//	 case MANAGE_BUY_OFFER_SELL_NO_TRUST:
+//	 case MANAGE_BUY_OFFER_BUY_NO_TRUST:
+//	 case MANAGE_BUY_OFFER_SELL_NOT_AUTHORIZED:
+//	 case MANAGE_BUY_OFFER_BUY_NOT_AUTHORIZED:
+//	 case MANAGE_BUY_OFFER_LINE_FULL:
+//	 case MANAGE_BUY_OFFER_UNDERFUNDED:
+//	 case MANAGE_BUY_OFFER_CROSS_SELF:
+//	 case MANAGE_BUY_OFFER_SELL_NO_ISSUER:
+//	 case MANAGE_BUY_OFFER_BUY_NO_ISSUER:
+//	 case MANAGE_BUY_OFFER_NOT_FOUND:
+//	 case MANAGE_BUY_OFFER_LOW_RESERVE:
 //	     void;
 //	 };
 type ManageBuyOfferResult struct {
@@ -26594,9 +29347,32 @@ func (u ManageBuyOfferResult) ArmForSwitch(sw int32) (string, bool) {
 	switch ManageBuyOfferResultCode(sw) {
 	case ManageBuyOfferResultCodeManageBuyOfferSuccess:
 		return "Success", true
-	default:
+	case ManageBuyOfferResultCodeManageBuyOfferMalformed:
+		return "", true
+	case ManageBuyOfferResultCodeManageBuyOfferSellNoTrust:
+		return "", true
+	case ManageBuyOfferResultCodeManageBuyOfferBuyNoTrust:
+		return "", true
+	case ManageBuyOfferResultCodeManageBuyOfferSellNotAuthorized:
+		return "", true
+	case ManageBuyOfferResultCodeManageBuyOfferBuyNotAuthorized:
+		return "", true
+	case ManageBuyOfferResultCodeManageBuyOfferLineFull:
+		return "", true
+	case ManageBuyOfferResultCodeManageBuyOfferUnderfunded:
+		return "", true
+	case ManageBuyOfferResultCodeManageBuyOfferCrossSelf:
+		return "", true
+	case ManageBuyOfferResultCodeManageBuyOfferSellNoIssuer:
+		return "", true
+	case ManageBuyOfferResultCodeManageBuyOfferBuyNoIssuer:
+		return "", true
+	case ManageBuyOfferResultCodeManageBuyOfferNotFound:
+		return "", true
+	case ManageBuyOfferResultCodeManageBuyOfferLowReserve:
 		return "", true
 	}
+	return "-", false
 }
 
 // NewManageBuyOfferResult creates a new  ManageBuyOfferResult.
@@ -26610,7 +29386,29 @@ func NewManageBuyOfferResult(code ManageBuyOfferResultCode, value interface{}) (
 			return
 		}
 		result.Success = &tv
-	default:
+	case ManageBuyOfferResultCodeManageBuyOfferMalformed:
+		// void
+	case ManageBuyOfferResultCodeManageBuyOfferSellNoTrust:
+		// void
+	case ManageBuyOfferResultCodeManageBuyOfferBuyNoTrust:
+		// void
+	case ManageBuyOfferResultCodeManageBuyOfferSellNotAuthorized:
+		// void
+	case ManageBuyOfferResultCodeManageBuyOfferBuyNotAuthorized:
+		// void
+	case ManageBuyOfferResultCodeManageBuyOfferLineFull:
+		// void
+	case ManageBuyOfferResultCodeManageBuyOfferUnderfunded:
+		// void
+	case ManageBuyOfferResultCodeManageBuyOfferCrossSelf:
+		// void
+	case ManageBuyOfferResultCodeManageBuyOfferSellNoIssuer:
+		// void
+	case ManageBuyOfferResultCodeManageBuyOfferBuyNoIssuer:
+		// void
+	case ManageBuyOfferResultCodeManageBuyOfferNotFound:
+		// void
+	case ManageBuyOfferResultCodeManageBuyOfferLowReserve:
 		// void
 	}
 	return
@@ -26653,10 +29451,44 @@ func (u ManageBuyOfferResult) EncodeTo(e *xdr.Encoder) error {
 			return err
 		}
 		return nil
-	default:
+	case ManageBuyOfferResultCodeManageBuyOfferMalformed:
+		// Void
+		return nil
+	case ManageBuyOfferResultCodeManageBuyOfferSellNoTrust:
+		// Void
+		return nil
+	case ManageBuyOfferResultCodeManageBuyOfferBuyNoTrust:
+		// Void
+		return nil
+	case ManageBuyOfferResultCodeManageBuyOfferSellNotAuthorized:
+		// Void
+		return nil
+	case ManageBuyOfferResultCodeManageBuyOfferBuyNotAuthorized:
+		// Void
+		return nil
+	case ManageBuyOfferResultCodeManageBuyOfferLineFull:
+		// Void
+		return nil
+	case ManageBuyOfferResultCodeManageBuyOfferUnderfunded:
+		// Void
+		return nil
+	case ManageBuyOfferResultCodeManageBuyOfferCrossSelf:
+		// Void
+		return nil
+	case ManageBuyOfferResultCodeManageBuyOfferSellNoIssuer:
+		// Void
+		return nil
+	case ManageBuyOfferResultCodeManageBuyOfferBuyNoIssuer:
+		// Void
+		return nil
+	case ManageBuyOfferResultCodeManageBuyOfferNotFound:
+		// Void
+		return nil
+	case ManageBuyOfferResultCodeManageBuyOfferLowReserve:
 		// Void
 		return nil
 	}
+	return fmt.Errorf("Code (ManageBuyOfferResultCode) switch value '%d' is not valid for union ManageBuyOfferResult", u.Code)
 }
 
 var _ decoderFrom = (*ManageBuyOfferResult)(nil)
@@ -26679,10 +29511,44 @@ func (u *ManageBuyOfferResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 			return n, fmt.Errorf("decoding ManageOfferSuccessResult: %s", err)
 		}
 		return n, nil
-	default:
+	case ManageBuyOfferResultCodeManageBuyOfferMalformed:
+		// Void
+		return n, nil
+	case ManageBuyOfferResultCodeManageBuyOfferSellNoTrust:
+		// Void
+		return n, nil
+	case ManageBuyOfferResultCodeManageBuyOfferBuyNoTrust:
+		// Void
+		return n, nil
+	case ManageBuyOfferResultCodeManageBuyOfferSellNotAuthorized:
+		// Void
+		return n, nil
+	case ManageBuyOfferResultCodeManageBuyOfferBuyNotAuthorized:
+		// Void
+		return n, nil
+	case ManageBuyOfferResultCodeManageBuyOfferLineFull:
+		// Void
+		return n, nil
+	case ManageBuyOfferResultCodeManageBuyOfferUnderfunded:
+		// Void
+		return n, nil
+	case ManageBuyOfferResultCodeManageBuyOfferCrossSelf:
+		// Void
+		return n, nil
+	case ManageBuyOfferResultCodeManageBuyOfferSellNoIssuer:
+		// Void
+		return n, nil
+	case ManageBuyOfferResultCodeManageBuyOfferBuyNoIssuer:
+		// Void
+		return n, nil
+	case ManageBuyOfferResultCodeManageBuyOfferNotFound:
+		// Void
+		return n, nil
+	case ManageBuyOfferResultCodeManageBuyOfferLowReserve:
 		// Void
 		return n, nil
 	}
+	return n, fmt.Errorf("union ManageBuyOfferResult has invalid Code (ManageBuyOfferResultCode) switch value '%d'", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -26831,7 +29697,16 @@ var _ xdrType = (*SetOptionsResultCode)(nil)
 //	 {
 //	 case SET_OPTIONS_SUCCESS:
 //	     void;
-//	 default:
+//	 case SET_OPTIONS_LOW_RESERVE:
+//	 case SET_OPTIONS_TOO_MANY_SIGNERS:
+//	 case SET_OPTIONS_BAD_FLAGS:
+//	 case SET_OPTIONS_INVALID_INFLATION:
+//	 case SET_OPTIONS_CANT_CHANGE:
+//	 case SET_OPTIONS_UNKNOWN_FLAG:
+//	 case SET_OPTIONS_THRESHOLD_OUT_OF_RANGE:
+//	 case SET_OPTIONS_BAD_SIGNER:
+//	 case SET_OPTIONS_INVALID_HOME_DOMAIN:
+//	 case SET_OPTIONS_AUTH_REVOCABLE_REQUIRED:
 //	     void;
 //	 };
 type SetOptionsResult struct {
@@ -26850,9 +29725,28 @@ func (u SetOptionsResult) ArmForSwitch(sw int32) (string, bool) {
 	switch SetOptionsResultCode(sw) {
 	case SetOptionsResultCodeSetOptionsSuccess:
 		return "", true
-	default:
+	case SetOptionsResultCodeSetOptionsLowReserve:
+		return "", true
+	case SetOptionsResultCodeSetOptionsTooManySigners:
+		return "", true
+	case SetOptionsResultCodeSetOptionsBadFlags:
+		return "", true
+	case SetOptionsResultCodeSetOptionsInvalidInflation:
+		return "", true
+	case SetOptionsResultCodeSetOptionsCantChange:
+		return "", true
+	case SetOptionsResultCodeSetOptionsUnknownFlag:
+		return "", true
+	case SetOptionsResultCodeSetOptionsThresholdOutOfRange:
+		return "", true
+	case SetOptionsResultCodeSetOptionsBadSigner:
+		return "", true
+	case SetOptionsResultCodeSetOptionsInvalidHomeDomain:
+		return "", true
+	case SetOptionsResultCodeSetOptionsAuthRevocableRequired:
 		return "", true
 	}
+	return "-", false
 }
 
 // NewSetOptionsResult creates a new  SetOptionsResult.
@@ -26861,7 +29755,25 @@ func NewSetOptionsResult(code SetOptionsResultCode, value interface{}) (result S
 	switch SetOptionsResultCode(code) {
 	case SetOptionsResultCodeSetOptionsSuccess:
 		// void
-	default:
+	case SetOptionsResultCodeSetOptionsLowReserve:
+		// void
+	case SetOptionsResultCodeSetOptionsTooManySigners:
+		// void
+	case SetOptionsResultCodeSetOptionsBadFlags:
+		// void
+	case SetOptionsResultCodeSetOptionsInvalidInflation:
+		// void
+	case SetOptionsResultCodeSetOptionsCantChange:
+		// void
+	case SetOptionsResultCodeSetOptionsUnknownFlag:
+		// void
+	case SetOptionsResultCodeSetOptionsThresholdOutOfRange:
+		// void
+	case SetOptionsResultCodeSetOptionsBadSigner:
+		// void
+	case SetOptionsResultCodeSetOptionsInvalidHomeDomain:
+		// void
+	case SetOptionsResultCodeSetOptionsAuthRevocableRequired:
 		// void
 	}
 	return
@@ -26877,10 +29789,38 @@ func (u SetOptionsResult) EncodeTo(e *xdr.Encoder) error {
 	case SetOptionsResultCodeSetOptionsSuccess:
 		// Void
 		return nil
-	default:
+	case SetOptionsResultCodeSetOptionsLowReserve:
+		// Void
+		return nil
+	case SetOptionsResultCodeSetOptionsTooManySigners:
+		// Void
+		return nil
+	case SetOptionsResultCodeSetOptionsBadFlags:
+		// Void
+		return nil
+	case SetOptionsResultCodeSetOptionsInvalidInflation:
+		// Void
+		return nil
+	case SetOptionsResultCodeSetOptionsCantChange:
+		// Void
+		return nil
+	case SetOptionsResultCodeSetOptionsUnknownFlag:
+		// Void
+		return nil
+	case SetOptionsResultCodeSetOptionsThresholdOutOfRange:
+		// Void
+		return nil
+	case SetOptionsResultCodeSetOptionsBadSigner:
+		// Void
+		return nil
+	case SetOptionsResultCodeSetOptionsInvalidHomeDomain:
+		// Void
+		return nil
+	case SetOptionsResultCodeSetOptionsAuthRevocableRequired:
 		// Void
 		return nil
 	}
+	return fmt.Errorf("Code (SetOptionsResultCode) switch value '%d' is not valid for union SetOptionsResult", u.Code)
 }
 
 var _ decoderFrom = (*SetOptionsResult)(nil)
@@ -26898,10 +29838,38 @@ func (u *SetOptionsResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 	case SetOptionsResultCodeSetOptionsSuccess:
 		// Void
 		return n, nil
-	default:
+	case SetOptionsResultCodeSetOptionsLowReserve:
+		// Void
+		return n, nil
+	case SetOptionsResultCodeSetOptionsTooManySigners:
+		// Void
+		return n, nil
+	case SetOptionsResultCodeSetOptionsBadFlags:
+		// Void
+		return n, nil
+	case SetOptionsResultCodeSetOptionsInvalidInflation:
+		// Void
+		return n, nil
+	case SetOptionsResultCodeSetOptionsCantChange:
+		// Void
+		return n, nil
+	case SetOptionsResultCodeSetOptionsUnknownFlag:
+		// Void
+		return n, nil
+	case SetOptionsResultCodeSetOptionsThresholdOutOfRange:
+		// Void
+		return n, nil
+	case SetOptionsResultCodeSetOptionsBadSigner:
+		// Void
+		return n, nil
+	case SetOptionsResultCodeSetOptionsInvalidHomeDomain:
+		// Void
+		return n, nil
+	case SetOptionsResultCodeSetOptionsAuthRevocableRequired:
 		// Void
 		return n, nil
 	}
+	return n, fmt.Errorf("union SetOptionsResult has invalid Code (SetOptionsResultCode) switch value '%d'", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -26944,10 +29912,12 @@ var _ xdrType = (*SetOptionsResult)(nil)
 //	                                      // cannot create with a limit of 0
 //	     CHANGE_TRUST_LOW_RESERVE =
 //	         -4, // not enough funds to create a new trust line,
-//	     CHANGE_TRUST_SELF_NOT_ALLOWED = -5, // trusting self is not allowed
+//	     CHANGE_TRUST_SELF_NOT_ALLOWED = -5,   // trusting self is not allowed
 //	     CHANGE_TRUST_TRUST_LINE_MISSING = -6, // Asset trustline is missing for pool
-//	     CHANGE_TRUST_CANNOT_DELETE = -7, // Asset trustline is still referenced in a pool
-//	     CHANGE_TRUST_NOT_AUTH_MAINTAIN_LIABILITIES = -8 // Asset trustline is deauthorized
+//	     CHANGE_TRUST_CANNOT_DELETE =
+//	         -7, // Asset trustline is still referenced in a pool
+//	     CHANGE_TRUST_NOT_AUTH_MAINTAIN_LIABILITIES =
+//	         -8 // Asset trustline is deauthorized
 //	 };
 type ChangeTrustResultCode int32
 
@@ -27045,7 +30015,14 @@ var _ xdrType = (*ChangeTrustResultCode)(nil)
 //	 {
 //	 case CHANGE_TRUST_SUCCESS:
 //	     void;
-//	 default:
+//	 case CHANGE_TRUST_MALFORMED:
+//	 case CHANGE_TRUST_NO_ISSUER:
+//	 case CHANGE_TRUST_INVALID_LIMIT:
+//	 case CHANGE_TRUST_LOW_RESERVE:
+//	 case CHANGE_TRUST_SELF_NOT_ALLOWED:
+//	 case CHANGE_TRUST_TRUST_LINE_MISSING:
+//	 case CHANGE_TRUST_CANNOT_DELETE:
+//	 case CHANGE_TRUST_NOT_AUTH_MAINTAIN_LIABILITIES:
 //	     void;
 //	 };
 type ChangeTrustResult struct {
@@ -27064,9 +30041,24 @@ func (u ChangeTrustResult) ArmForSwitch(sw int32) (string, bool) {
 	switch ChangeTrustResultCode(sw) {
 	case ChangeTrustResultCodeChangeTrustSuccess:
 		return "", true
-	default:
+	case ChangeTrustResultCodeChangeTrustMalformed:
+		return "", true
+	case ChangeTrustResultCodeChangeTrustNoIssuer:
+		return "", true
+	case ChangeTrustResultCodeChangeTrustInvalidLimit:
+		return "", true
+	case ChangeTrustResultCodeChangeTrustLowReserve:
+		return "", true
+	case ChangeTrustResultCodeChangeTrustSelfNotAllowed:
+		return "", true
+	case ChangeTrustResultCodeChangeTrustTrustLineMissing:
+		return "", true
+	case ChangeTrustResultCodeChangeTrustCannotDelete:
+		return "", true
+	case ChangeTrustResultCodeChangeTrustNotAuthMaintainLiabilities:
 		return "", true
 	}
+	return "-", false
 }
 
 // NewChangeTrustResult creates a new  ChangeTrustResult.
@@ -27075,7 +30067,21 @@ func NewChangeTrustResult(code ChangeTrustResultCode, value interface{}) (result
 	switch ChangeTrustResultCode(code) {
 	case ChangeTrustResultCodeChangeTrustSuccess:
 		// void
-	default:
+	case ChangeTrustResultCodeChangeTrustMalformed:
+		// void
+	case ChangeTrustResultCodeChangeTrustNoIssuer:
+		// void
+	case ChangeTrustResultCodeChangeTrustInvalidLimit:
+		// void
+	case ChangeTrustResultCodeChangeTrustLowReserve:
+		// void
+	case ChangeTrustResultCodeChangeTrustSelfNotAllowed:
+		// void
+	case ChangeTrustResultCodeChangeTrustTrustLineMissing:
+		// void
+	case ChangeTrustResultCodeChangeTrustCannotDelete:
+		// void
+	case ChangeTrustResultCodeChangeTrustNotAuthMaintainLiabilities:
 		// void
 	}
 	return
@@ -27091,10 +30097,32 @@ func (u ChangeTrustResult) EncodeTo(e *xdr.Encoder) error {
 	case ChangeTrustResultCodeChangeTrustSuccess:
 		// Void
 		return nil
-	default:
+	case ChangeTrustResultCodeChangeTrustMalformed:
+		// Void
+		return nil
+	case ChangeTrustResultCodeChangeTrustNoIssuer:
+		// Void
+		return nil
+	case ChangeTrustResultCodeChangeTrustInvalidLimit:
+		// Void
+		return nil
+	case ChangeTrustResultCodeChangeTrustLowReserve:
+		// Void
+		return nil
+	case ChangeTrustResultCodeChangeTrustSelfNotAllowed:
+		// Void
+		return nil
+	case ChangeTrustResultCodeChangeTrustTrustLineMissing:
+		// Void
+		return nil
+	case ChangeTrustResultCodeChangeTrustCannotDelete:
+		// Void
+		return nil
+	case ChangeTrustResultCodeChangeTrustNotAuthMaintainLiabilities:
 		// Void
 		return nil
 	}
+	return fmt.Errorf("Code (ChangeTrustResultCode) switch value '%d' is not valid for union ChangeTrustResult", u.Code)
 }
 
 var _ decoderFrom = (*ChangeTrustResult)(nil)
@@ -27112,10 +30140,32 @@ func (u *ChangeTrustResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 	case ChangeTrustResultCodeChangeTrustSuccess:
 		// Void
 		return n, nil
-	default:
+	case ChangeTrustResultCodeChangeTrustMalformed:
+		// Void
+		return n, nil
+	case ChangeTrustResultCodeChangeTrustNoIssuer:
+		// Void
+		return n, nil
+	case ChangeTrustResultCodeChangeTrustInvalidLimit:
+		// Void
+		return n, nil
+	case ChangeTrustResultCodeChangeTrustLowReserve:
+		// Void
+		return n, nil
+	case ChangeTrustResultCodeChangeTrustSelfNotAllowed:
+		// Void
+		return n, nil
+	case ChangeTrustResultCodeChangeTrustTrustLineMissing:
+		// Void
+		return n, nil
+	case ChangeTrustResultCodeChangeTrustCannotDelete:
+		// Void
+		return n, nil
+	case ChangeTrustResultCodeChangeTrustNotAuthMaintainLiabilities:
 		// Void
 		return n, nil
 	}
+	return n, fmt.Errorf("union ChangeTrustResult has invalid Code (ChangeTrustResultCode) switch value '%d'", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -27156,10 +30206,10 @@ var _ xdrType = (*ChangeTrustResult)(nil)
 //	     ALLOW_TRUST_NO_TRUST_LINE = -2, // trustor does not have a trustline
 //	                                     // source account does not require trust
 //	     ALLOW_TRUST_TRUST_NOT_REQUIRED = -3,
-//	     ALLOW_TRUST_CANT_REVOKE = -4,     // source account can't revoke trust,
+//	     ALLOW_TRUST_CANT_REVOKE = -4,      // source account can't revoke trust,
 //	     ALLOW_TRUST_SELF_NOT_ALLOWED = -5, // trusting self is not allowed
-//	     ALLOW_TRUST_LOW_RESERVE = -6 // claimable balances can't be created
-//	                                  // on revoke due to low reserves
+//	     ALLOW_TRUST_LOW_RESERVE = -6       // claimable balances can't be created
+//	                                        // on revoke due to low reserves
 //	 };
 type AllowTrustResultCode int32
 
@@ -27253,7 +30303,12 @@ var _ xdrType = (*AllowTrustResultCode)(nil)
 //	 {
 //	 case ALLOW_TRUST_SUCCESS:
 //	     void;
-//	 default:
+//	 case ALLOW_TRUST_MALFORMED:
+//	 case ALLOW_TRUST_NO_TRUST_LINE:
+//	 case ALLOW_TRUST_TRUST_NOT_REQUIRED:
+//	 case ALLOW_TRUST_CANT_REVOKE:
+//	 case ALLOW_TRUST_SELF_NOT_ALLOWED:
+//	 case ALLOW_TRUST_LOW_RESERVE:
 //	     void;
 //	 };
 type AllowTrustResult struct {
@@ -27272,9 +30327,20 @@ func (u AllowTrustResult) ArmForSwitch(sw int32) (string, bool) {
 	switch AllowTrustResultCode(sw) {
 	case AllowTrustResultCodeAllowTrustSuccess:
 		return "", true
-	default:
+	case AllowTrustResultCodeAllowTrustMalformed:
+		return "", true
+	case AllowTrustResultCodeAllowTrustNoTrustLine:
+		return "", true
+	case AllowTrustResultCodeAllowTrustTrustNotRequired:
+		return "", true
+	case AllowTrustResultCodeAllowTrustCantRevoke:
+		return "", true
+	case AllowTrustResultCodeAllowTrustSelfNotAllowed:
+		return "", true
+	case AllowTrustResultCodeAllowTrustLowReserve:
 		return "", true
 	}
+	return "-", false
 }
 
 // NewAllowTrustResult creates a new  AllowTrustResult.
@@ -27283,7 +30349,17 @@ func NewAllowTrustResult(code AllowTrustResultCode, value interface{}) (result A
 	switch AllowTrustResultCode(code) {
 	case AllowTrustResultCodeAllowTrustSuccess:
 		// void
-	default:
+	case AllowTrustResultCodeAllowTrustMalformed:
+		// void
+	case AllowTrustResultCodeAllowTrustNoTrustLine:
+		// void
+	case AllowTrustResultCodeAllowTrustTrustNotRequired:
+		// void
+	case AllowTrustResultCodeAllowTrustCantRevoke:
+		// void
+	case AllowTrustResultCodeAllowTrustSelfNotAllowed:
+		// void
+	case AllowTrustResultCodeAllowTrustLowReserve:
 		// void
 	}
 	return
@@ -27299,10 +30375,26 @@ func (u AllowTrustResult) EncodeTo(e *xdr.Encoder) error {
 	case AllowTrustResultCodeAllowTrustSuccess:
 		// Void
 		return nil
-	default:
+	case AllowTrustResultCodeAllowTrustMalformed:
+		// Void
+		return nil
+	case AllowTrustResultCodeAllowTrustNoTrustLine:
+		// Void
+		return nil
+	case AllowTrustResultCodeAllowTrustTrustNotRequired:
+		// Void
+		return nil
+	case AllowTrustResultCodeAllowTrustCantRevoke:
+		// Void
+		return nil
+	case AllowTrustResultCodeAllowTrustSelfNotAllowed:
+		// Void
+		return nil
+	case AllowTrustResultCodeAllowTrustLowReserve:
 		// Void
 		return nil
 	}
+	return fmt.Errorf("Code (AllowTrustResultCode) switch value '%d' is not valid for union AllowTrustResult", u.Code)
 }
 
 var _ decoderFrom = (*AllowTrustResult)(nil)
@@ -27320,10 +30412,26 @@ func (u *AllowTrustResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 	case AllowTrustResultCodeAllowTrustSuccess:
 		// Void
 		return n, nil
-	default:
+	case AllowTrustResultCodeAllowTrustMalformed:
+		// Void
+		return n, nil
+	case AllowTrustResultCodeAllowTrustNoTrustLine:
+		// Void
+		return n, nil
+	case AllowTrustResultCodeAllowTrustTrustNotRequired:
+		// Void
+		return n, nil
+	case AllowTrustResultCodeAllowTrustCantRevoke:
+		// Void
+		return n, nil
+	case AllowTrustResultCodeAllowTrustSelfNotAllowed:
+		// Void
+		return n, nil
+	case AllowTrustResultCodeAllowTrustLowReserve:
 		// Void
 		return n, nil
 	}
+	return n, fmt.Errorf("union AllowTrustResult has invalid Code (AllowTrustResultCode) switch value '%d'", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -27463,7 +30571,13 @@ var _ xdrType = (*AccountMergeResultCode)(nil)
 //	 {
 //	 case ACCOUNT_MERGE_SUCCESS:
 //	     int64 sourceAccountBalance; // how much got transferred from source account
-//	 default:
+//	 case ACCOUNT_MERGE_MALFORMED:
+//	 case ACCOUNT_MERGE_NO_ACCOUNT:
+//	 case ACCOUNT_MERGE_IMMUTABLE_SET:
+//	 case ACCOUNT_MERGE_HAS_SUB_ENTRIES:
+//	 case ACCOUNT_MERGE_SEQNUM_TOO_FAR:
+//	 case ACCOUNT_MERGE_DEST_FULL:
+//	 case ACCOUNT_MERGE_IS_SPONSOR:
 //	     void;
 //	 };
 type AccountMergeResult struct {
@@ -27483,9 +30597,22 @@ func (u AccountMergeResult) ArmForSwitch(sw int32) (string, bool) {
 	switch AccountMergeResultCode(sw) {
 	case AccountMergeResultCodeAccountMergeSuccess:
 		return "SourceAccountBalance", true
-	default:
+	case AccountMergeResultCodeAccountMergeMalformed:
+		return "", true
+	case AccountMergeResultCodeAccountMergeNoAccount:
+		return "", true
+	case AccountMergeResultCodeAccountMergeImmutableSet:
+		return "", true
+	case AccountMergeResultCodeAccountMergeHasSubEntries:
+		return "", true
+	case AccountMergeResultCodeAccountMergeSeqnumTooFar:
+		return "", true
+	case AccountMergeResultCodeAccountMergeDestFull:
+		return "", true
+	case AccountMergeResultCodeAccountMergeIsSponsor:
 		return "", true
 	}
+	return "-", false
 }
 
 // NewAccountMergeResult creates a new  AccountMergeResult.
@@ -27499,7 +30626,19 @@ func NewAccountMergeResult(code AccountMergeResultCode, value interface{}) (resu
 			return
 		}
 		result.SourceAccountBalance = &tv
-	default:
+	case AccountMergeResultCodeAccountMergeMalformed:
+		// void
+	case AccountMergeResultCodeAccountMergeNoAccount:
+		// void
+	case AccountMergeResultCodeAccountMergeImmutableSet:
+		// void
+	case AccountMergeResultCodeAccountMergeHasSubEntries:
+		// void
+	case AccountMergeResultCodeAccountMergeSeqnumTooFar:
+		// void
+	case AccountMergeResultCodeAccountMergeDestFull:
+		// void
+	case AccountMergeResultCodeAccountMergeIsSponsor:
 		// void
 	}
 	return
@@ -27542,10 +30681,29 @@ func (u AccountMergeResult) EncodeTo(e *xdr.Encoder) error {
 			return err
 		}
 		return nil
-	default:
+	case AccountMergeResultCodeAccountMergeMalformed:
+		// Void
+		return nil
+	case AccountMergeResultCodeAccountMergeNoAccount:
+		// Void
+		return nil
+	case AccountMergeResultCodeAccountMergeImmutableSet:
+		// Void
+		return nil
+	case AccountMergeResultCodeAccountMergeHasSubEntries:
+		// Void
+		return nil
+	case AccountMergeResultCodeAccountMergeSeqnumTooFar:
+		// Void
+		return nil
+	case AccountMergeResultCodeAccountMergeDestFull:
+		// Void
+		return nil
+	case AccountMergeResultCodeAccountMergeIsSponsor:
 		// Void
 		return nil
 	}
+	return fmt.Errorf("Code (AccountMergeResultCode) switch value '%d' is not valid for union AccountMergeResult", u.Code)
 }
 
 var _ decoderFrom = (*AccountMergeResult)(nil)
@@ -27568,10 +30726,29 @@ func (u *AccountMergeResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 			return n, fmt.Errorf("decoding Int64: %s", err)
 		}
 		return n, nil
-	default:
+	case AccountMergeResultCodeAccountMergeMalformed:
+		// Void
+		return n, nil
+	case AccountMergeResultCodeAccountMergeNoAccount:
+		// Void
+		return n, nil
+	case AccountMergeResultCodeAccountMergeImmutableSet:
+		// Void
+		return n, nil
+	case AccountMergeResultCodeAccountMergeHasSubEntries:
+		// Void
+		return n, nil
+	case AccountMergeResultCodeAccountMergeSeqnumTooFar:
+		// Void
+		return n, nil
+	case AccountMergeResultCodeAccountMergeDestFull:
+		// Void
+		return n, nil
+	case AccountMergeResultCodeAccountMergeIsSponsor:
 		// Void
 		return n, nil
 	}
+	return n, fmt.Errorf("union AccountMergeResult has invalid Code (AccountMergeResultCode) switch value '%d'", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -27762,7 +30939,7 @@ var _ xdrType = (*InflationPayout)(nil)
 //	 {
 //	 case INFLATION_SUCCESS:
 //	     InflationPayout payouts<>;
-//	 default:
+//	 case INFLATION_NOT_TIME:
 //	     void;
 //	 };
 type InflationResult struct {
@@ -27782,9 +30959,10 @@ func (u InflationResult) ArmForSwitch(sw int32) (string, bool) {
 	switch InflationResultCode(sw) {
 	case InflationResultCodeInflationSuccess:
 		return "Payouts", true
-	default:
+	case InflationResultCodeInflationNotTime:
 		return "", true
 	}
+	return "-", false
 }
 
 // NewInflationResult creates a new  InflationResult.
@@ -27798,7 +30976,7 @@ func NewInflationResult(code InflationResultCode, value interface{}) (result Inf
 			return
 		}
 		result.Payouts = &tv
-	default:
+	case InflationResultCodeInflationNotTime:
 		// void
 	}
 	return
@@ -27846,10 +31024,11 @@ func (u InflationResult) EncodeTo(e *xdr.Encoder) error {
 			}
 		}
 		return nil
-	default:
+	case InflationResultCodeInflationNotTime:
 		// Void
 		return nil
 	}
+	return fmt.Errorf("Code (InflationResultCode) switch value '%d' is not valid for union InflationResult", u.Code)
 }
 
 var _ decoderFrom = (*InflationResult)(nil)
@@ -27884,10 +31063,11 @@ func (u *InflationResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 			}
 		}
 		return n, nil
-	default:
+	case InflationResultCodeInflationNotTime:
 		// Void
 		return n, nil
 	}
+	return n, fmt.Errorf("union InflationResult has invalid Code (InflationResultCode) switch value '%d'", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -28019,7 +31199,10 @@ var _ xdrType = (*ManageDataResultCode)(nil)
 //	 {
 //	 case MANAGE_DATA_SUCCESS:
 //	     void;
-//	 default:
+//	 case MANAGE_DATA_NOT_SUPPORTED_YET:
+//	 case MANAGE_DATA_NAME_NOT_FOUND:
+//	 case MANAGE_DATA_LOW_RESERVE:
+//	 case MANAGE_DATA_INVALID_NAME:
 //	     void;
 //	 };
 type ManageDataResult struct {
@@ -28038,9 +31221,16 @@ func (u ManageDataResult) ArmForSwitch(sw int32) (string, bool) {
 	switch ManageDataResultCode(sw) {
 	case ManageDataResultCodeManageDataSuccess:
 		return "", true
-	default:
+	case ManageDataResultCodeManageDataNotSupportedYet:
+		return "", true
+	case ManageDataResultCodeManageDataNameNotFound:
+		return "", true
+	case ManageDataResultCodeManageDataLowReserve:
+		return "", true
+	case ManageDataResultCodeManageDataInvalidName:
 		return "", true
 	}
+	return "-", false
 }
 
 // NewManageDataResult creates a new  ManageDataResult.
@@ -28049,7 +31239,13 @@ func NewManageDataResult(code ManageDataResultCode, value interface{}) (result M
 	switch ManageDataResultCode(code) {
 	case ManageDataResultCodeManageDataSuccess:
 		// void
-	default:
+	case ManageDataResultCodeManageDataNotSupportedYet:
+		// void
+	case ManageDataResultCodeManageDataNameNotFound:
+		// void
+	case ManageDataResultCodeManageDataLowReserve:
+		// void
+	case ManageDataResultCodeManageDataInvalidName:
 		// void
 	}
 	return
@@ -28065,10 +31261,20 @@ func (u ManageDataResult) EncodeTo(e *xdr.Encoder) error {
 	case ManageDataResultCodeManageDataSuccess:
 		// Void
 		return nil
-	default:
+	case ManageDataResultCodeManageDataNotSupportedYet:
+		// Void
+		return nil
+	case ManageDataResultCodeManageDataNameNotFound:
+		// Void
+		return nil
+	case ManageDataResultCodeManageDataLowReserve:
+		// Void
+		return nil
+	case ManageDataResultCodeManageDataInvalidName:
 		// Void
 		return nil
 	}
+	return fmt.Errorf("Code (ManageDataResultCode) switch value '%d' is not valid for union ManageDataResult", u.Code)
 }
 
 var _ decoderFrom = (*ManageDataResult)(nil)
@@ -28086,10 +31292,20 @@ func (u *ManageDataResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 	case ManageDataResultCodeManageDataSuccess:
 		// Void
 		return n, nil
-	default:
+	case ManageDataResultCodeManageDataNotSupportedYet:
+		// Void
+		return n, nil
+	case ManageDataResultCodeManageDataNameNotFound:
+		// Void
+		return n, nil
+	case ManageDataResultCodeManageDataLowReserve:
+		// Void
+		return n, nil
+	case ManageDataResultCodeManageDataInvalidName:
 		// Void
 		return n, nil
 	}
+	return n, fmt.Errorf("union ManageDataResult has invalid Code (ManageDataResultCode) switch value '%d'", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -28210,7 +31426,7 @@ var _ xdrType = (*BumpSequenceResultCode)(nil)
 //	 {
 //	 case BUMP_SEQUENCE_SUCCESS:
 //	     void;
-//	 default:
+//	 case BUMP_SEQUENCE_BAD_SEQ:
 //	     void;
 //	 };
 type BumpSequenceResult struct {
@@ -28229,9 +31445,10 @@ func (u BumpSequenceResult) ArmForSwitch(sw int32) (string, bool) {
 	switch BumpSequenceResultCode(sw) {
 	case BumpSequenceResultCodeBumpSequenceSuccess:
 		return "", true
-	default:
+	case BumpSequenceResultCodeBumpSequenceBadSeq:
 		return "", true
 	}
+	return "-", false
 }
 
 // NewBumpSequenceResult creates a new  BumpSequenceResult.
@@ -28240,7 +31457,7 @@ func NewBumpSequenceResult(code BumpSequenceResultCode, value interface{}) (resu
 	switch BumpSequenceResultCode(code) {
 	case BumpSequenceResultCodeBumpSequenceSuccess:
 		// void
-	default:
+	case BumpSequenceResultCodeBumpSequenceBadSeq:
 		// void
 	}
 	return
@@ -28256,10 +31473,11 @@ func (u BumpSequenceResult) EncodeTo(e *xdr.Encoder) error {
 	case BumpSequenceResultCodeBumpSequenceSuccess:
 		// Void
 		return nil
-	default:
+	case BumpSequenceResultCodeBumpSequenceBadSeq:
 		// Void
 		return nil
 	}
+	return fmt.Errorf("Code (BumpSequenceResultCode) switch value '%d' is not valid for union BumpSequenceResult", u.Code)
 }
 
 var _ decoderFrom = (*BumpSequenceResult)(nil)
@@ -28277,10 +31495,11 @@ func (u *BumpSequenceResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 	case BumpSequenceResultCodeBumpSequenceSuccess:
 		// Void
 		return n, nil
-	default:
+	case BumpSequenceResultCodeBumpSequenceBadSeq:
 		// Void
 		return n, nil
 	}
+	return n, fmt.Errorf("union BumpSequenceResult has invalid Code (BumpSequenceResultCode) switch value '%d'", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -28412,7 +31631,11 @@ var _ xdrType = (*CreateClaimableBalanceResultCode)(nil)
 //	 {
 //	 case CREATE_CLAIMABLE_BALANCE_SUCCESS:
 //	     ClaimableBalanceID balanceID;
-//	 default:
+//	 case CREATE_CLAIMABLE_BALANCE_MALFORMED:
+//	 case CREATE_CLAIMABLE_BALANCE_LOW_RESERVE:
+//	 case CREATE_CLAIMABLE_BALANCE_NO_TRUST:
+//	 case CREATE_CLAIMABLE_BALANCE_NOT_AUTHORIZED:
+//	 case CREATE_CLAIMABLE_BALANCE_UNDERFUNDED:
 //	     void;
 //	 };
 type CreateClaimableBalanceResult struct {
@@ -28432,9 +31655,18 @@ func (u CreateClaimableBalanceResult) ArmForSwitch(sw int32) (string, bool) {
 	switch CreateClaimableBalanceResultCode(sw) {
 	case CreateClaimableBalanceResultCodeCreateClaimableBalanceSuccess:
 		return "BalanceId", true
-	default:
+	case CreateClaimableBalanceResultCodeCreateClaimableBalanceMalformed:
+		return "", true
+	case CreateClaimableBalanceResultCodeCreateClaimableBalanceLowReserve:
+		return "", true
+	case CreateClaimableBalanceResultCodeCreateClaimableBalanceNoTrust:
+		return "", true
+	case CreateClaimableBalanceResultCodeCreateClaimableBalanceNotAuthorized:
+		return "", true
+	case CreateClaimableBalanceResultCodeCreateClaimableBalanceUnderfunded:
 		return "", true
 	}
+	return "-", false
 }
 
 // NewCreateClaimableBalanceResult creates a new  CreateClaimableBalanceResult.
@@ -28448,7 +31680,15 @@ func NewCreateClaimableBalanceResult(code CreateClaimableBalanceResultCode, valu
 			return
 		}
 		result.BalanceId = &tv
-	default:
+	case CreateClaimableBalanceResultCodeCreateClaimableBalanceMalformed:
+		// void
+	case CreateClaimableBalanceResultCodeCreateClaimableBalanceLowReserve:
+		// void
+	case CreateClaimableBalanceResultCodeCreateClaimableBalanceNoTrust:
+		// void
+	case CreateClaimableBalanceResultCodeCreateClaimableBalanceNotAuthorized:
+		// void
+	case CreateClaimableBalanceResultCodeCreateClaimableBalanceUnderfunded:
 		// void
 	}
 	return
@@ -28491,10 +31731,23 @@ func (u CreateClaimableBalanceResult) EncodeTo(e *xdr.Encoder) error {
 			return err
 		}
 		return nil
-	default:
+	case CreateClaimableBalanceResultCodeCreateClaimableBalanceMalformed:
+		// Void
+		return nil
+	case CreateClaimableBalanceResultCodeCreateClaimableBalanceLowReserve:
+		// Void
+		return nil
+	case CreateClaimableBalanceResultCodeCreateClaimableBalanceNoTrust:
+		// Void
+		return nil
+	case CreateClaimableBalanceResultCodeCreateClaimableBalanceNotAuthorized:
+		// Void
+		return nil
+	case CreateClaimableBalanceResultCodeCreateClaimableBalanceUnderfunded:
 		// Void
 		return nil
 	}
+	return fmt.Errorf("Code (CreateClaimableBalanceResultCode) switch value '%d' is not valid for union CreateClaimableBalanceResult", u.Code)
 }
 
 var _ decoderFrom = (*CreateClaimableBalanceResult)(nil)
@@ -28517,10 +31770,23 @@ func (u *CreateClaimableBalanceResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 			return n, fmt.Errorf("decoding ClaimableBalanceId: %s", err)
 		}
 		return n, nil
-	default:
+	case CreateClaimableBalanceResultCodeCreateClaimableBalanceMalformed:
+		// Void
+		return n, nil
+	case CreateClaimableBalanceResultCodeCreateClaimableBalanceLowReserve:
+		// Void
+		return n, nil
+	case CreateClaimableBalanceResultCodeCreateClaimableBalanceNoTrust:
+		// Void
+		return n, nil
+	case CreateClaimableBalanceResultCodeCreateClaimableBalanceNotAuthorized:
+		// Void
+		return n, nil
+	case CreateClaimableBalanceResultCodeCreateClaimableBalanceUnderfunded:
 		// Void
 		return n, nil
 	}
+	return n, fmt.Errorf("union CreateClaimableBalanceResult has invalid Code (CreateClaimableBalanceResultCode) switch value '%d'", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -28560,7 +31826,6 @@ var _ xdrType = (*CreateClaimableBalanceResult)(nil)
 //	     CLAIM_CLAIMABLE_BALANCE_LINE_FULL = -3,
 //	     CLAIM_CLAIMABLE_BALANCE_NO_TRUST = -4,
 //	     CLAIM_CLAIMABLE_BALANCE_NOT_AUTHORIZED = -5
-//
 //	 };
 type ClaimClaimableBalanceResultCode int32
 
@@ -28652,7 +31917,11 @@ var _ xdrType = (*ClaimClaimableBalanceResultCode)(nil)
 //	 {
 //	 case CLAIM_CLAIMABLE_BALANCE_SUCCESS:
 //	     void;
-//	 default:
+//	 case CLAIM_CLAIMABLE_BALANCE_DOES_NOT_EXIST:
+//	 case CLAIM_CLAIMABLE_BALANCE_CANNOT_CLAIM:
+//	 case CLAIM_CLAIMABLE_BALANCE_LINE_FULL:
+//	 case CLAIM_CLAIMABLE_BALANCE_NO_TRUST:
+//	 case CLAIM_CLAIMABLE_BALANCE_NOT_AUTHORIZED:
 //	     void;
 //	 };
 type ClaimClaimableBalanceResult struct {
@@ -28671,9 +31940,18 @@ func (u ClaimClaimableBalanceResult) ArmForSwitch(sw int32) (string, bool) {
 	switch ClaimClaimableBalanceResultCode(sw) {
 	case ClaimClaimableBalanceResultCodeClaimClaimableBalanceSuccess:
 		return "", true
-	default:
+	case ClaimClaimableBalanceResultCodeClaimClaimableBalanceDoesNotExist:
+		return "", true
+	case ClaimClaimableBalanceResultCodeClaimClaimableBalanceCannotClaim:
+		return "", true
+	case ClaimClaimableBalanceResultCodeClaimClaimableBalanceLineFull:
+		return "", true
+	case ClaimClaimableBalanceResultCodeClaimClaimableBalanceNoTrust:
+		return "", true
+	case ClaimClaimableBalanceResultCodeClaimClaimableBalanceNotAuthorized:
 		return "", true
 	}
+	return "-", false
 }
 
 // NewClaimClaimableBalanceResult creates a new  ClaimClaimableBalanceResult.
@@ -28682,7 +31960,15 @@ func NewClaimClaimableBalanceResult(code ClaimClaimableBalanceResultCode, value 
 	switch ClaimClaimableBalanceResultCode(code) {
 	case ClaimClaimableBalanceResultCodeClaimClaimableBalanceSuccess:
 		// void
-	default:
+	case ClaimClaimableBalanceResultCodeClaimClaimableBalanceDoesNotExist:
+		// void
+	case ClaimClaimableBalanceResultCodeClaimClaimableBalanceCannotClaim:
+		// void
+	case ClaimClaimableBalanceResultCodeClaimClaimableBalanceLineFull:
+		// void
+	case ClaimClaimableBalanceResultCodeClaimClaimableBalanceNoTrust:
+		// void
+	case ClaimClaimableBalanceResultCodeClaimClaimableBalanceNotAuthorized:
 		// void
 	}
 	return
@@ -28698,10 +31984,23 @@ func (u ClaimClaimableBalanceResult) EncodeTo(e *xdr.Encoder) error {
 	case ClaimClaimableBalanceResultCodeClaimClaimableBalanceSuccess:
 		// Void
 		return nil
-	default:
+	case ClaimClaimableBalanceResultCodeClaimClaimableBalanceDoesNotExist:
+		// Void
+		return nil
+	case ClaimClaimableBalanceResultCodeClaimClaimableBalanceCannotClaim:
+		// Void
+		return nil
+	case ClaimClaimableBalanceResultCodeClaimClaimableBalanceLineFull:
+		// Void
+		return nil
+	case ClaimClaimableBalanceResultCodeClaimClaimableBalanceNoTrust:
+		// Void
+		return nil
+	case ClaimClaimableBalanceResultCodeClaimClaimableBalanceNotAuthorized:
 		// Void
 		return nil
 	}
+	return fmt.Errorf("Code (ClaimClaimableBalanceResultCode) switch value '%d' is not valid for union ClaimClaimableBalanceResult", u.Code)
 }
 
 var _ decoderFrom = (*ClaimClaimableBalanceResult)(nil)
@@ -28719,10 +32018,23 @@ func (u *ClaimClaimableBalanceResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 	case ClaimClaimableBalanceResultCodeClaimClaimableBalanceSuccess:
 		// Void
 		return n, nil
-	default:
+	case ClaimClaimableBalanceResultCodeClaimClaimableBalanceDoesNotExist:
+		// Void
+		return n, nil
+	case ClaimClaimableBalanceResultCodeClaimClaimableBalanceCannotClaim:
+		// Void
+		return n, nil
+	case ClaimClaimableBalanceResultCodeClaimClaimableBalanceLineFull:
+		// Void
+		return n, nil
+	case ClaimClaimableBalanceResultCodeClaimClaimableBalanceNoTrust:
+		// Void
+		return n, nil
+	case ClaimClaimableBalanceResultCodeClaimClaimableBalanceNotAuthorized:
 		// Void
 		return n, nil
 	}
+	return n, fmt.Errorf("union ClaimClaimableBalanceResult has invalid Code (ClaimClaimableBalanceResultCode) switch value '%d'", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -28851,7 +32163,9 @@ var _ xdrType = (*BeginSponsoringFutureReservesResultCode)(nil)
 //	 {
 //	 case BEGIN_SPONSORING_FUTURE_RESERVES_SUCCESS:
 //	     void;
-//	 default:
+//	 case BEGIN_SPONSORING_FUTURE_RESERVES_MALFORMED:
+//	 case BEGIN_SPONSORING_FUTURE_RESERVES_ALREADY_SPONSORED:
+//	 case BEGIN_SPONSORING_FUTURE_RESERVES_RECURSIVE:
 //	     void;
 //	 };
 type BeginSponsoringFutureReservesResult struct {
@@ -28870,9 +32184,14 @@ func (u BeginSponsoringFutureReservesResult) ArmForSwitch(sw int32) (string, boo
 	switch BeginSponsoringFutureReservesResultCode(sw) {
 	case BeginSponsoringFutureReservesResultCodeBeginSponsoringFutureReservesSuccess:
 		return "", true
-	default:
+	case BeginSponsoringFutureReservesResultCodeBeginSponsoringFutureReservesMalformed:
+		return "", true
+	case BeginSponsoringFutureReservesResultCodeBeginSponsoringFutureReservesAlreadySponsored:
+		return "", true
+	case BeginSponsoringFutureReservesResultCodeBeginSponsoringFutureReservesRecursive:
 		return "", true
 	}
+	return "-", false
 }
 
 // NewBeginSponsoringFutureReservesResult creates a new  BeginSponsoringFutureReservesResult.
@@ -28881,7 +32200,11 @@ func NewBeginSponsoringFutureReservesResult(code BeginSponsoringFutureReservesRe
 	switch BeginSponsoringFutureReservesResultCode(code) {
 	case BeginSponsoringFutureReservesResultCodeBeginSponsoringFutureReservesSuccess:
 		// void
-	default:
+	case BeginSponsoringFutureReservesResultCodeBeginSponsoringFutureReservesMalformed:
+		// void
+	case BeginSponsoringFutureReservesResultCodeBeginSponsoringFutureReservesAlreadySponsored:
+		// void
+	case BeginSponsoringFutureReservesResultCodeBeginSponsoringFutureReservesRecursive:
 		// void
 	}
 	return
@@ -28897,10 +32220,17 @@ func (u BeginSponsoringFutureReservesResult) EncodeTo(e *xdr.Encoder) error {
 	case BeginSponsoringFutureReservesResultCodeBeginSponsoringFutureReservesSuccess:
 		// Void
 		return nil
-	default:
+	case BeginSponsoringFutureReservesResultCodeBeginSponsoringFutureReservesMalformed:
+		// Void
+		return nil
+	case BeginSponsoringFutureReservesResultCodeBeginSponsoringFutureReservesAlreadySponsored:
+		// Void
+		return nil
+	case BeginSponsoringFutureReservesResultCodeBeginSponsoringFutureReservesRecursive:
 		// Void
 		return nil
 	}
+	return fmt.Errorf("Code (BeginSponsoringFutureReservesResultCode) switch value '%d' is not valid for union BeginSponsoringFutureReservesResult", u.Code)
 }
 
 var _ decoderFrom = (*BeginSponsoringFutureReservesResult)(nil)
@@ -28918,10 +32248,17 @@ func (u *BeginSponsoringFutureReservesResult) DecodeFrom(d *xdr.Decoder) (int, e
 	case BeginSponsoringFutureReservesResultCodeBeginSponsoringFutureReservesSuccess:
 		// Void
 		return n, nil
-	default:
+	case BeginSponsoringFutureReservesResultCodeBeginSponsoringFutureReservesMalformed:
+		// Void
+		return n, nil
+	case BeginSponsoringFutureReservesResultCodeBeginSponsoringFutureReservesAlreadySponsored:
+		// Void
+		return n, nil
+	case BeginSponsoringFutureReservesResultCodeBeginSponsoringFutureReservesRecursive:
 		// Void
 		return n, nil
 	}
+	return n, fmt.Errorf("union BeginSponsoringFutureReservesResult has invalid Code (BeginSponsoringFutureReservesResultCode) switch value '%d'", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -29044,7 +32381,7 @@ var _ xdrType = (*EndSponsoringFutureReservesResultCode)(nil)
 //	 {
 //	 case END_SPONSORING_FUTURE_RESERVES_SUCCESS:
 //	     void;
-//	 default:
+//	 case END_SPONSORING_FUTURE_RESERVES_NOT_SPONSORED:
 //	     void;
 //	 };
 type EndSponsoringFutureReservesResult struct {
@@ -29063,9 +32400,10 @@ func (u EndSponsoringFutureReservesResult) ArmForSwitch(sw int32) (string, bool)
 	switch EndSponsoringFutureReservesResultCode(sw) {
 	case EndSponsoringFutureReservesResultCodeEndSponsoringFutureReservesSuccess:
 		return "", true
-	default:
+	case EndSponsoringFutureReservesResultCodeEndSponsoringFutureReservesNotSponsored:
 		return "", true
 	}
+	return "-", false
 }
 
 // NewEndSponsoringFutureReservesResult creates a new  EndSponsoringFutureReservesResult.
@@ -29074,7 +32412,7 @@ func NewEndSponsoringFutureReservesResult(code EndSponsoringFutureReservesResult
 	switch EndSponsoringFutureReservesResultCode(code) {
 	case EndSponsoringFutureReservesResultCodeEndSponsoringFutureReservesSuccess:
 		// void
-	default:
+	case EndSponsoringFutureReservesResultCodeEndSponsoringFutureReservesNotSponsored:
 		// void
 	}
 	return
@@ -29090,10 +32428,11 @@ func (u EndSponsoringFutureReservesResult) EncodeTo(e *xdr.Encoder) error {
 	case EndSponsoringFutureReservesResultCodeEndSponsoringFutureReservesSuccess:
 		// Void
 		return nil
-	default:
+	case EndSponsoringFutureReservesResultCodeEndSponsoringFutureReservesNotSponsored:
 		// Void
 		return nil
 	}
+	return fmt.Errorf("Code (EndSponsoringFutureReservesResultCode) switch value '%d' is not valid for union EndSponsoringFutureReservesResult", u.Code)
 }
 
 var _ decoderFrom = (*EndSponsoringFutureReservesResult)(nil)
@@ -29111,10 +32450,11 @@ func (u *EndSponsoringFutureReservesResult) DecodeFrom(d *xdr.Decoder) (int, err
 	case EndSponsoringFutureReservesResultCodeEndSponsoringFutureReservesSuccess:
 		// Void
 		return n, nil
-	default:
+	case EndSponsoringFutureReservesResultCodeEndSponsoringFutureReservesNotSponsored:
 		// Void
 		return n, nil
 	}
+	return n, fmt.Errorf("union EndSponsoringFutureReservesResult has invalid Code (EndSponsoringFutureReservesResultCode) switch value '%d'", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -29248,7 +32588,11 @@ var _ xdrType = (*RevokeSponsorshipResultCode)(nil)
 //	 {
 //	 case REVOKE_SPONSORSHIP_SUCCESS:
 //	     void;
-//	 default:
+//	 case REVOKE_SPONSORSHIP_DOES_NOT_EXIST:
+//	 case REVOKE_SPONSORSHIP_NOT_SPONSOR:
+//	 case REVOKE_SPONSORSHIP_LOW_RESERVE:
+//	 case REVOKE_SPONSORSHIP_ONLY_TRANSFERABLE:
+//	 case REVOKE_SPONSORSHIP_MALFORMED:
 //	     void;
 //	 };
 type RevokeSponsorshipResult struct {
@@ -29267,9 +32611,18 @@ func (u RevokeSponsorshipResult) ArmForSwitch(sw int32) (string, bool) {
 	switch RevokeSponsorshipResultCode(sw) {
 	case RevokeSponsorshipResultCodeRevokeSponsorshipSuccess:
 		return "", true
-	default:
+	case RevokeSponsorshipResultCodeRevokeSponsorshipDoesNotExist:
+		return "", true
+	case RevokeSponsorshipResultCodeRevokeSponsorshipNotSponsor:
+		return "", true
+	case RevokeSponsorshipResultCodeRevokeSponsorshipLowReserve:
+		return "", true
+	case RevokeSponsorshipResultCodeRevokeSponsorshipOnlyTransferable:
+		return "", true
+	case RevokeSponsorshipResultCodeRevokeSponsorshipMalformed:
 		return "", true
 	}
+	return "-", false
 }
 
 // NewRevokeSponsorshipResult creates a new  RevokeSponsorshipResult.
@@ -29278,7 +32631,15 @@ func NewRevokeSponsorshipResult(code RevokeSponsorshipResultCode, value interfac
 	switch RevokeSponsorshipResultCode(code) {
 	case RevokeSponsorshipResultCodeRevokeSponsorshipSuccess:
 		// void
-	default:
+	case RevokeSponsorshipResultCodeRevokeSponsorshipDoesNotExist:
+		// void
+	case RevokeSponsorshipResultCodeRevokeSponsorshipNotSponsor:
+		// void
+	case RevokeSponsorshipResultCodeRevokeSponsorshipLowReserve:
+		// void
+	case RevokeSponsorshipResultCodeRevokeSponsorshipOnlyTransferable:
+		// void
+	case RevokeSponsorshipResultCodeRevokeSponsorshipMalformed:
 		// void
 	}
 	return
@@ -29294,10 +32655,23 @@ func (u RevokeSponsorshipResult) EncodeTo(e *xdr.Encoder) error {
 	case RevokeSponsorshipResultCodeRevokeSponsorshipSuccess:
 		// Void
 		return nil
-	default:
+	case RevokeSponsorshipResultCodeRevokeSponsorshipDoesNotExist:
+		// Void
+		return nil
+	case RevokeSponsorshipResultCodeRevokeSponsorshipNotSponsor:
+		// Void
+		return nil
+	case RevokeSponsorshipResultCodeRevokeSponsorshipLowReserve:
+		// Void
+		return nil
+	case RevokeSponsorshipResultCodeRevokeSponsorshipOnlyTransferable:
+		// Void
+		return nil
+	case RevokeSponsorshipResultCodeRevokeSponsorshipMalformed:
 		// Void
 		return nil
 	}
+	return fmt.Errorf("Code (RevokeSponsorshipResultCode) switch value '%d' is not valid for union RevokeSponsorshipResult", u.Code)
 }
 
 var _ decoderFrom = (*RevokeSponsorshipResult)(nil)
@@ -29315,10 +32689,23 @@ func (u *RevokeSponsorshipResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 	case RevokeSponsorshipResultCodeRevokeSponsorshipSuccess:
 		// Void
 		return n, nil
-	default:
+	case RevokeSponsorshipResultCodeRevokeSponsorshipDoesNotExist:
+		// Void
+		return n, nil
+	case RevokeSponsorshipResultCodeRevokeSponsorshipNotSponsor:
+		// Void
+		return n, nil
+	case RevokeSponsorshipResultCodeRevokeSponsorshipLowReserve:
+		// Void
+		return n, nil
+	case RevokeSponsorshipResultCodeRevokeSponsorshipOnlyTransferable:
+		// Void
+		return n, nil
+	case RevokeSponsorshipResultCodeRevokeSponsorshipMalformed:
 		// Void
 		return n, nil
 	}
+	return n, fmt.Errorf("union RevokeSponsorshipResult has invalid Code (RevokeSponsorshipResultCode) switch value '%d'", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -29449,7 +32836,10 @@ var _ xdrType = (*ClawbackResultCode)(nil)
 //	 {
 //	 case CLAWBACK_SUCCESS:
 //	     void;
-//	 default:
+//	 case CLAWBACK_MALFORMED:
+//	 case CLAWBACK_NOT_CLAWBACK_ENABLED:
+//	 case CLAWBACK_NO_TRUST:
+//	 case CLAWBACK_UNDERFUNDED:
 //	     void;
 //	 };
 type ClawbackResult struct {
@@ -29468,9 +32858,16 @@ func (u ClawbackResult) ArmForSwitch(sw int32) (string, bool) {
 	switch ClawbackResultCode(sw) {
 	case ClawbackResultCodeClawbackSuccess:
 		return "", true
-	default:
+	case ClawbackResultCodeClawbackMalformed:
+		return "", true
+	case ClawbackResultCodeClawbackNotClawbackEnabled:
+		return "", true
+	case ClawbackResultCodeClawbackNoTrust:
+		return "", true
+	case ClawbackResultCodeClawbackUnderfunded:
 		return "", true
 	}
+	return "-", false
 }
 
 // NewClawbackResult creates a new  ClawbackResult.
@@ -29479,7 +32876,13 @@ func NewClawbackResult(code ClawbackResultCode, value interface{}) (result Clawb
 	switch ClawbackResultCode(code) {
 	case ClawbackResultCodeClawbackSuccess:
 		// void
-	default:
+	case ClawbackResultCodeClawbackMalformed:
+		// void
+	case ClawbackResultCodeClawbackNotClawbackEnabled:
+		// void
+	case ClawbackResultCodeClawbackNoTrust:
+		// void
+	case ClawbackResultCodeClawbackUnderfunded:
 		// void
 	}
 	return
@@ -29495,10 +32898,20 @@ func (u ClawbackResult) EncodeTo(e *xdr.Encoder) error {
 	case ClawbackResultCodeClawbackSuccess:
 		// Void
 		return nil
-	default:
+	case ClawbackResultCodeClawbackMalformed:
+		// Void
+		return nil
+	case ClawbackResultCodeClawbackNotClawbackEnabled:
+		// Void
+		return nil
+	case ClawbackResultCodeClawbackNoTrust:
+		// Void
+		return nil
+	case ClawbackResultCodeClawbackUnderfunded:
 		// Void
 		return nil
 	}
+	return fmt.Errorf("Code (ClawbackResultCode) switch value '%d' is not valid for union ClawbackResult", u.Code)
 }
 
 var _ decoderFrom = (*ClawbackResult)(nil)
@@ -29516,10 +32929,20 @@ func (u *ClawbackResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 	case ClawbackResultCodeClawbackSuccess:
 		// Void
 		return n, nil
-	default:
+	case ClawbackResultCodeClawbackMalformed:
+		// Void
+		return n, nil
+	case ClawbackResultCodeClawbackNotClawbackEnabled:
+		// Void
+		return n, nil
+	case ClawbackResultCodeClawbackNoTrust:
+		// Void
+		return n, nil
+	case ClawbackResultCodeClawbackUnderfunded:
 		// Void
 		return n, nil
 	}
+	return n, fmt.Errorf("union ClawbackResult has invalid Code (ClawbackResultCode) switch value '%d'", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -29648,7 +33071,9 @@ var _ xdrType = (*ClawbackClaimableBalanceResultCode)(nil)
 //	 {
 //	 case CLAWBACK_CLAIMABLE_BALANCE_SUCCESS:
 //	     void;
-//	 default:
+//	 case CLAWBACK_CLAIMABLE_BALANCE_DOES_NOT_EXIST:
+//	 case CLAWBACK_CLAIMABLE_BALANCE_NOT_ISSUER:
+//	 case CLAWBACK_CLAIMABLE_BALANCE_NOT_CLAWBACK_ENABLED:
 //	     void;
 //	 };
 type ClawbackClaimableBalanceResult struct {
@@ -29667,9 +33092,14 @@ func (u ClawbackClaimableBalanceResult) ArmForSwitch(sw int32) (string, bool) {
 	switch ClawbackClaimableBalanceResultCode(sw) {
 	case ClawbackClaimableBalanceResultCodeClawbackClaimableBalanceSuccess:
 		return "", true
-	default:
+	case ClawbackClaimableBalanceResultCodeClawbackClaimableBalanceDoesNotExist:
+		return "", true
+	case ClawbackClaimableBalanceResultCodeClawbackClaimableBalanceNotIssuer:
+		return "", true
+	case ClawbackClaimableBalanceResultCodeClawbackClaimableBalanceNotClawbackEnabled:
 		return "", true
 	}
+	return "-", false
 }
 
 // NewClawbackClaimableBalanceResult creates a new  ClawbackClaimableBalanceResult.
@@ -29678,7 +33108,11 @@ func NewClawbackClaimableBalanceResult(code ClawbackClaimableBalanceResultCode, 
 	switch ClawbackClaimableBalanceResultCode(code) {
 	case ClawbackClaimableBalanceResultCodeClawbackClaimableBalanceSuccess:
 		// void
-	default:
+	case ClawbackClaimableBalanceResultCodeClawbackClaimableBalanceDoesNotExist:
+		// void
+	case ClawbackClaimableBalanceResultCodeClawbackClaimableBalanceNotIssuer:
+		// void
+	case ClawbackClaimableBalanceResultCodeClawbackClaimableBalanceNotClawbackEnabled:
 		// void
 	}
 	return
@@ -29694,10 +33128,17 @@ func (u ClawbackClaimableBalanceResult) EncodeTo(e *xdr.Encoder) error {
 	case ClawbackClaimableBalanceResultCodeClawbackClaimableBalanceSuccess:
 		// Void
 		return nil
-	default:
+	case ClawbackClaimableBalanceResultCodeClawbackClaimableBalanceDoesNotExist:
+		// Void
+		return nil
+	case ClawbackClaimableBalanceResultCodeClawbackClaimableBalanceNotIssuer:
+		// Void
+		return nil
+	case ClawbackClaimableBalanceResultCodeClawbackClaimableBalanceNotClawbackEnabled:
 		// Void
 		return nil
 	}
+	return fmt.Errorf("Code (ClawbackClaimableBalanceResultCode) switch value '%d' is not valid for union ClawbackClaimableBalanceResult", u.Code)
 }
 
 var _ decoderFrom = (*ClawbackClaimableBalanceResult)(nil)
@@ -29715,10 +33156,17 @@ func (u *ClawbackClaimableBalanceResult) DecodeFrom(d *xdr.Decoder) (int, error)
 	case ClawbackClaimableBalanceResultCodeClawbackClaimableBalanceSuccess:
 		// Void
 		return n, nil
-	default:
+	case ClawbackClaimableBalanceResultCodeClawbackClaimableBalanceDoesNotExist:
+		// Void
+		return n, nil
+	case ClawbackClaimableBalanceResultCodeClawbackClaimableBalanceNotIssuer:
+		// Void
+		return n, nil
+	case ClawbackClaimableBalanceResultCodeClawbackClaimableBalanceNotClawbackEnabled:
 		// Void
 		return n, nil
 	}
+	return n, fmt.Errorf("union ClawbackClaimableBalanceResult has invalid Code (ClawbackClaimableBalanceResultCode) switch value '%d'", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -29853,7 +33301,11 @@ var _ xdrType = (*SetTrustLineFlagsResultCode)(nil)
 //	 {
 //	 case SET_TRUST_LINE_FLAGS_SUCCESS:
 //	     void;
-//	 default:
+//	 case SET_TRUST_LINE_FLAGS_MALFORMED:
+//	 case SET_TRUST_LINE_FLAGS_NO_TRUST_LINE:
+//	 case SET_TRUST_LINE_FLAGS_CANT_REVOKE:
+//	 case SET_TRUST_LINE_FLAGS_INVALID_STATE:
+//	 case SET_TRUST_LINE_FLAGS_LOW_RESERVE:
 //	     void;
 //	 };
 type SetTrustLineFlagsResult struct {
@@ -29872,9 +33324,18 @@ func (u SetTrustLineFlagsResult) ArmForSwitch(sw int32) (string, bool) {
 	switch SetTrustLineFlagsResultCode(sw) {
 	case SetTrustLineFlagsResultCodeSetTrustLineFlagsSuccess:
 		return "", true
-	default:
+	case SetTrustLineFlagsResultCodeSetTrustLineFlagsMalformed:
+		return "", true
+	case SetTrustLineFlagsResultCodeSetTrustLineFlagsNoTrustLine:
+		return "", true
+	case SetTrustLineFlagsResultCodeSetTrustLineFlagsCantRevoke:
+		return "", true
+	case SetTrustLineFlagsResultCodeSetTrustLineFlagsInvalidState:
+		return "", true
+	case SetTrustLineFlagsResultCodeSetTrustLineFlagsLowReserve:
 		return "", true
 	}
+	return "-", false
 }
 
 // NewSetTrustLineFlagsResult creates a new  SetTrustLineFlagsResult.
@@ -29883,7 +33344,15 @@ func NewSetTrustLineFlagsResult(code SetTrustLineFlagsResultCode, value interfac
 	switch SetTrustLineFlagsResultCode(code) {
 	case SetTrustLineFlagsResultCodeSetTrustLineFlagsSuccess:
 		// void
-	default:
+	case SetTrustLineFlagsResultCodeSetTrustLineFlagsMalformed:
+		// void
+	case SetTrustLineFlagsResultCodeSetTrustLineFlagsNoTrustLine:
+		// void
+	case SetTrustLineFlagsResultCodeSetTrustLineFlagsCantRevoke:
+		// void
+	case SetTrustLineFlagsResultCodeSetTrustLineFlagsInvalidState:
+		// void
+	case SetTrustLineFlagsResultCodeSetTrustLineFlagsLowReserve:
 		// void
 	}
 	return
@@ -29899,10 +33368,23 @@ func (u SetTrustLineFlagsResult) EncodeTo(e *xdr.Encoder) error {
 	case SetTrustLineFlagsResultCodeSetTrustLineFlagsSuccess:
 		// Void
 		return nil
-	default:
+	case SetTrustLineFlagsResultCodeSetTrustLineFlagsMalformed:
+		// Void
+		return nil
+	case SetTrustLineFlagsResultCodeSetTrustLineFlagsNoTrustLine:
+		// Void
+		return nil
+	case SetTrustLineFlagsResultCodeSetTrustLineFlagsCantRevoke:
+		// Void
+		return nil
+	case SetTrustLineFlagsResultCodeSetTrustLineFlagsInvalidState:
+		// Void
+		return nil
+	case SetTrustLineFlagsResultCodeSetTrustLineFlagsLowReserve:
 		// Void
 		return nil
 	}
+	return fmt.Errorf("Code (SetTrustLineFlagsResultCode) switch value '%d' is not valid for union SetTrustLineFlagsResult", u.Code)
 }
 
 var _ decoderFrom = (*SetTrustLineFlagsResult)(nil)
@@ -29920,10 +33402,23 @@ func (u *SetTrustLineFlagsResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 	case SetTrustLineFlagsResultCodeSetTrustLineFlagsSuccess:
 		// Void
 		return n, nil
-	default:
+	case SetTrustLineFlagsResultCodeSetTrustLineFlagsMalformed:
+		// Void
+		return n, nil
+	case SetTrustLineFlagsResultCodeSetTrustLineFlagsNoTrustLine:
+		// Void
+		return n, nil
+	case SetTrustLineFlagsResultCodeSetTrustLineFlagsCantRevoke:
+		// Void
+		return n, nil
+	case SetTrustLineFlagsResultCodeSetTrustLineFlagsInvalidState:
+		// Void
+		return n, nil
+	case SetTrustLineFlagsResultCodeSetTrustLineFlagsLowReserve:
 		// Void
 		return n, nil
 	}
+	return n, fmt.Errorf("union SetTrustLineFlagsResult has invalid Code (SetTrustLineFlagsResultCode) switch value '%d'", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -30063,12 +33558,17 @@ var _ xdrType = (*LiquidityPoolDepositResultCode)(nil)
 
 // LiquidityPoolDepositResult is an XDR Union defines as:
 //
-//	union LiquidityPoolDepositResult switch (
-//	     LiquidityPoolDepositResultCode code)
+//	union LiquidityPoolDepositResult switch (LiquidityPoolDepositResultCode code)
 //	 {
 //	 case LIQUIDITY_POOL_DEPOSIT_SUCCESS:
 //	     void;
-//	 default:
+//	 case LIQUIDITY_POOL_DEPOSIT_MALFORMED:
+//	 case LIQUIDITY_POOL_DEPOSIT_NO_TRUST:
+//	 case LIQUIDITY_POOL_DEPOSIT_NOT_AUTHORIZED:
+//	 case LIQUIDITY_POOL_DEPOSIT_UNDERFUNDED:
+//	 case LIQUIDITY_POOL_DEPOSIT_LINE_FULL:
+//	 case LIQUIDITY_POOL_DEPOSIT_BAD_PRICE:
+//	 case LIQUIDITY_POOL_DEPOSIT_POOL_FULL:
 //	     void;
 //	 };
 type LiquidityPoolDepositResult struct {
@@ -30087,9 +33587,22 @@ func (u LiquidityPoolDepositResult) ArmForSwitch(sw int32) (string, bool) {
 	switch LiquidityPoolDepositResultCode(sw) {
 	case LiquidityPoolDepositResultCodeLiquidityPoolDepositSuccess:
 		return "", true
-	default:
+	case LiquidityPoolDepositResultCodeLiquidityPoolDepositMalformed:
+		return "", true
+	case LiquidityPoolDepositResultCodeLiquidityPoolDepositNoTrust:
+		return "", true
+	case LiquidityPoolDepositResultCodeLiquidityPoolDepositNotAuthorized:
+		return "", true
+	case LiquidityPoolDepositResultCodeLiquidityPoolDepositUnderfunded:
+		return "", true
+	case LiquidityPoolDepositResultCodeLiquidityPoolDepositLineFull:
+		return "", true
+	case LiquidityPoolDepositResultCodeLiquidityPoolDepositBadPrice:
+		return "", true
+	case LiquidityPoolDepositResultCodeLiquidityPoolDepositPoolFull:
 		return "", true
 	}
+	return "-", false
 }
 
 // NewLiquidityPoolDepositResult creates a new  LiquidityPoolDepositResult.
@@ -30098,7 +33611,19 @@ func NewLiquidityPoolDepositResult(code LiquidityPoolDepositResultCode, value in
 	switch LiquidityPoolDepositResultCode(code) {
 	case LiquidityPoolDepositResultCodeLiquidityPoolDepositSuccess:
 		// void
-	default:
+	case LiquidityPoolDepositResultCodeLiquidityPoolDepositMalformed:
+		// void
+	case LiquidityPoolDepositResultCodeLiquidityPoolDepositNoTrust:
+		// void
+	case LiquidityPoolDepositResultCodeLiquidityPoolDepositNotAuthorized:
+		// void
+	case LiquidityPoolDepositResultCodeLiquidityPoolDepositUnderfunded:
+		// void
+	case LiquidityPoolDepositResultCodeLiquidityPoolDepositLineFull:
+		// void
+	case LiquidityPoolDepositResultCodeLiquidityPoolDepositBadPrice:
+		// void
+	case LiquidityPoolDepositResultCodeLiquidityPoolDepositPoolFull:
 		// void
 	}
 	return
@@ -30114,10 +33639,29 @@ func (u LiquidityPoolDepositResult) EncodeTo(e *xdr.Encoder) error {
 	case LiquidityPoolDepositResultCodeLiquidityPoolDepositSuccess:
 		// Void
 		return nil
-	default:
+	case LiquidityPoolDepositResultCodeLiquidityPoolDepositMalformed:
+		// Void
+		return nil
+	case LiquidityPoolDepositResultCodeLiquidityPoolDepositNoTrust:
+		// Void
+		return nil
+	case LiquidityPoolDepositResultCodeLiquidityPoolDepositNotAuthorized:
+		// Void
+		return nil
+	case LiquidityPoolDepositResultCodeLiquidityPoolDepositUnderfunded:
+		// Void
+		return nil
+	case LiquidityPoolDepositResultCodeLiquidityPoolDepositLineFull:
+		// Void
+		return nil
+	case LiquidityPoolDepositResultCodeLiquidityPoolDepositBadPrice:
+		// Void
+		return nil
+	case LiquidityPoolDepositResultCodeLiquidityPoolDepositPoolFull:
 		// Void
 		return nil
 	}
+	return fmt.Errorf("Code (LiquidityPoolDepositResultCode) switch value '%d' is not valid for union LiquidityPoolDepositResult", u.Code)
 }
 
 var _ decoderFrom = (*LiquidityPoolDepositResult)(nil)
@@ -30135,10 +33679,29 @@ func (u *LiquidityPoolDepositResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 	case LiquidityPoolDepositResultCodeLiquidityPoolDepositSuccess:
 		// Void
 		return n, nil
-	default:
+	case LiquidityPoolDepositResultCodeLiquidityPoolDepositMalformed:
+		// Void
+		return n, nil
+	case LiquidityPoolDepositResultCodeLiquidityPoolDepositNoTrust:
+		// Void
+		return n, nil
+	case LiquidityPoolDepositResultCodeLiquidityPoolDepositNotAuthorized:
+		// Void
+		return n, nil
+	case LiquidityPoolDepositResultCodeLiquidityPoolDepositUnderfunded:
+		// Void
+		return n, nil
+	case LiquidityPoolDepositResultCodeLiquidityPoolDepositLineFull:
+		// Void
+		return n, nil
+	case LiquidityPoolDepositResultCodeLiquidityPoolDepositBadPrice:
+		// Void
+		return n, nil
+	case LiquidityPoolDepositResultCodeLiquidityPoolDepositPoolFull:
 		// Void
 		return n, nil
 	}
+	return n, fmt.Errorf("union LiquidityPoolDepositResult has invalid Code (LiquidityPoolDepositResultCode) switch value '%d'", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -30176,14 +33739,14 @@ var _ xdrType = (*LiquidityPoolDepositResult)(nil)
 //	     LIQUIDITY_POOL_WITHDRAW_SUCCESS = 0,
 //
 //	     // codes considered as "failure" for the operation
-//	     LIQUIDITY_POOL_WITHDRAW_MALFORMED = -1,      // bad input
-//	     LIQUIDITY_POOL_WITHDRAW_NO_TRUST = -2,       // no trust line for one of the
-//	                                                  // assets
-//	     LIQUIDITY_POOL_WITHDRAW_UNDERFUNDED = -3,    // not enough balance of the
-//	                                                  // pool share
-//	     LIQUIDITY_POOL_WITHDRAW_LINE_FULL = -4,      // would go above limit for one
-//	                                                  // of the assets
-//	     LIQUIDITY_POOL_WITHDRAW_UNDER_MINIMUM = -5   // didn't withdraw enough
+//	     LIQUIDITY_POOL_WITHDRAW_MALFORMED = -1,    // bad input
+//	     LIQUIDITY_POOL_WITHDRAW_NO_TRUST = -2,     // no trust line for one of the
+//	                                                // assets
+//	     LIQUIDITY_POOL_WITHDRAW_UNDERFUNDED = -3,  // not enough balance of the
+//	                                                // pool share
+//	     LIQUIDITY_POOL_WITHDRAW_LINE_FULL = -4,    // would go above limit for one
+//	                                                // of the assets
+//	     LIQUIDITY_POOL_WITHDRAW_UNDER_MINIMUM = -5 // didn't withdraw enough
 //	 };
 type LiquidityPoolWithdrawResultCode int32
 
@@ -30271,12 +33834,15 @@ var _ xdrType = (*LiquidityPoolWithdrawResultCode)(nil)
 
 // LiquidityPoolWithdrawResult is an XDR Union defines as:
 //
-//	union LiquidityPoolWithdrawResult switch (
-//	     LiquidityPoolWithdrawResultCode code)
+//	union LiquidityPoolWithdrawResult switch (LiquidityPoolWithdrawResultCode code)
 //	 {
 //	 case LIQUIDITY_POOL_WITHDRAW_SUCCESS:
 //	     void;
-//	 default:
+//	 case LIQUIDITY_POOL_WITHDRAW_MALFORMED:
+//	 case LIQUIDITY_POOL_WITHDRAW_NO_TRUST:
+//	 case LIQUIDITY_POOL_WITHDRAW_UNDERFUNDED:
+//	 case LIQUIDITY_POOL_WITHDRAW_LINE_FULL:
+//	 case LIQUIDITY_POOL_WITHDRAW_UNDER_MINIMUM:
 //	     void;
 //	 };
 type LiquidityPoolWithdrawResult struct {
@@ -30295,9 +33861,18 @@ func (u LiquidityPoolWithdrawResult) ArmForSwitch(sw int32) (string, bool) {
 	switch LiquidityPoolWithdrawResultCode(sw) {
 	case LiquidityPoolWithdrawResultCodeLiquidityPoolWithdrawSuccess:
 		return "", true
-	default:
+	case LiquidityPoolWithdrawResultCodeLiquidityPoolWithdrawMalformed:
+		return "", true
+	case LiquidityPoolWithdrawResultCodeLiquidityPoolWithdrawNoTrust:
+		return "", true
+	case LiquidityPoolWithdrawResultCodeLiquidityPoolWithdrawUnderfunded:
+		return "", true
+	case LiquidityPoolWithdrawResultCodeLiquidityPoolWithdrawLineFull:
+		return "", true
+	case LiquidityPoolWithdrawResultCodeLiquidityPoolWithdrawUnderMinimum:
 		return "", true
 	}
+	return "-", false
 }
 
 // NewLiquidityPoolWithdrawResult creates a new  LiquidityPoolWithdrawResult.
@@ -30306,7 +33881,15 @@ func NewLiquidityPoolWithdrawResult(code LiquidityPoolWithdrawResultCode, value 
 	switch LiquidityPoolWithdrawResultCode(code) {
 	case LiquidityPoolWithdrawResultCodeLiquidityPoolWithdrawSuccess:
 		// void
-	default:
+	case LiquidityPoolWithdrawResultCodeLiquidityPoolWithdrawMalformed:
+		// void
+	case LiquidityPoolWithdrawResultCodeLiquidityPoolWithdrawNoTrust:
+		// void
+	case LiquidityPoolWithdrawResultCodeLiquidityPoolWithdrawUnderfunded:
+		// void
+	case LiquidityPoolWithdrawResultCodeLiquidityPoolWithdrawLineFull:
+		// void
+	case LiquidityPoolWithdrawResultCodeLiquidityPoolWithdrawUnderMinimum:
 		// void
 	}
 	return
@@ -30322,10 +33905,23 @@ func (u LiquidityPoolWithdrawResult) EncodeTo(e *xdr.Encoder) error {
 	case LiquidityPoolWithdrawResultCodeLiquidityPoolWithdrawSuccess:
 		// Void
 		return nil
-	default:
+	case LiquidityPoolWithdrawResultCodeLiquidityPoolWithdrawMalformed:
+		// Void
+		return nil
+	case LiquidityPoolWithdrawResultCodeLiquidityPoolWithdrawNoTrust:
+		// Void
+		return nil
+	case LiquidityPoolWithdrawResultCodeLiquidityPoolWithdrawUnderfunded:
+		// Void
+		return nil
+	case LiquidityPoolWithdrawResultCodeLiquidityPoolWithdrawLineFull:
+		// Void
+		return nil
+	case LiquidityPoolWithdrawResultCodeLiquidityPoolWithdrawUnderMinimum:
 		// Void
 		return nil
 	}
+	return fmt.Errorf("Code (LiquidityPoolWithdrawResultCode) switch value '%d' is not valid for union LiquidityPoolWithdrawResult", u.Code)
 }
 
 var _ decoderFrom = (*LiquidityPoolWithdrawResult)(nil)
@@ -30343,10 +33939,23 @@ func (u *LiquidityPoolWithdrawResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 	case LiquidityPoolWithdrawResultCodeLiquidityPoolWithdrawSuccess:
 		// Void
 		return n, nil
-	default:
+	case LiquidityPoolWithdrawResultCodeLiquidityPoolWithdrawMalformed:
+		// Void
+		return n, nil
+	case LiquidityPoolWithdrawResultCodeLiquidityPoolWithdrawNoTrust:
+		// Void
+		return n, nil
+	case LiquidityPoolWithdrawResultCodeLiquidityPoolWithdrawUnderfunded:
+		// Void
+		return n, nil
+	case LiquidityPoolWithdrawResultCodeLiquidityPoolWithdrawLineFull:
+		// Void
+		return n, nil
+	case LiquidityPoolWithdrawResultCodeLiquidityPoolWithdrawUnderMinimum:
 		// Void
 		return n, nil
 	}
+	return n, fmt.Errorf("union LiquidityPoolWithdrawResult has invalid Code (LiquidityPoolWithdrawResultCode) switch value '%d'", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -31817,7 +35426,12 @@ var _ xdrType = (*OperationResultTr)(nil)
 //	         LiquidityPoolWithdrawResult liquidityPoolWithdrawResult;
 //	     }
 //	     tr;
-//	 default:
+//	 case opBAD_AUTH:
+//	 case opNO_ACCOUNT:
+//	 case opNOT_SUPPORTED:
+//	 case opTOO_MANY_SUBENTRIES:
+//	 case opEXCEEDED_WORK_LIMIT:
+//	 case opTOO_MANY_SPONSORING:
 //	     void;
 //	 };
 type OperationResult struct {
@@ -31837,9 +35451,20 @@ func (u OperationResult) ArmForSwitch(sw int32) (string, bool) {
 	switch OperationResultCode(sw) {
 	case OperationResultCodeOpInner:
 		return "Tr", true
-	default:
+	case OperationResultCodeOpBadAuth:
+		return "", true
+	case OperationResultCodeOpNoAccount:
+		return "", true
+	case OperationResultCodeOpNotSupported:
+		return "", true
+	case OperationResultCodeOpTooManySubentries:
+		return "", true
+	case OperationResultCodeOpExceededWorkLimit:
+		return "", true
+	case OperationResultCodeOpTooManySponsoring:
 		return "", true
 	}
+	return "-", false
 }
 
 // NewOperationResult creates a new  OperationResult.
@@ -31853,7 +35478,17 @@ func NewOperationResult(code OperationResultCode, value interface{}) (result Ope
 			return
 		}
 		result.Tr = &tv
-	default:
+	case OperationResultCodeOpBadAuth:
+		// void
+	case OperationResultCodeOpNoAccount:
+		// void
+	case OperationResultCodeOpNotSupported:
+		// void
+	case OperationResultCodeOpTooManySubentries:
+		// void
+	case OperationResultCodeOpExceededWorkLimit:
+		// void
+	case OperationResultCodeOpTooManySponsoring:
 		// void
 	}
 	return
@@ -31896,10 +35531,26 @@ func (u OperationResult) EncodeTo(e *xdr.Encoder) error {
 			return err
 		}
 		return nil
-	default:
+	case OperationResultCodeOpBadAuth:
+		// Void
+		return nil
+	case OperationResultCodeOpNoAccount:
+		// Void
+		return nil
+	case OperationResultCodeOpNotSupported:
+		// Void
+		return nil
+	case OperationResultCodeOpTooManySubentries:
+		// Void
+		return nil
+	case OperationResultCodeOpExceededWorkLimit:
+		// Void
+		return nil
+	case OperationResultCodeOpTooManySponsoring:
 		// Void
 		return nil
 	}
+	return fmt.Errorf("Code (OperationResultCode) switch value '%d' is not valid for union OperationResult", u.Code)
 }
 
 var _ decoderFrom = (*OperationResult)(nil)
@@ -31922,10 +35573,26 @@ func (u *OperationResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 			return n, fmt.Errorf("decoding OperationResultTr: %s", err)
 		}
 		return n, nil
-	default:
+	case OperationResultCodeOpBadAuth:
+		// Void
+		return n, nil
+	case OperationResultCodeOpNoAccount:
+		// Void
+		return n, nil
+	case OperationResultCodeOpNotSupported:
+		// Void
+		return n, nil
+	case OperationResultCodeOpTooManySubentries:
+		// Void
+		return n, nil
+	case OperationResultCodeOpExceededWorkLimit:
+		// Void
+		return n, nil
+	case OperationResultCodeOpTooManySponsoring:
 		// Void
 		return n, nil
 	}
+	return n, fmt.Errorf("union OperationResult has invalid Code (OperationResultCode) switch value '%d'", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -31978,7 +35645,10 @@ var _ xdrType = (*OperationResult)(nil)
 //
 //	     txNOT_SUPPORTED = -12,         // transaction type not supported
 //	     txFEE_BUMP_INNER_FAILED = -13, // fee bump inner transaction failed
-//	     txBAD_SPONSORSHIP = -14        // sponsorship not confirmed
+//	     txBAD_SPONSORSHIP = -14,       // sponsorship not confirmed
+//	     txBAD_MIN_SEQ_AGE_OR_GAP =
+//	         -15, // minSeqAge or minSeqLedgerGap conditions not met
+//	     txMALFORMED = -16 // precondition is invalid
 //	 };
 type TransactionResultCode int32
 
@@ -31999,6 +35669,8 @@ const (
 	TransactionResultCodeTxNotSupported        TransactionResultCode = -12
 	TransactionResultCodeTxFeeBumpInnerFailed  TransactionResultCode = -13
 	TransactionResultCodeTxBadSponsorship      TransactionResultCode = -14
+	TransactionResultCodeTxBadMinSeqAgeOrGap   TransactionResultCode = -15
+	TransactionResultCodeTxMalformed           TransactionResultCode = -16
 )
 
 var transactionResultCodeMap = map[int32]string{
@@ -32018,6 +35690,8 @@ var transactionResultCodeMap = map[int32]string{
 	-12: "TransactionResultCodeTxNotSupported",
 	-13: "TransactionResultCodeTxFeeBumpInnerFailed",
 	-14: "TransactionResultCodeTxBadSponsorship",
+	-15: "TransactionResultCodeTxBadMinSeqAgeOrGap",
+	-16: "TransactionResultCodeTxMalformed",
 }
 
 // ValidEnum validates a proposed value for this enum.  Implements
@@ -32105,6 +35779,8 @@ var _ xdrType = (*TransactionResultCode)(nil)
 //	     case txNOT_SUPPORTED:
 //	     // txFEE_BUMP_INNER_FAILED is not included
 //	     case txBAD_SPONSORSHIP:
+//	     case txBAD_MIN_SEQ_AGE_OR_GAP:
+//	     case txMALFORMED:
 //	         void;
 //	     }
 type InnerTransactionResultResult struct {
@@ -32149,6 +35825,10 @@ func (u InnerTransactionResultResult) ArmForSwitch(sw int32) (string, bool) {
 	case TransactionResultCodeTxNotSupported:
 		return "", true
 	case TransactionResultCodeTxBadSponsorship:
+		return "", true
+	case TransactionResultCodeTxBadMinSeqAgeOrGap:
+		return "", true
+	case TransactionResultCodeTxMalformed:
 		return "", true
 	}
 	return "-", false
@@ -32195,6 +35875,10 @@ func NewInnerTransactionResultResult(code TransactionResultCode, value interface
 	case TransactionResultCodeTxNotSupported:
 		// void
 	case TransactionResultCodeTxBadSponsorship:
+		// void
+	case TransactionResultCodeTxBadMinSeqAgeOrGap:
+		// void
+	case TransactionResultCodeTxMalformed:
 		// void
 	}
 	return
@@ -32288,6 +35972,12 @@ func (u InnerTransactionResultResult) EncodeTo(e *xdr.Encoder) error {
 	case TransactionResultCodeTxBadSponsorship:
 		// Void
 		return nil
+	case TransactionResultCodeTxBadMinSeqAgeOrGap:
+		// Void
+		return nil
+	case TransactionResultCodeTxMalformed:
+		// Void
+		return nil
 	}
 	return fmt.Errorf("Code (TransactionResultCode) switch value '%d' is not valid for union InnerTransactionResultResult", u.Code)
 }
@@ -32378,6 +36068,12 @@ func (u *InnerTransactionResultResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 		// Void
 		return n, nil
 	case TransactionResultCodeTxBadSponsorship:
+		// Void
+		return n, nil
+	case TransactionResultCodeTxBadMinSeqAgeOrGap:
+		// Void
+		return n, nil
+	case TransactionResultCodeTxMalformed:
 		// Void
 		return n, nil
 	}
@@ -32534,6 +36230,8 @@ var _ xdrType = (*InnerTransactionResultExt)(nil)
 //	     case txNOT_SUPPORTED:
 //	     // txFEE_BUMP_INNER_FAILED is not included
 //	     case txBAD_SPONSORSHIP:
+//	     case txBAD_MIN_SEQ_AGE_OR_GAP:
+//	     case txMALFORMED:
 //	         void;
 //	     }
 //	     result;
@@ -32698,7 +36396,21 @@ var _ xdrType = (*InnerTransactionResultPair)(nil)
 //	     case txSUCCESS:
 //	     case txFAILED:
 //	         OperationResult results<>;
-//	     default:
+//	     case txTOO_EARLY:
+//	     case txTOO_LATE:
+//	     case txMISSING_OPERATION:
+//	     case txBAD_SEQ:
+//	     case txBAD_AUTH:
+//	     case txINSUFFICIENT_BALANCE:
+//	     case txNO_ACCOUNT:
+//	     case txINSUFFICIENT_FEE:
+//	     case txBAD_AUTH_EXTRA:
+//	     case txINTERNAL_ERROR:
+//	     case txNOT_SUPPORTED:
+//	     // case txFEE_BUMP_INNER_FAILED: handled above
+//	     case txBAD_SPONSORSHIP:
+//	     case txBAD_MIN_SEQ_AGE_OR_GAP:
+//	     case txMALFORMED:
 //	         void;
 //	     }
 type TransactionResultResult struct {
@@ -32725,9 +36437,36 @@ func (u TransactionResultResult) ArmForSwitch(sw int32) (string, bool) {
 		return "Results", true
 	case TransactionResultCodeTxFailed:
 		return "Results", true
-	default:
+	case TransactionResultCodeTxTooEarly:
+		return "", true
+	case TransactionResultCodeTxTooLate:
+		return "", true
+	case TransactionResultCodeTxMissingOperation:
+		return "", true
+	case TransactionResultCodeTxBadSeq:
+		return "", true
+	case TransactionResultCodeTxBadAuth:
+		return "", true
+	case TransactionResultCodeTxInsufficientBalance:
+		return "", true
+	case TransactionResultCodeTxNoAccount:
+		return "", true
+	case TransactionResultCodeTxInsufficientFee:
+		return "", true
+	case TransactionResultCodeTxBadAuthExtra:
+		return "", true
+	case TransactionResultCodeTxInternalError:
+		return "", true
+	case TransactionResultCodeTxNotSupported:
+		return "", true
+	case TransactionResultCodeTxBadSponsorship:
+		return "", true
+	case TransactionResultCodeTxBadMinSeqAgeOrGap:
+		return "", true
+	case TransactionResultCodeTxMalformed:
 		return "", true
 	}
+	return "-", false
 }
 
 // NewTransactionResultResult creates a new  TransactionResultResult.
@@ -32762,7 +36501,33 @@ func NewTransactionResultResult(code TransactionResultCode, value interface{}) (
 			return
 		}
 		result.Results = &tv
-	default:
+	case TransactionResultCodeTxTooEarly:
+		// void
+	case TransactionResultCodeTxTooLate:
+		// void
+	case TransactionResultCodeTxMissingOperation:
+		// void
+	case TransactionResultCodeTxBadSeq:
+		// void
+	case TransactionResultCodeTxBadAuth:
+		// void
+	case TransactionResultCodeTxInsufficientBalance:
+		// void
+	case TransactionResultCodeTxNoAccount:
+		// void
+	case TransactionResultCodeTxInsufficientFee:
+		// void
+	case TransactionResultCodeTxBadAuthExtra:
+		// void
+	case TransactionResultCodeTxInternalError:
+		// void
+	case TransactionResultCodeTxNotSupported:
+		// void
+	case TransactionResultCodeTxBadSponsorship:
+		// void
+	case TransactionResultCodeTxBadMinSeqAgeOrGap:
+		// void
+	case TransactionResultCodeTxMalformed:
 		// void
 	}
 	return
@@ -32855,10 +36620,50 @@ func (u TransactionResultResult) EncodeTo(e *xdr.Encoder) error {
 			}
 		}
 		return nil
-	default:
+	case TransactionResultCodeTxTooEarly:
+		// Void
+		return nil
+	case TransactionResultCodeTxTooLate:
+		// Void
+		return nil
+	case TransactionResultCodeTxMissingOperation:
+		// Void
+		return nil
+	case TransactionResultCodeTxBadSeq:
+		// Void
+		return nil
+	case TransactionResultCodeTxBadAuth:
+		// Void
+		return nil
+	case TransactionResultCodeTxInsufficientBalance:
+		// Void
+		return nil
+	case TransactionResultCodeTxNoAccount:
+		// Void
+		return nil
+	case TransactionResultCodeTxInsufficientFee:
+		// Void
+		return nil
+	case TransactionResultCodeTxBadAuthExtra:
+		// Void
+		return nil
+	case TransactionResultCodeTxInternalError:
+		// Void
+		return nil
+	case TransactionResultCodeTxNotSupported:
+		// Void
+		return nil
+	case TransactionResultCodeTxBadSponsorship:
+		// Void
+		return nil
+	case TransactionResultCodeTxBadMinSeqAgeOrGap:
+		// Void
+		return nil
+	case TransactionResultCodeTxMalformed:
 		// Void
 		return nil
 	}
+	return fmt.Errorf("Code (TransactionResultCode) switch value '%d' is not valid for union TransactionResultResult", u.Code)
 }
 
 var _ decoderFrom = (*TransactionResultResult)(nil)
@@ -32929,10 +36734,50 @@ func (u *TransactionResultResult) DecodeFrom(d *xdr.Decoder) (int, error) {
 			}
 		}
 		return n, nil
-	default:
+	case TransactionResultCodeTxTooEarly:
+		// Void
+		return n, nil
+	case TransactionResultCodeTxTooLate:
+		// Void
+		return n, nil
+	case TransactionResultCodeTxMissingOperation:
+		// Void
+		return n, nil
+	case TransactionResultCodeTxBadSeq:
+		// Void
+		return n, nil
+	case TransactionResultCodeTxBadAuth:
+		// Void
+		return n, nil
+	case TransactionResultCodeTxInsufficientBalance:
+		// Void
+		return n, nil
+	case TransactionResultCodeTxNoAccount:
+		// Void
+		return n, nil
+	case TransactionResultCodeTxInsufficientFee:
+		// Void
+		return n, nil
+	case TransactionResultCodeTxBadAuthExtra:
+		// Void
+		return n, nil
+	case TransactionResultCodeTxInternalError:
+		// Void
+		return n, nil
+	case TransactionResultCodeTxNotSupported:
+		// Void
+		return n, nil
+	case TransactionResultCodeTxBadSponsorship:
+		// Void
+		return n, nil
+	case TransactionResultCodeTxBadMinSeqAgeOrGap:
+		// Void
+		return n, nil
+	case TransactionResultCodeTxMalformed:
 		// Void
 		return n, nil
 	}
+	return n, fmt.Errorf("union TransactionResultResult has invalid Code (TransactionResultCode) switch value '%d'", u.Code)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -33073,7 +36918,21 @@ var _ xdrType = (*TransactionResultExt)(nil)
 //	     case txSUCCESS:
 //	     case txFAILED:
 //	         OperationResult results<>;
-//	     default:
+//	     case txTOO_EARLY:
+//	     case txTOO_LATE:
+//	     case txMISSING_OPERATION:
+//	     case txBAD_SEQ:
+//	     case txBAD_AUTH:
+//	     case txINSUFFICIENT_BALANCE:
+//	     case txNO_ACCOUNT:
+//	     case txINSUFFICIENT_FEE:
+//	     case txBAD_AUTH_EXTRA:
+//	     case txINTERNAL_ERROR:
+//	     case txNOT_SUPPORTED:
+//	     // case txFEE_BUMP_INNER_FAILED: handled above
+//	     case txBAD_SPONSORSHIP:
+//	     case txBAD_MIN_SEQ_AGE_OR_GAP:
+//	     case txMALFORMED:
 //	         void;
 //	     }
 //	     result;
@@ -33506,6 +37365,103 @@ func (s Int64) xdrType() {}
 
 var _ xdrType = (*Int64)(nil)
 
+// ExtensionPoint is an XDR Union defines as:
+//
+//	union ExtensionPoint switch (int v)
+//	 {
+//	 case 0:
+//	     void;
+//	 };
+type ExtensionPoint struct {
+	V int32
+}
+
+// SwitchFieldName returns the field name in which this union's
+// discriminant is stored
+func (u ExtensionPoint) SwitchFieldName() string {
+	return "V"
+}
+
+// ArmForSwitch returns which field name should be used for storing
+// the value for an instance of ExtensionPoint
+func (u ExtensionPoint) ArmForSwitch(sw int32) (string, bool) {
+	switch int32(sw) {
+	case 0:
+		return "", true
+	}
+	return "-", false
+}
+
+// NewExtensionPoint creates a new  ExtensionPoint.
+func NewExtensionPoint(v int32, value interface{}) (result ExtensionPoint, err error) {
+	result.V = v
+	switch int32(v) {
+	case 0:
+		// void
+	}
+	return
+}
+
+// EncodeTo encodes this value using the Encoder.
+func (u ExtensionPoint) EncodeTo(e *xdr.Encoder) error {
+	var err error
+	if _, err = e.EncodeInt(int32(u.V)); err != nil {
+		return err
+	}
+	switch int32(u.V) {
+	case 0:
+		// Void
+		return nil
+	}
+	return fmt.Errorf("V (int32) switch value '%d' is not valid for union ExtensionPoint", u.V)
+}
+
+var _ decoderFrom = (*ExtensionPoint)(nil)
+
+// DecodeFrom decodes this value using the Decoder.
+func (u *ExtensionPoint) DecodeFrom(d *xdr.Decoder) (int, error) {
+	var err error
+	var n, nTmp int
+	u.V, nTmp, err = d.DecodeInt()
+	n += nTmp
+	if err != nil {
+		return n, fmt.Errorf("decoding Int: %s", err)
+	}
+	switch int32(u.V) {
+	case 0:
+		// Void
+		return n, nil
+	}
+	return n, fmt.Errorf("union ExtensionPoint has invalid V (int32) switch value '%d'", u.V)
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler.
+func (s ExtensionPoint) MarshalBinary() ([]byte, error) {
+	b := bytes.Buffer{}
+	e := xdr.NewEncoder(&b)
+	err := s.EncodeTo(e)
+	return b.Bytes(), err
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler.
+func (s *ExtensionPoint) UnmarshalBinary(inp []byte) error {
+	r := bytes.NewReader(inp)
+	d := xdr.NewDecoder(r)
+	_, err := s.DecodeFrom(d)
+	return err
+}
+
+var (
+	_ encoding.BinaryMarshaler   = (*ExtensionPoint)(nil)
+	_ encoding.BinaryUnmarshaler = (*ExtensionPoint)(nil)
+)
+
+// xdrType signals that this type is an type representing
+// representing XDR values defined by this package.
+func (s ExtensionPoint) xdrType() {}
+
+var _ xdrType = (*ExtensionPoint)(nil)
+
 // CryptoKeyType is an XDR Enum defines as:
 //
 //	enum CryptoKeyType
@@ -33513,6 +37469,7 @@ var _ xdrType = (*Int64)(nil)
 //	     KEY_TYPE_ED25519 = 0,
 //	     KEY_TYPE_PRE_AUTH_TX = 1,
 //	     KEY_TYPE_HASH_X = 2,
+//	     KEY_TYPE_ED25519_SIGNED_PAYLOAD = 3,
 //	     // MUXED enum values for supported type are derived from the enum values
 //	     // above by ORing them with 0x100
 //	     KEY_TYPE_MUXED_ED25519 = 0x100
@@ -33520,16 +37477,18 @@ var _ xdrType = (*Int64)(nil)
 type CryptoKeyType int32
 
 const (
-	CryptoKeyTypeKeyTypeEd25519      CryptoKeyType = 0
-	CryptoKeyTypeKeyTypePreAuthTx    CryptoKeyType = 1
-	CryptoKeyTypeKeyTypeHashX        CryptoKeyType = 2
-	CryptoKeyTypeKeyTypeMuxedEd25519 CryptoKeyType = 256
+	CryptoKeyTypeKeyTypeEd25519              CryptoKeyType = 0
+	CryptoKeyTypeKeyTypePreAuthTx            CryptoKeyType = 1
+	CryptoKeyTypeKeyTypeHashX                CryptoKeyType = 2
+	CryptoKeyTypeKeyTypeEd25519SignedPayload CryptoKeyType = 3
+	CryptoKeyTypeKeyTypeMuxedEd25519         CryptoKeyType = 256
 )
 
 var cryptoKeyTypeMap = map[int32]string{
 	0:   "CryptoKeyTypeKeyTypeEd25519",
 	1:   "CryptoKeyTypeKeyTypePreAuthTx",
 	2:   "CryptoKeyTypeKeyTypeHashX",
+	3:   "CryptoKeyTypeKeyTypeEd25519SignedPayload",
 	256: "CryptoKeyTypeKeyTypeMuxedEd25519",
 }
 
@@ -33683,20 +37642,23 @@ var _ xdrType = (*PublicKeyType)(nil)
 //	 {
 //	     SIGNER_KEY_TYPE_ED25519 = KEY_TYPE_ED25519,
 //	     SIGNER_KEY_TYPE_PRE_AUTH_TX = KEY_TYPE_PRE_AUTH_TX,
-//	     SIGNER_KEY_TYPE_HASH_X = KEY_TYPE_HASH_X
+//	     SIGNER_KEY_TYPE_HASH_X = KEY_TYPE_HASH_X,
+//	     SIGNER_KEY_TYPE_ED25519_SIGNED_PAYLOAD = KEY_TYPE_ED25519_SIGNED_PAYLOAD
 //	 };
 type SignerKeyType int32
 
 const (
-	SignerKeyTypeSignerKeyTypeEd25519   SignerKeyType = 0
-	SignerKeyTypeSignerKeyTypePreAuthTx SignerKeyType = 1
-	SignerKeyTypeSignerKeyTypeHashX     SignerKeyType = 2
+	SignerKeyTypeSignerKeyTypeEd25519              SignerKeyType = 0
+	SignerKeyTypeSignerKeyTypePreAuthTx            SignerKeyType = 1
+	SignerKeyTypeSignerKeyTypeHashX                SignerKeyType = 2
+	SignerKeyTypeSignerKeyTypeEd25519SignedPayload SignerKeyType = 3
 )
 
 var signerKeyTypeMap = map[int32]string{
 	0: "SignerKeyTypeSignerKeyTypeEd25519",
 	1: "SignerKeyTypeSignerKeyTypePreAuthTx",
 	2: "SignerKeyTypeSignerKeyTypeHashX",
+	3: "SignerKeyTypeSignerKeyTypeEd25519SignedPayload",
 }
 
 // ValidEnum validates a proposed value for this enum.  Implements
@@ -33898,6 +37860,78 @@ func (s PublicKey) xdrType() {}
 
 var _ xdrType = (*PublicKey)(nil)
 
+// SignerKeyEd25519SignedPayload is an XDR NestedStruct defines as:
+//
+//	struct
+//	     {
+//	         /* Public key that must sign the payload. */
+//	         uint256 ed25519;
+//	         /* Payload to be raw signed by ed25519. */
+//	         opaque payload<64>;
+//	     }
+type SignerKeyEd25519SignedPayload struct {
+	Ed25519 Uint256
+	Payload []byte `xdrmaxsize:"64"`
+}
+
+// EncodeTo encodes this value using the Encoder.
+func (s *SignerKeyEd25519SignedPayload) EncodeTo(e *xdr.Encoder) error {
+	var err error
+	if err = s.Ed25519.EncodeTo(e); err != nil {
+		return err
+	}
+	if _, err = e.EncodeOpaque(s.Payload[:]); err != nil {
+		return err
+	}
+	return nil
+}
+
+var _ decoderFrom = (*SignerKeyEd25519SignedPayload)(nil)
+
+// DecodeFrom decodes this value using the Decoder.
+func (s *SignerKeyEd25519SignedPayload) DecodeFrom(d *xdr.Decoder) (int, error) {
+	var err error
+	var n, nTmp int
+	nTmp, err = s.Ed25519.DecodeFrom(d)
+	n += nTmp
+	if err != nil {
+		return n, fmt.Errorf("decoding Uint256: %s", err)
+	}
+	s.Payload, nTmp, err = d.DecodeOpaque(64)
+	n += nTmp
+	if err != nil {
+		return n, fmt.Errorf("decoding Payload: %s", err)
+	}
+	return n, nil
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler.
+func (s SignerKeyEd25519SignedPayload) MarshalBinary() ([]byte, error) {
+	b := bytes.Buffer{}
+	e := xdr.NewEncoder(&b)
+	err := s.EncodeTo(e)
+	return b.Bytes(), err
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler.
+func (s *SignerKeyEd25519SignedPayload) UnmarshalBinary(inp []byte) error {
+	r := bytes.NewReader(inp)
+	d := xdr.NewDecoder(r)
+	_, err := s.DecodeFrom(d)
+	return err
+}
+
+var (
+	_ encoding.BinaryMarshaler   = (*SignerKeyEd25519SignedPayload)(nil)
+	_ encoding.BinaryUnmarshaler = (*SignerKeyEd25519SignedPayload)(nil)
+)
+
+// xdrType signals that this type is an type representing
+// representing XDR values defined by this package.
+func (s SignerKeyEd25519SignedPayload) xdrType() {}
+
+var _ xdrType = (*SignerKeyEd25519SignedPayload)(nil)
+
 // SignerKey is an XDR Union defines as:
 //
 //	union SignerKey switch (SignerKeyType type)
@@ -33910,12 +37944,21 @@ var _ xdrType = (*PublicKey)(nil)
 //	 case SIGNER_KEY_TYPE_HASH_X:
 //	     /* Hash of random 256 bit preimage X */
 //	     uint256 hashX;
+//	 case SIGNER_KEY_TYPE_ED25519_SIGNED_PAYLOAD:
+//	     struct
+//	     {
+//	         /* Public key that must sign the payload. */
+//	         uint256 ed25519;
+//	         /* Payload to be raw signed by ed25519. */
+//	         opaque payload<64>;
+//	     } ed25519SignedPayload;
 //	 };
 type SignerKey struct {
-	Type      SignerKeyType
-	Ed25519   *Uint256
-	PreAuthTx *Uint256
-	HashX     *Uint256
+	Type                 SignerKeyType
+	Ed25519              *Uint256
+	PreAuthTx            *Uint256
+	HashX                *Uint256
+	Ed25519SignedPayload *SignerKeyEd25519SignedPayload
 }
 
 // SwitchFieldName returns the field name in which this union's
@@ -33934,6 +37977,8 @@ func (u SignerKey) ArmForSwitch(sw int32) (string, bool) {
 		return "PreAuthTx", true
 	case SignerKeyTypeSignerKeyTypeHashX:
 		return "HashX", true
+	case SignerKeyTypeSignerKeyTypeEd25519SignedPayload:
+		return "Ed25519SignedPayload", true
 	}
 	return "-", false
 }
@@ -33963,6 +38008,13 @@ func NewSignerKey(aType SignerKeyType, value interface{}) (result SignerKey, err
 			return
 		}
 		result.HashX = &tv
+	case SignerKeyTypeSignerKeyTypeEd25519SignedPayload:
+		tv, ok := value.(SignerKeyEd25519SignedPayload)
+		if !ok {
+			err = fmt.Errorf("invalid value, must be SignerKeyEd25519SignedPayload")
+			return
+		}
+		result.Ed25519SignedPayload = &tv
 	}
 	return
 }
@@ -34042,6 +38094,31 @@ func (u SignerKey) GetHashX() (result Uint256, ok bool) {
 	return
 }
 
+// MustEd25519SignedPayload retrieves the Ed25519SignedPayload value from the union,
+// panicing if the value is not set.
+func (u SignerKey) MustEd25519SignedPayload() SignerKeyEd25519SignedPayload {
+	val, ok := u.GetEd25519SignedPayload()
+
+	if !ok {
+		panic("arm Ed25519SignedPayload is not set")
+	}
+
+	return val
+}
+
+// GetEd25519SignedPayload retrieves the Ed25519SignedPayload value from the union,
+// returning ok if the union's switch indicated the value is valid.
+func (u SignerKey) GetEd25519SignedPayload() (result SignerKeyEd25519SignedPayload, ok bool) {
+	armName, _ := u.ArmForSwitch(int32(u.Type))
+
+	if armName == "Ed25519SignedPayload" {
+		result = *u.Ed25519SignedPayload
+		ok = true
+	}
+
+	return
+}
+
 // EncodeTo encodes this value using the Encoder.
 func (u SignerKey) EncodeTo(e *xdr.Encoder) error {
 	var err error
@@ -34061,6 +38138,11 @@ func (u SignerKey) EncodeTo(e *xdr.Encoder) error {
 		return nil
 	case SignerKeyTypeSignerKeyTypeHashX:
 		if err = (*u.HashX).EncodeTo(e); err != nil {
+			return err
+		}
+		return nil
+	case SignerKeyTypeSignerKeyTypeEd25519SignedPayload:
+		if err = (*u.Ed25519SignedPayload).EncodeTo(e); err != nil {
 			return err
 		}
 		return nil
@@ -34102,6 +38184,14 @@ func (u *SignerKey) DecodeFrom(d *xdr.Decoder) (int, error) {
 		n += nTmp
 		if err != nil {
 			return n, fmt.Errorf("decoding Uint256: %s", err)
+		}
+		return n, nil
+	case SignerKeyTypeSignerKeyTypeEd25519SignedPayload:
+		u.Ed25519SignedPayload = new(SignerKeyEd25519SignedPayload)
+		nTmp, err = (*u.Ed25519SignedPayload).DecodeFrom(d)
+		n += nTmp
+		if err != nil {
+			return n, fmt.Errorf("decoding SignerKeyEd25519SignedPayload: %s", err)
 		}
 		return n, nil
 	}

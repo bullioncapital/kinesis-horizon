@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/stellar/go/ingest"
 	"github.com/stellar/go/services/horizon/internal/db2/history"
+	"github.com/stellar/go/services/horizon/internal/ingest/filters"
 	"github.com/stellar/go/services/horizon/internal/ingest/processors"
 	"github.com/stellar/go/support/errors"
 	"github.com/stellar/go/xdr"
@@ -15,10 +17,11 @@ import (
 type ingestionSource int
 
 const (
-	_                    = iota
-	historyArchiveSource = ingestionSource(iota)
-	ledgerSource         = ingestionSource(iota)
-	logFrequency         = 50000
+	_                               = iota
+	historyArchiveSource            = ingestionSource(iota)
+	ledgerSource                    = ingestionSource(iota)
+	logFrequency                    = 50000
+	transactionsFilteredTmpGCPeriod = 5 * time.Minute
 )
 
 type horizonChangeProcessor interface {
@@ -62,6 +65,7 @@ type ProcessorRunnerInterface interface {
 	RunGenesisStateIngestion() (ingest.StatsChangeProcessorResults, error)
 	RunHistoryArchiveIngestion(
 		checkpointLedger uint32,
+		skipChecks bool,
 		ledgerProtocolVersion uint32,
 		bucketListHash xdr.Hash,
 	) (ingest.StatsChangeProcessorResults, error)
@@ -82,10 +86,12 @@ var _ ProcessorRunnerInterface = (*ProcessorRunner)(nil)
 type ProcessorRunner struct {
 	config Config
 
-	ctx            context.Context
-	historyQ       history.IngestionQ
-	historyAdapter historyArchiveAdapterInterface
-	logMemoryStats bool
+	ctx                   context.Context
+	historyQ              history.IngestionQ
+	historyAdapter        historyArchiveAdapterInterface
+	logMemoryStats        bool
+	filters               filters.Filters
+	lastTransactionsTmpGC time.Time
 }
 
 func (s *ProcessorRunner) SetHistoryAdapter(historyAdapter historyArchiveAdapterInterface) {
@@ -147,6 +153,26 @@ func (s *ProcessorRunner) buildTransactionProcessor(
 	})
 }
 
+func (s *ProcessorRunner) buildTransactionFilterer() *groupTransactionFilterers {
+	var f []processors.LedgerTransactionFilterer
+	if s.config.EnableIngestionFiltering {
+		f = append(f, s.filters.GetFilters(s.historyQ, s.ctx)...)
+	}
+
+	return newGroupTransactionFilterers(f)
+}
+
+func (s *ProcessorRunner) buildFilteredOutProcessor(ledger xdr.LedgerHeaderHistoryEntry) *groupTransactionProcessors {
+	// when in online mode, the submission result processor must always run (regardless of filtering)
+	var p []horizonTransactionProcessor
+	if s.config.EnableIngestionFiltering {
+		txSubProc := processors.NewTransactionFilteredTmpProcessor(s.historyQ, uint32(ledger.Header.LedgerSeq))
+		p = append(p, txSubProc)
+	}
+
+	return newGroupTransactionProcessors(p)
+}
+
 // checkIfProtocolVersionSupported checks if this Horizon version supports the
 // protocol version of a ledger with the given sequence number.
 func (s *ProcessorRunner) checkIfProtocolVersionSupported(ledgerProtocolVersion uint32) error {
@@ -187,11 +213,12 @@ func (s *ProcessorRunner) validateBucketList(ledgerSequence uint32, ledgerBucket
 }
 
 func (s *ProcessorRunner) RunGenesisStateIngestion() (ingest.StatsChangeProcessorResults, error) {
-	return s.RunHistoryArchiveIngestion(1, 0, xdr.Hash{})
+	return s.RunHistoryArchiveIngestion(1, false, 0, xdr.Hash{})
 }
 
 func (s *ProcessorRunner) RunHistoryArchiveIngestion(
 	checkpointLedger uint32,
+	skipChecks bool,
 	ledgerProtocolVersion uint32,
 	bucketListHash xdr.Hash,
 ) (ingest.StatsChangeProcessorResults, error) {
@@ -203,12 +230,14 @@ func (s *ProcessorRunner) RunHistoryArchiveIngestion(
 			return changeStats.GetResults(), errors.Wrap(err, "Error ingesting genesis ledger")
 		}
 	} else {
-		if err := s.checkIfProtocolVersionSupported(ledgerProtocolVersion); err != nil {
-			return changeStats.GetResults(), errors.Wrap(err, "Error while checking for supported protocol version")
-		}
+		if !skipChecks {
+			if err := s.checkIfProtocolVersionSupported(ledgerProtocolVersion); err != nil {
+				return changeStats.GetResults(), errors.Wrap(err, "Error while checking for supported protocol version")
+			}
 
-		if err := s.validateBucketList(checkpointLedger, bucketListHash); err != nil {
-			return changeStats.GetResults(), errors.Wrap(err, "Error validating bucket list from HAS")
+			if err := s.validateBucketList(checkpointLedger, bucketListHash); err != nil {
+				return changeStats.GetResults(), errors.Wrap(err, "Error validating bucket list from HAS")
+			}
 		}
 
 		changeReader, err := s.historyAdapter.GetState(s.ctx, checkpointLedger)
@@ -234,7 +263,7 @@ func (s *ProcessorRunner) RunHistoryArchiveIngestion(
 	}
 
 	if err := changeProcessor.Commit(s.ctx); err != nil {
-		return changeStats.GetResults(), errors.Wrap(err, "Error commiting changes from processor")
+		return changeStats.GetResults(), errors.Wrap(err, "Error committing changes from processor")
 	}
 
 	return changeStats.GetResults(), nil
@@ -262,7 +291,7 @@ func (s *ProcessorRunner) runChangeProcessorOnLedger(
 
 	err = changeProcessor.Commit(s.ctx)
 	if err != nil {
-		return errors.Wrap(err, "Error commiting changes from processor")
+		return errors.Wrap(err, "Error committing changes from processor")
 	}
 
 	return nil
@@ -290,13 +319,31 @@ func (s *ProcessorRunner) RunTransactionProcessorsOnLedger(ledger xdr.LedgerClos
 		err = errors.Wrap(err, "Error while checking for supported protocol version")
 		return
 	}
-
+	header := transactionReader.GetHeader()
+	groupTransactionFilterers := s.buildTransactionFilterer()
+	groupFilteredOutProcessors := s.buildFilteredOutProcessor(header)
 	groupTransactionProcessors := s.buildTransactionProcessor(
-		&ledgerTransactionStats, &tradeProcessor, transactionReader.GetHeader())
-	err = processors.StreamLedgerTransactions(s.ctx, groupTransactionProcessors, transactionReader)
+		&ledgerTransactionStats, &tradeProcessor, header)
+	err = processors.StreamLedgerTransactions(s.ctx,
+		groupTransactionFilterers,
+		groupFilteredOutProcessors,
+		groupTransactionProcessors,
+		transactionReader,
+	)
 	if err != nil {
 		err = errors.Wrap(err, "Error streaming changes from ledger")
 		return
+	}
+
+	if s.config.EnableIngestionFiltering {
+		err = groupFilteredOutProcessors.Commit(s.ctx)
+		if err != nil {
+			err = errors.Wrap(err, "Error committing filtered changes from processor")
+			return
+		}
+		if time.Since(s.lastTransactionsTmpGC) > transactionsFilteredTmpGCPeriod {
+			s.historyQ.DeleteTransactionsFilteredTmpOlderThan(s.ctx, uint64(transactionsFilteredTmpGCPeriod.Seconds()))
+		}
 	}
 
 	err = groupTransactionProcessors.Commit(s.ctx)
@@ -306,7 +353,15 @@ func (s *ProcessorRunner) RunTransactionProcessorsOnLedger(ledger xdr.LedgerClos
 	}
 
 	transactionStats = ledgerTransactionStats.GetResults()
+	transactionStats.TransactionsFiltered = groupTransactionFilterers.droppedTransactions
 	transactionDurations = groupTransactionProcessors.processorsRunDurations
+	for key, duration := range groupFilteredOutProcessors.processorsRunDurations {
+		transactionDurations[key] = duration
+	}
+	for key, duration := range groupTransactionFilterers.processorsRunDurations {
+		transactionDurations[key] = duration
+	}
+
 	tradeStats = tradeProcessor.GetStats()
 	return
 }

@@ -1,9 +1,10 @@
 package txnbuild
 
 import (
+	"testing"
+
 	"github.com/stellar/go/price"
 	"github.com/stellar/go/xdr"
-	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -25,7 +26,7 @@ func TestManageSellOfferValidateSellingAsset(t *testing.T) {
 			IncrementSequenceNum: false,
 			Operations:           []Operation{&createOffer},
 			BaseFee:              MinBaseFee,
-			Timebounds:           NewInfiniteTimeout(),
+			Preconditions:        Preconditions{TimeBounds: NewInfiniteTimeout()},
 		},
 	)
 	if assert.Error(t, err) {
@@ -51,7 +52,7 @@ func TestManageSellOfferValidateBuyingAsset(t *testing.T) {
 			IncrementSequenceNum: false,
 			Operations:           []Operation{&createOffer},
 			BaseFee:              MinBaseFee,
-			Timebounds:           NewInfiniteTimeout(),
+			Preconditions:        Preconditions{TimeBounds: NewInfiniteTimeout()},
 		},
 	)
 	if assert.Error(t, err) {
@@ -77,7 +78,7 @@ func TestManageSellOfferValidateAmount(t *testing.T) {
 			IncrementSequenceNum: false,
 			Operations:           []Operation{&createOffer},
 			BaseFee:              MinBaseFee,
-			Timebounds:           NewInfiniteTimeout(),
+			Preconditions:        Preconditions{TimeBounds: NewInfiniteTimeout()},
 		},
 	)
 	if assert.Error(t, err) {
@@ -103,7 +104,7 @@ func TestManageSellOfferValidatePrice(t *testing.T) {
 			IncrementSequenceNum: false,
 			Operations:           []Operation{&createOffer},
 			BaseFee:              MinBaseFee,
-			Timebounds:           NewInfiniteTimeout(),
+			Preconditions:        Preconditions{TimeBounds: NewInfiniteTimeout()},
 		},
 	)
 	if assert.Error(t, err) {
@@ -131,7 +132,7 @@ func TestManageSellOfferValidateOfferID(t *testing.T) {
 			IncrementSequenceNum: false,
 			Operations:           []Operation{&mso},
 			BaseFee:              MinBaseFee,
-			Timebounds:           NewInfiniteTimeout(),
+			Preconditions:        Preconditions{TimeBounds: NewInfiniteTimeout()},
 		},
 	)
 	if assert.Error(t, err) {

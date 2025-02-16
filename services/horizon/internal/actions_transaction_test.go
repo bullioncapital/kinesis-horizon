@@ -340,7 +340,7 @@ func TestTransactionActions_PostSuccessful(t *testing.T) {
 
 	w := ht.Post("/transactions", form)
 	ht.Assert.Equal(200, w.Code)
-	ht.Assert.Contains(string(w.Body.Bytes()), `"result_xdr": "AAAAAAAAAGQAAAAAAAAAAQAAAAAAAAABAAAAAAAAAAA="`)
+	ht.Assert.Contains(w.Body.String(), `"result_xdr": "AAAAAAAAAGQAAAAAAAAAAQAAAAAAAAABAAAAAAAAAAA="`)
 }
 
 func TestTransactionActions_PostFailed(t *testing.T) {
@@ -355,8 +355,8 @@ func TestTransactionActions_PostFailed(t *testing.T) {
 
 	w := ht.Post("/transactions", form)
 	ht.Assert.Equal(400, w.Code)
-	ht.Assert.Contains(string(w.Body.Bytes()), "op_underfunded")
-	ht.Assert.Contains(string(w.Body.Bytes()), `"result_xdr": "AAAAAAAAAGT/////AAAAAQAAAAAAAAAB/////gAAAAA="`)
+	ht.Assert.Contains(w.Body.String(), "op_underfunded")
+	ht.Assert.Contains(w.Body.String(), `"result_xdr": "AAAAAAAAAGT/////AAAAAQAAAAAAAAAB/////gAAAAA="`)
 }
 
 func TestPostFeeBumpTransaction(t *testing.T) {
@@ -412,14 +412,14 @@ func TestPostFailedFeeBumpTransaction(t *testing.T) {
 	form := url.Values{"tx": []string{fixture.Transaction.TxEnvelope}}
 	w := ht.Post("/transactions", form)
 	ht.Assert.Equal(400, w.Code)
-	ht.Assert.Contains(string(w.Body.Bytes()), "tx_fee_bump_inner_failed")
-	ht.Assert.Contains(string(w.Body.Bytes()), "tx_bad_auth")
+	ht.Assert.Contains(w.Body.String(), "tx_fee_bump_inner_failed")
+	ht.Assert.Contains(w.Body.String(), "tx_bad_auth")
 
 	innerTxEnvelope, err := xdr.MarshalBase64(fixture.Envelope.FeeBump.Tx.InnerTx.V1)
 	ht.Assert.NoError(err)
 	form = url.Values{"tx": []string{innerTxEnvelope}}
 	w = ht.Post("/transactions", form)
 	ht.Assert.Equal(400, w.Code)
-	ht.Assert.Contains(string(w.Body.Bytes()), "tx_bad_auth")
-	ht.Assert.NotContains(string(w.Body.Bytes()), "tx_fee_bump_inner_failed")
+	ht.Assert.Contains(w.Body.String(), "tx_bad_auth")
+	ht.Assert.NotContains(w.Body.String(), "tx_fee_bump_inner_failed")
 }

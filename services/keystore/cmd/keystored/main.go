@@ -18,6 +18,7 @@ import (
 	migrate "github.com/rubenv/sql-migrate"
 	"github.com/sirupsen/logrus"
 	"github.com/stellar/go/services/keystore"
+	"github.com/stellar/go/support/collections/set"
 	"github.com/stellar/go/support/log"
 
 	_ "github.com/lib/pq"
@@ -247,13 +248,13 @@ func getUnappliedMigrations(db *sql.DB) []string {
 		os.Exit(1)
 	}
 
-	unappliedMigrations := make(map[string]struct{})
+	unappliedMigrations := set.Set[string]{}
 	for _, m := range migrations {
-		unappliedMigrations[m.Id] = struct{}{}
+		unappliedMigrations.Add(m.Id)
 	}
 
 	for _, r := range records {
-		if _, ok := unappliedMigrations[r.Id]; !ok {
+		if unappliedMigrations.Contains(r.Id) {
 			fmt.Fprintf(os.Stdout, "Could not find migration file: %v\n", r.Id)
 			continue
 		}

@@ -8,21 +8,22 @@ import (
 
 	"github.com/stellar/go/network"
 	"github.com/stellar/go/services/horizon/internal/test"
+	tdb "github.com/stellar/go/services/horizon/internal/test/db"
 	supportLog "github.com/stellar/go/support/log"
 )
 
-func NewTestApp() *App {
-	app, err := NewApp(NewTestConfig())
+func NewTestApp(dsn string) *App {
+	app, err := NewApp(NewTestConfig(dsn))
 	if err != nil {
 		log.Fatal("cannot create app", err)
 	}
 	return app
 }
 
-func NewTestConfig() Config {
+func NewTestConfig(dsn string) Config {
 	return Config{
-		DatabaseURL:            test.DatabaseURL(),
-		StellarCoreDatabaseURL: test.StellarCoreDatabaseURL(),
+		DatabaseURL:            dsn,
+		StellarCoreDatabaseURL: tdb.StellarCoreURL(),
 		RateQuota: &throttled.RateQuota{
 			MaxRate:  throttled.PerHour(1000),
 			MaxBurst: 100,
