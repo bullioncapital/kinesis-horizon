@@ -90,7 +90,7 @@ func (c *ScraperConfig) streamTrades(h horizonclient.TradeHandler, cursor string
 		Cursor: cursor,
 	}
 
-	return r.StreamTrades(*c.Ctx, c.Client, h)
+	return c.Client.StreamTrades(*c.Ctx, r, h)
 }
 
 // addNativeData adds additional fields when one of the assets is native.

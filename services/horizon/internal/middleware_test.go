@@ -22,6 +22,7 @@ import (
 	"github.com/stellar/go/services/horizon/internal/ledger"
 	hProblem "github.com/stellar/go/services/horizon/internal/render/problem"
 	"github.com/stellar/go/services/horizon/internal/test"
+	tdb "github.com/stellar/go/services/horizon/internal/test/db"
 	"github.com/stellar/go/support/db"
 	"github.com/stellar/go/support/log"
 	"github.com/stellar/go/xdr"
@@ -52,7 +53,7 @@ func (suite *RateLimitMiddlewareTestSuite) SetupSuite() {
 }
 
 func (suite *RateLimitMiddlewareTestSuite) SetupTest() {
-	suite.c = NewTestConfig()
+	suite.c = NewTestConfig(tdb.HorizonURL())
 	suite.c.RateQuota = &throttled.RateQuota{
 		MaxRate:  throttled.PerHour(10),
 		MaxBurst: 9,

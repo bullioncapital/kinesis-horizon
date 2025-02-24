@@ -22,7 +22,7 @@ func TestClawbackValidateFrom(t *testing.T) {
 			IncrementSequenceNum: false,
 			Operations:           []Operation{&clawback},
 			BaseFee:              MinBaseFee,
-			Timebounds:           NewInfiniteTimeout(),
+			Preconditions:        Preconditions{TimeBounds: NewInfiniteTimeout()},
 		},
 	)
 	if assert.Error(t, err) {
@@ -47,7 +47,7 @@ func TestClawbackValidateAmount(t *testing.T) {
 			IncrementSequenceNum: false,
 			Operations:           []Operation{&clawback},
 			BaseFee:              MinBaseFee,
-			Timebounds:           NewInfiniteTimeout(),
+			Preconditions:        Preconditions{TimeBounds: NewInfiniteTimeout()},
 		},
 	)
 	if assert.Error(t, err) {
@@ -72,7 +72,7 @@ func TestClawbackValidateAsset(t *testing.T) {
 			IncrementSequenceNum: false,
 			Operations:           []Operation{&clawback},
 			BaseFee:              MinBaseFee,
-			Timebounds:           NewInfiniteTimeout(),
+			Preconditions:        Preconditions{TimeBounds: NewInfiniteTimeout()},
 		},
 	)
 	if assert.Error(t, err) {

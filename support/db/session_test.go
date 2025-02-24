@@ -129,3 +129,34 @@ func TestSession(t *testing.T) {
 		assert.Equal("$1 = $2 = $3 = ?", out)
 	}
 }
+
+func TestStatementTimeout(t *testing.T) {
+	assert := assert.New(t)
+	db := dbtest.Postgres(t).Load(testSchema)
+	defer db.Close()
+
+	sess, err := Open(db.Dialect, db.DSN, StatementTimeout(50*time.Millisecond))
+	assert.NoError(err)
+	defer sess.Close()
+
+	var count int
+	err = sess.GetRaw(context.Background(), &count, "SELECT pg_sleep(2), COUNT(*) FROM people")
+	assert.ErrorIs(err, ErrStatementTimeout)
+}
+
+func TestIdleTransactionTimeout(t *testing.T) {
+	assert := assert.New(t)
+	db := dbtest.Postgres(t).Load(testSchema)
+	defer db.Close()
+
+	sess, err := Open(db.Dialect, db.DSN, IdleTransactionTimeout(50*time.Millisecond))
+	assert.NoError(err)
+	defer sess.Close()
+
+	assert.NoError(sess.Begin())
+	<-time.After(100 * time.Millisecond)
+
+	var count int
+	err = sess.GetRaw(context.Background(), &count, "SELECT COUNT(*) FROM people")
+	assert.ErrorIs(err, ErrBadConnection)
+}

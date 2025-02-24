@@ -49,12 +49,11 @@ go run ./tools/<tool>
 
 ## Dependency management
 
-Dependencies are managed using [Modules](https://github.com/golang/go/wiki/Modules) and are tracked in the repository across three files:
+Dependencies are managed using [Modules](https://github.com/golang/go/wiki/Modules) and are tracked in the repository across two files:
 - [go.mod](go.mod): Contains a list of direct dependencies, and some indirect dependencies (see [why](https://github.com/golang/go/wiki/Modules#why-does-go-mod-tidy-record-indirect-and-test-dependencies-in-my-gomod)).
 - [go.sum](go.sum): Contains hashes for dependencies that are used for verifying downloaded dependencies.
-- [go.list](go.list): A file that is unique to this Go repository, containing the output of `go list -m all`, and captures all direct and indirect dependencies and their versions used in builds and tests within this repository. This is not a lock file but instead it helps us track over time which versions are being used for builds and tests, and to see when that changes in PR diffs.
 
-### Adding new dependencies
+### Adding/Removing dependencies
 
 Add new dependencies by adding the import paths to the code. The next time you execute a Go command the tool will update the `go.mod` and `go.sum` files.
 
@@ -64,11 +63,8 @@ To add a specific version of a dependency use `go get`:
 go get <importpath>@<version>
 ```
 
-Go modules files track the minimum dependency required, not the exact dependency version that will be used. To validate the version of the dependency being used update the `go.list` file by running `go mod -m all > go.list`.
-
-Before opening a PR make sure to run these commands to tidy the module files:
+Before opening a PR make sure to run following command to tidy the module file. It will keep the go.* files tidy:
 - `go mod tidy`
-- `go list -m all > go.list`
 
 ### Updating a dependency
 
@@ -77,23 +73,10 @@ Update an existing dependency by using `go get`:
 ```
 go get <importpath>@<version>
 ```
-
-Go modules files track the minimum dependency required, not the exact dependency version that will be used. To validate the version of the dependency being used update the `go.list` file by running `go mod -m all > go.list`.
-
 Before opening a PR make sure to run these commands to tidy the module files:
-```
-go mod tidy
-go list -m all > go.list
-```
-
-### Removing a dependency
-
-Remove a dependency by removing all import paths from the code, then use the following commands to remove any unneeded direct or indirect dependencies:
-
-```
-go mod tidy
-go list -m all > go.list
-```
+ ```
+ go mod tidy
+ ```
 
 Note: `go list -m all` may show that the dependency is still being used. It will be possible that the dependency is still an indirect dependency. If it's important to understand why the dependency is still being used, use `go mod why <importpath>/...` and `go mod graph | grep <importpath>` to understand which modules are importing it.
 
@@ -101,9 +84,10 @@ Note: `go list -m all` may show that the dependency is still being used. It will
 
 When updating or adding dependencies it's critical that we review what the
 changes are in those dependencies that we are introducing into our builds. When
-dependencies change the diff for the `go.list` file may be too complex to
-understand. In those situations use the [golistcmp] tool to get a list of
-changing modules, as well as GitHub links for easy access to diff review.
+dependencies change the diff for the `go.mod` file may be complex to
+understand. In that situation check each new or upgraded dependency,
+and check each dependencies code diffs to see what is being imported.
+Always treat code being imported as code written that needs review.
 
 ```
 git checkout master

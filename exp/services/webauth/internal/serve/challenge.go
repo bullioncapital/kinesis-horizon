@@ -2,6 +2,7 @@ package serve
 
 import (
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -33,7 +34,9 @@ func (h challengeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	queryValues := r.URL.Query()
 
 	account := queryValues.Get("account")
-	if !strkey.IsValidEd25519PublicKey(account) {
+	isStellarAccount := strkey.IsValidEd25519PublicKey(account)
+	isMuxedAccount := strkey.IsValidMuxedAccountEd25519PublicKey(account)
+	if !isStellarAccount && !isMuxedAccount {
 		badRequest.Render(w)
 		return
 	}
@@ -57,6 +60,18 @@ func (h challengeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		homeDomain = h.HomeDomains[0]
 	}
 
+	var memo *txnbuild.MemoID
+	memoParam := queryValues.Get("memo")
+	if memoParam != "" {
+		memoInt, err := strconv.ParseUint(memoParam, 10, 64)
+		if err != nil {
+			badRequest.Render(w)
+			return
+		}
+		memoId := txnbuild.MemoID(memoInt)
+		memo = &memoId
+	}
+
 	tx, err := txnbuild.BuildChallengeTx(
 		h.SigningKey.Seed(),
 		account,
@@ -64,10 +79,11 @@ func (h challengeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		homeDomain,
 		h.NetworkPassphrase,
 		h.ChallengeExpiresIn,
+		memo,
 	)
 	if err != nil {
 		h.Logger.Ctx(ctx).WithStack(err).Error(err)
-		serverError.Render(w)
+		badRequest.Render(w)
 		return
 	}
 

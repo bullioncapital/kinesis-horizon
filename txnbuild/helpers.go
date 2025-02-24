@@ -198,7 +198,7 @@ func validateOffer(buying, selling Asset, offerAmount string, price xdr.Price, o
 
 // ValidationError is a custom error struct that holds validation errors of txnbuild's operation structs.
 type ValidationError struct {
-	Field   string // Field is the struct field on which the validation error occured.
+	Field   string // Field is the struct field on which the validation error occurred.
 	Message string // Message is the validation error message.
 }
 

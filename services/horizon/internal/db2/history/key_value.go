@@ -45,7 +45,7 @@ func (q *Q) GetLastLedgerIngestNonBlocking(ctx context.Context) (uint32, error) 
 // GetLastLedgerIngest returns the last ledger ingested by ingest system
 // in Horizon. Returns ErrKeyNotFound error if no value has been previously set.
 // This is using `SELECT ... FOR UPDATE` what means it's blocking the row for all other
-// transactions.This behaviour is critical in distributed ingestion so do not change
+// transactions.This behavior is critical in distributed ingestion so do not change
 // it unless you know what you are doing.
 // The value can be set using UpdateLastLedgerIngest.
 func (q *Q) GetLastLedgerIngest(ctx context.Context) (uint32, error) {

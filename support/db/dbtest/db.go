@@ -1,7 +1,10 @@
 package dbtest
 
 import (
+	"context"
 	"crypto/rand"
+	"database/sql"
+
 	"encoding/hex"
 	"fmt"
 	"os"
@@ -21,6 +24,7 @@ import (
 type DB struct {
 	Dialect string
 	DSN     string
+	RO_DSN  string
 	dbName  string
 	t       testing.TB
 	closer  func()
@@ -101,12 +105,33 @@ func (db *DB) Version() (major int) {
 	return major
 }
 
-func execStatement(t testing.TB, pguser, pghost, query string) {
-	db, err := sqlx.Open("postgres", fmt.Sprintf("postgres://%s@%s/?sslmode=disable", pguser, pghost))
+func execStatement(t testing.TB, query string, DSN string) {
+	db, err := sqlx.Open("postgres", DSN)
 	require.NoError(t, err)
 	_, err = db.Exec(query)
 	require.NoError(t, err)
 	require.NoError(t, db.Close())
+}
+
+func checkReadOnly(t testing.TB, DSN string) {
+	conn, err := sqlx.Open("postgres", DSN)
+	require.NoError(t, err)
+	defer conn.Close()
+
+	tx, err := conn.BeginTx(context.Background(), &sql.TxOptions{Isolation: sql.LevelSerializable})
+	require.NoError(t, err)
+	defer tx.Rollback()
+
+	rows, err := tx.Query("SELECT FROM pg_user WHERE  usename = 'user_ro'")
+	require.NoError(t, err)
+
+	if !rows.Next() {
+		_, err = tx.Exec("CREATE ROLE user_ro WITH LOGIN PASSWORD 'user_ro';")
+		require.NoError(t, err)
+	}
+
+	err = tx.Commit()
+	require.NoError(t, err)
 }
 
 // Postgres provisions a new, blank database with a random name on the localhost
@@ -131,13 +156,23 @@ func Postgres(t testing.TB) *DB {
 		pgHost = "localhost"
 	}
 
-	// create the db
-	execStatement(t, pgUser, pgHost, "CREATE DATABASE "+pq.QuoteIdentifier(result.dbName))
-
+	postgresDSN := fmt.Sprintf("postgres://%s@%s/?sslmode=disable", pgUser, pgHost)
 	result.DSN = fmt.Sprintf("postgres://%s@%s/%s?sslmode=disable&timezone=UTC", pgUser, pgHost, result.dbName)
+	result.RO_DSN = fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=disable&timezone=UTC", "user_ro", "user_ro", pgHost, result.dbName)
+
+	execStatement(t, fmt.Sprintf("CREATE DATABASE %s;", result.dbName), postgresDSN)
+	execStatement(t, fmt.Sprintf("GRANT CONNECT ON DATABASE %s TO PUBLIC;", result.dbName), postgresDSN)
+	execStatement(t, "GRANT USAGE ON SCHEMA public TO PUBLIC;", result.DSN)
+	execStatement(t, "GRANT SELECT ON ALL TABLES IN SCHEMA public TO PUBLIC;", result.DSN)
+	execStatement(t, "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO PUBLIC;", result.DSN)
+
+	checkReadOnly(t, postgresDSN)
 
 	result.closer = func() {
-		execStatement(t, pgUser, pgHost, "DROP DATABASE "+pq.QuoteIdentifier(result.dbName))
+		// pg_terminate_backend is a best effort, it does not gaurantee that it can close any lingering connections
+		// it sends a quit signal to each remaining connection in the db
+		execStatement(t, "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '"+pq.QuoteIdentifier(result.dbName)+"';", postgresDSN)
+		execStatement(t, "DROP DATABASE "+pq.QuoteIdentifier(result.dbName), postgresDSN)
 	}
 
 	return &result

@@ -16,7 +16,7 @@ func OpenWithoutMigrations(t *testing.T) *dbtest.DB {
 	// instead of SERIAL/BIGSERIAL, which are recommended against.
 	dbVersion := db.Version()
 	if dbVersion < 10 {
-		t.Skipf("Skipping test becuase Postgres v%d found, and Postgres v10+ required for this test.", dbVersion)
+		t.Skipf("Skipping test because Postgres v%d found, and Postgres v10+ required for this test.", dbVersion)
 	}
 
 	return db

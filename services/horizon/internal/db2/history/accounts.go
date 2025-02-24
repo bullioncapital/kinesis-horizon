@@ -65,9 +65,9 @@ func (q *Q) GetAccountsByIDs(ctx context.Context, ids []string) ([]AccountEntry,
 // for each ledger with the current limits.
 func (q *Q) UpsertAccounts(ctx context.Context, accounts []AccountEntry) error {
 	var accountID, inflationDestination, homeDomain, balance, buyingLiabilities,
-		sellingLiabilities, sequenceNumber, numSubEntries, flags, lastModifiedLedger,
-		numSponsored, numSponsoring, masterWeight, thresholdLow, thresholdMedium,
-		thresholdHigh, sponsor []interface{}
+		sellingLiabilities, sequenceNumber, sequenceLedger, sequenceTime, numSubEntries,
+		flags, lastModifiedLedger, numSponsored, numSponsoring, masterWeight, thresholdLow,
+		thresholdMedium, thresholdHigh, sponsor []interface{}
 
 	for _, account := range accounts {
 		accountID = append(accountID, account.AccountID)
@@ -75,6 +75,8 @@ func (q *Q) UpsertAccounts(ctx context.Context, accounts []AccountEntry) error {
 		buyingLiabilities = append(buyingLiabilities, account.BuyingLiabilities)
 		sellingLiabilities = append(sellingLiabilities, account.SellingLiabilities)
 		sequenceNumber = append(sequenceNumber, account.SequenceNumber)
+		sequenceLedger = append(sequenceLedger, account.SequenceLedger)
+		sequenceTime = append(sequenceTime, account.SequenceTime)
 		numSubEntries = append(numSubEntries, account.NumSubEntries)
 		inflationDestination = append(inflationDestination, account.InflationDestination)
 		homeDomain = append(homeDomain, account.HomeDomain)
@@ -95,6 +97,8 @@ func (q *Q) UpsertAccounts(ctx context.Context, accounts []AccountEntry) error {
 		{"buying_liabilities", "bigint", buyingLiabilities},
 		{"selling_liabilities", "bigint", sellingLiabilities},
 		{"sequence_number", "bigint", sequenceNumber},
+		{"sequence_ledger", "int", sequenceLedger},
+		{"sequence_time", "bigint", sequenceTime},
 		{"num_subentries", "int", numSubEntries},
 		{"inflation_destination", "text", inflationDestination},
 		{"flags", "int", flags},
@@ -221,7 +225,7 @@ func selectUnionBySponsor(tables []string, sponsor string, page db2.PageQuery) (
 		Limit(page.Limit), nil
 }
 
-// AccountsForSponsor return all the accounts where `sponsor`` is sponsoring the account entry or
+// AccountsForSponsor return all the accounts where `sponsor“ is sponsoring the account entry or
 // any of its subentries (trust lines, signers, data, or account entry)
 func (q *Q) AccountsForSponsor(ctx context.Context, sponsor string, page db2.PageQuery) ([]AccountEntry, error) {
 	sql, err := selectUnionBySponsor(
@@ -270,6 +274,8 @@ var selectAccounts = sq.Select(`
 	buying_liabilities,
 	selling_liabilities,
 	sequence_number,
+	sequence_ledger,
+	sequence_time,
 	num_subentries,
 	inflation_destination,
 	flags,

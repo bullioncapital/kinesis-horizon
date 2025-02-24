@@ -1,4 +1,4 @@
-//Package utf8 contains utilities for working with utf8 data.
+// Package utf8 contains utilities for working with utf8 data.
 package utf8
 
 import (

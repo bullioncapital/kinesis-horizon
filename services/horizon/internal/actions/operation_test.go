@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -569,7 +570,7 @@ func TestGetOperationsPagination(t *testing.T) {
 		),
 	)
 	tt.Assert.Error(err)
-	tt.Assert.EqualError(err, "problem: before_history")
+	tt.Assert.True(strings.Contains(err.Error(), "problem: before_history"))
 }
 
 func TestGetOperations_IncludeTransactions(t *testing.T) {

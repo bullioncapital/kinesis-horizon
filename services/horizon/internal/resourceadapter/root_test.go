@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/stellar/go/protocols/horizon"
+	"github.com/stellar/go/services/horizon/internal/ingest"
 	"github.com/stellar/go/services/horizon/internal/ledger"
 )
 
@@ -46,6 +47,7 @@ func TestPopulateRoot(t *testing.T) {
 	assert.Equal(t, "cVersion", res.StellarCoreVersion)
 	assert.Equal(t, "passphrase", res.NetworkPassphrase)
 	assert.Equal(t, "https://friendbot.example.com/{?addr}", res.Links.Friendbot.Href)
+	assert.Equal(t, uint32(ingest.MaxSupportedProtocolVersion), res.SupportedProtocolVersion)
 
 	// Without testbot
 	res = &horizon.Root{}

@@ -55,12 +55,17 @@ func (m *mockDBQ) GetSequenceNumbers(ctx context.Context, addresses []string) (m
 	return args.Get(0).(map[string]uint64), args.Error(1)
 }
 
-func (m *mockDBQ) TransactionsByHashesSinceLedger(ctx context.Context, hashes []string, sinceLedgerSeq uint32) ([]history.Transaction, error) {
+func (m *mockDBQ) AllTransactionsByHashesSinceLedger(ctx context.Context, hashes []string, sinceLedgerSeq uint32) ([]history.Transaction, error) {
 	args := m.Called(ctx, hashes, sinceLedgerSeq)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
 	return args.Get(0).([]history.Transaction), args.Error(1)
+}
+
+func (m *mockDBQ) PreFilteredTransactionByHash(ctx context.Context, dest interface{}, hash string) error {
+	args := m.Called(ctx, dest, hash)
+	return args.Error(0)
 }
 
 func (m *mockDBQ) TransactionByHash(ctx context.Context, dest interface{}, hash string) error {

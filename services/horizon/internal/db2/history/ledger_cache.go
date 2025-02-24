@@ -3,6 +3,7 @@ package history
 import (
 	"context"
 
+	"github.com/stellar/go/support/collections/set"
 	"github.com/stellar/go/support/errors"
 )
 
@@ -11,10 +12,10 @@ func (lc *LedgerCache) Queue(seq int32) {
 	lc.lock.Lock()
 
 	if lc.queued == nil {
-		lc.queued = map[int32]struct{}{}
+		lc.queued = set.Set[int32]{}
 	}
 
-	lc.queued[seq] = struct{}{}
+	lc.queued.Add(seq)
 	lc.lock.Unlock()
 }
 

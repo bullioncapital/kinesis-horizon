@@ -2,8 +2,7 @@
 /vendor
 /dist
 /local-archive
-/.vscode/*.sql
-/.vscode/settings.json
+.vscode
 .idea
 debug
 .bundle

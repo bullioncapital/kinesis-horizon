@@ -33,20 +33,21 @@ type RouterConfig struct {
 	TxSubmitter      *txsub.System
 	RateQuota        *throttled.RateQuota
 
-	BehindCloudflare        bool
-	BehindAWSLoadBalancer   bool
-	SSEUpdateFrequency      time.Duration
-	StaleThreshold          uint
-	ConnectionTimeout       time.Duration
-	NetworkPassphrase       string
-	MaxPathLength           uint
-	MaxAssetsPerPathRequest int
-	PathFinder              paths.Finder
-	PrometheusRegistry      *prometheus.Registry
-	CoreGetter              actions.CoreStateGetter
-	HorizonVersion          string
-	FriendbotURL            *url.URL
-	HealthCheck             http.Handler
+	BehindCloudflare         bool
+	BehindAWSLoadBalancer    bool
+	SSEUpdateFrequency       time.Duration
+	StaleThreshold           uint
+	ConnectionTimeout        time.Duration
+	NetworkPassphrase        string
+	MaxPathLength            uint
+	MaxAssetsPerPathRequest  int
+	PathFinder               paths.Finder
+	PrometheusRegistry       *prometheus.Registry
+	CoreGetter               actions.CoreStateGetter
+	HorizonVersion           string
+	FriendbotURL             *url.URL
+	HealthCheck              http.Handler
+	EnableIngestionFiltering bool
 }
 
 type Router struct {
@@ -196,22 +197,24 @@ func (r *Router) addRoutes(config *RouterConfig, rateLimiter *throttled.HTTPRate
 
 		r.With(stateMiddleware.Wrap).Method(http.MethodGet, "/assets", restPageHandler(ledgerState, actions.AssetStatsHandler{LedgerState: ledgerState}))
 
-		findPaths := ObjectActionHandler{actions.FindPathsHandler{
-			StaleThreshold:       config.StaleThreshold,
-			SetLastLedgerHeader:  true,
-			MaxPathLength:        config.MaxPathLength,
-			MaxAssetsParamLength: config.MaxAssetsPerPathRequest,
-			PathFinder:           config.PathFinder,
-		}}
-		findFixedPaths := ObjectActionHandler{actions.FindFixedPathsHandler{
-			MaxPathLength:        config.MaxPathLength,
-			SetLastLedgerHeader:  true,
-			MaxAssetsParamLength: config.MaxAssetsPerPathRequest,
-			PathFinder:           config.PathFinder,
-		}}
-		r.With(stateMiddleware.Wrap).Method(http.MethodGet, "/paths", findPaths)
-		r.With(stateMiddleware.Wrap).Method(http.MethodGet, "/paths/strict-receive", findPaths)
-		r.With(stateMiddleware.Wrap).Method(http.MethodGet, "/paths/strict-send", findFixedPaths)
+		if config.PathFinder != nil {
+			findPaths := ObjectActionHandler{actions.FindPathsHandler{
+				StaleThreshold:       config.StaleThreshold,
+				SetLastLedgerHeader:  true,
+				MaxPathLength:        config.MaxPathLength,
+				MaxAssetsParamLength: config.MaxAssetsPerPathRequest,
+				PathFinder:           config.PathFinder,
+			}}
+			findFixedPaths := ObjectActionHandler{actions.FindFixedPathsHandler{
+				MaxPathLength:        config.MaxPathLength,
+				SetLastLedgerHeader:  true,
+				MaxAssetsParamLength: config.MaxAssetsPerPathRequest,
+				PathFinder:           config.PathFinder,
+			}}
+			r.With(stateMiddleware.Wrap).Method(http.MethodGet, "/paths", findPaths)
+			r.With(stateMiddleware.Wrap).Method(http.MethodGet, "/paths/strict-receive", findPaths)
+			r.With(stateMiddleware.Wrap).Method(http.MethodGet, "/paths/strict-send", findFixedPaths)
+		}
 		r.With(stateMiddleware.Wrap).Method(
 			http.MethodGet,
 			"/order_book",
@@ -349,7 +352,25 @@ func (r *Router) addRoutes(config *RouterConfig, rateLimiter *throttled.HTTPRate
 	})
 
 	// internal
+	r.Internal.Get("/", func(w http.ResponseWriter, r *http.Request) {
+		p, err := staticFiles.ReadFile("static/admin_oapi.yml")
+		if err != nil {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/openapi+yaml")
+		w.Write(p)
+	})
 	r.Internal.Get("/metrics", promhttp.HandlerFor(config.PrometheusRegistry, promhttp.HandlerOpts{}).ServeHTTP)
 	r.Internal.Get("/debug/pprof/heap", pprof.Index)
 	r.Internal.Get("/debug/pprof/profile", pprof.Profile)
+	if config.EnableIngestionFiltering {
+		r.Internal.Route("/ingestion/filters", func(r chi.Router) {
+			handler := actions.FilterConfigHandler{}
+			r.With(historyMiddleware).Put("/asset", handler.UpdateAssetConfig)
+			r.With(historyMiddleware).Put("/account", handler.UpdateAccountConfig)
+			r.With(historyMiddleware).Get("/asset", handler.GetAssetConfig)
+			r.With(historyMiddleware).Get("/account", handler.GetAccountConfig)
+		})
+	}
 }

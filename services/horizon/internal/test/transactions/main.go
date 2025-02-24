@@ -1,4 +1,4 @@
-//Package transactions offers common infrastructure for testing Transactions
+// Package transactions offers common infrastructure for testing Transactions
 package transactions
 
 import (

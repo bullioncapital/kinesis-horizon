@@ -18,10 +18,10 @@ var ErrNotJSONObject = errors.New("input is not a json object")
 //
 // It can also be used as a field in a struct:
 //
-// type example struct {
-//  	name string
-//   	extra httpjson.RawObject
-// }
+//	type example struct {
+//	 	name string
+//	  	extra httpjson.RawObject
+//	}
 //
 // In this case, Unmarshaler will check whether extra is a json object ot not.
 // It will error if extra is a json number/string/array/boolean.

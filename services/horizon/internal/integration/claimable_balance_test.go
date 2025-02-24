@@ -24,7 +24,7 @@ func TestClaimableBalanceBasics(t *testing.T) {
 
 	// Ensure predicting claimable balances works.
 	t.Run("BalanceIDs", func(t *testing.T) {
-		tx, err := itest.CreateSignedTransaction(
+		tx, err := itest.CreateSignedTransactionFromOps(
 			itest.MasterAccount(),
 			[]*keypair.Full{master},
 			&txnbuild.CreateClaimableBalance{

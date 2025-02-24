@@ -3,6 +3,257 @@
 All notable changes to this project will be documented in this
 file. This project adheres to [Semantic Versioning](http://semver.org/).
 
+
+## Unreleased
+
+
+## 2.26.1
+
+### Fixes
+- Ingestion will not halt if liquidity pool overflows are detected.
+
+
+## 2.26.0
+### Changes
+- Improve error handling for when stellar-core crashes ([4893](https://github.com/stellar/go/pull/4893))
+- Suppress Core timeout error in log output such as `error ticking app: context deadline exceeded` when ingestion state machine is in build state. ([4860](https://github.com/stellar/go/pull/4860))
+
+
+### Breaking Changes
+- Modify the default value of `--captive-core-use-db` to true ([4856](https://github.com/stellar/go/issues/4856))
+  - This updates the default behavior of captive core to start in on-disk mode.
+  - To continue using the previous in-memory mode, explicitly set the `--captive-core-use-db` flag to false
+
+## 2.25.0
+
+### Changes
+
+- Running Horizon with remote captive core is now deprecated ([4826](https://github.com/stellar/go/pull/4826)).
+- Add two new configuration variables to control the behavior of state verification ([4821](https://github.com/stellar/go/pull/4821)):
+  - `--ingest-state-verification-frequency` which specifies the frequency in checkpoints for how often state verification is run
+  - `--ingest-state-verification-timeout` which specifies a timeout on how long state verification can run
+
+### Fixes
+
+* Fix crash in horizon ingestion when running horizon with a remote captive core ([4824](https://github.com/stellar/go/pull/4824)).
+
+
+## 2.24.1
+
+### Changes
+
+- Bump Go to the latest version (1.20.1), including crypto/tls, mime/multipart, net/http, and path/filepath security fixes.
+
+## 2.24.0
+
+### Changes
+
+- Add support for the experimental _BucketListDB_ to Horizon, the parameters have been added to the Captive Core configuration / TOML files ([4733](https://github.com/stellar/go/pull/4733)):
+
+  * _BucketListDB_ is enabled by default when `--captive-core-use-db` is set and your `stellar-core` version >= 19.6
+  * If `--captive-core-use-db` set but your `stellar-core` version < 19.6, an on-disk SQLite database is used (as before).
+  * This update will not automatically trigger a state rebuild **unless** `EXPERIMENTAL_BUCKETLIST_DB` is set to false in the Captive Core TOML file.
+
+### Fixes
+
+* Improve error when setting `BUCKET_DIR_PATH` and using Captive Core ([4736](https://github.com/stellar/go/pull/4736)).
+
+## 2.23.1
+
+### Changes
+
+- Bump Go to the latest version, including net/http security fixes.
+
+## 2.23.0
+
+**Upgrading to this version will trigger a state rebuild. During this process, Horizon will not ingest new ledgers.**
+
+### Fixes
+
+* Improve performance of `/claimable_balances` filters. This change should significantly improve `?asset=` and `?claimant=` filters. ([#4690](https://github.com/stellar/go/pull/4690)).
+* Reallocate slices after offer removals in order book graph. This is done to prevent keeping a large chunks of allocated but unused memory that can lead to OOM crash.
+* The ingestion subsystem will now properly use a pool of history archives if more than one is provided. ([#4687](https://github.com/stellar/go/pull/4687))
+* Add `horizon ingest build-state` command which builds state at a specific ledger. Useful for debugging. ([#4636](https://github.com/stellar/go/pull/4636))
+
+## 2.22.1
+
+**Upgrading to this version from <= v2.8.3 will trigger a state rebuild. During this process (which will take at least 10 minutes), Horizon will not ingest new ledgers.**
+
+### Fixes
+
+- `horizon db migrate` commands will not apply migrations if ingestion is disabled ([4664](https://github.com/stellar/go/pull/4664)).
+
+## 2.22.0
+
+**Upgrading to this version from <= v2.8.3 will trigger a state rebuild. During this process (which will take at least 10 minutes), Horizon will not ingest new ledgers.**
+
+### Fixes
+
+- Database migrations will now acquire a lock on ingestion, preventing possible deadlocks ([4587](https://github.com/stellar/go/pull/4587)).
+
+### Changes
+
+- Optimizes startup by preserving the Captive Core storage directory if Horizon has ingested ahead of the requested ledger ([4605](https://github.com/stellar/go/pull/4605)).
+
+### DB Schema Migration
+
+- Introduces a new index that optimizes account queries filtered by asset ([4635](https://github.com/stellar/go/pull/4635)).
+
+## 2.21.0
+
+**Upgrading to this version from <= v2.8.3 will trigger a state rebuild. During this process (which will take at least 10 minutes), Horizon will not ingest new ledgers.**
+
+### Changes
+
+- Bump Go to the latest version, including net/http and net/url security fixes ([4577](https://github.com/stellar/go/pull/4577))
+
+### DB Schema Migration
+
+- Added indexes by id for assets in the respective `history_trades` tables. Ingestion will stop while the migration is being applied. ([4565](https://github.com/stellar/go/pull/4565))
+
+## 2.20.0
+
+**Upgrading to this version from <= v2.8.3 will trigger a state rebuild. During this process (which will take at least 10 minutes), Horizon will not ingest new ledgers.**
+
+### DB Schema Migration
+
+- Added indexes by id for claimable balance and liquidity pool id's in the respective tx/ops tables. Ingestion will stop while the migration is being applied. ([4455](https://github.com/stellar/go/pull/4477))
+
+### Changes
+
+- Orphaned rows in lookup tables (`history_accounts`, `history_claimable_balances` and `history_liquidity_pools`) are removed in small batches after each ledger if `--history-retention-count` is set. ([4518](https://github.com/stellar/go/pull/4518), [4525](https://github.com/stellar/go/pull/4525))
+- Improve restart time of Captive-Core when started with `--captive-core-use-db` flag. The solution does not work on Windows. ([4471](https://github.com/stellar/go/pull/4471))
+- Fix a bug in which state verifier would run if condition checking DB query fails. ([4523](https://github.com/stellar/go/pull/4523))
+
+## 2.19.0
+
+**Upgrading to this version from <= v2.8.3 will trigger a state rebuild. During this process (which will take at least 10 minutes), Horizon will not ingest new ledgers.**
+
+### Breaking Changes
+
+* Update core version to 19.3.0 ([4485](https://github.com/stellar/go/pull/4485)).
+* Pass `--console` to captive core. This is due to a breaking change in stellar-core 19.3.0 ([4487](https://github.com/stellar/go/pull/4487)).
+
+### Changes
+
+* Run postgres autovacuum on `history_trades_60000` table more frequently. ([4412](https://github.com/stellar/go/pull/4412)).
+* Change `protocols/horizon.Transaction.AccountSequence` to `int64` from `string`. ([4409](https://github.com/stellar/go/pull/4409)).
+* Add missing signer key type names. ([4429](https://github.com/stellar/go/pull/4429)).
+* Update core version to 19.2.0. ([4441](https://github.com/stellar/go/pull/4441)).
+* Add `User-Agent` header to history archive HTTP requests. ([4463](https://github.com/stellar/go/pull/4463)).
+
+### DB Schema Migration
+
+The migration makes the following schema changes:
+
+  - tunes the `history_trades_60000` table to run autovacuum more frequently. Migration should be brief, does not incur any data/runtime processing. It does not need a reingestion.
+
+## 2.18.1
+
+* Enabled txsub system to work if/when underlying horizon db connection is read only. ([4418](https://github.com/stellar/go/pull/4418))
+* Optimize the claimable balance SQL query for best index query plan performance([4398](https://github.com/stellar/go/pull/4398))
+
+
+### DB Schema Migration
+
+The migration makes the following schema changes:
+
+  - creates new, `history_transactions_filtered_tmp` table related to enabling tx sub processing on read only, only ingest writes to the table. Deprecates, drops prior `txsub_results` table. Migration should be brief, does not incur any data/runtime processing.
+
+
+## 2.18.0
+
+* New Experimental Ingestion Filters Feature: Provide the ability to select which ledger transactions are accepted at ingestion time to be stored on horizon's historical databse.
+
+  Define filter rules through Admin API and the historical ingestion process will check the rules and only persist the ledger transactions that pass the filter rules. Initially, two filters and corresponding rules are possible:
+
+  * 'whitelist by account id' ([4221](https://github.com/stellar/go/issues/4221))
+  * 'whitelist by canonical asset id' ([4222](https://github.com/stellar/go/issues/4222))
+
+  The filters and their configuration are optional features and must be enabled with horizon command line parameters `admin-port=4200` and `exp-enable-ingestion-filtering=true`
+
+  Once set, filter configurations and their rules are initially empty and the filters are disabled by default. To enable filters, update the configuration settings, refer to the Admin API Docs which are published on the Admin Port at http://localhost:<admin_port>/, follow details and examples for endpoints:
+  * `/ingestion/filters/account`
+  * `/ingestion/filters/asset.`
+- Querying claimable balances has been optimized ([4385](https://github.com/stellar/go/pull/4385)).
+- Querying trade aggregations has been optimized ([4389](https://github.com/stellar/go/pull/4389)).
+- Postgres connections for non ingesting Horizon instances are now configured to timeout on long running queries / transactions ([4390](https://github.com/stellar/go/pull/4390)).
+- Added `disable-path-finding` Horizon flag to disable the path finding endpoints. This flag should be enabled on ingesting Horizon instances which do not serve HTTP traffic ([4399](https://github.com/stellar/go/pull/4399)).
+
+
+## V2.17.1
+
+- Querying claimable balances has been optimized ([4385](https://github.com/stellar/go/pull/4385)).
+- Querying trade aggregations has been optimized ([4389](https://github.com/stellar/go/pull/4389)).
+- Postgres connections for non ingesting Horizon instances are now configured to timeout on long running queries / transactions ([4390](https://github.com/stellar/go/pull/4390)).
+- Added `disable-path-finding` Horizon flag to disable the path finding endpoints. This flag should be enabled on ingesting Horizon instances which do not serve HTTP traffic ([4399](https://github.com/stellar/go/pull/4399)).
+
+
+## V2.17.0
+
+This is the final release after the [release candidate](v2.17.0-release-candidate), including some small additional changes:
+
+- The transaction precondition record now excludes ([4360](https://github.com/stellar/go/pull/4360)):
+  * `min_account_sequence_age` when it's `"0"`, as this is the default value when the condition is not set
+  * `preconditions.ledgerbounds.max_ledger` when it's set to 0 (this means that there is no upper bound)
+
+- Timebounds within the `preconditions` object are strings containing int64 UNIX timestamps in seconds rather than formatted date-times (which was a bug) ([4361](https://github.com/stellar/go/pull/4361)).
+
+## V2.17.0 Release Candidate
+
+**Upgrading to this version from <= v2.8.3 will trigger a state rebuild. During this process (which will take at least 10 minutes), Horizon will not ingest new ledgers.**
+
+**Support for Protocol 19** ([4340](https://github.com/stellar/go/pull/4340)):
+
+  - Account records can now contain two new, optional fields:
+
+```txt
+    "sequence_ledger": 0, // uint32 ledger number
+    "sequence_time": "0"  // uint64 unix time in seconds, as a string
+```
+
+  The absence of these fields indicates that the account hasn't taken any actions since prior to the Protocol 19 release. Note that they'll either be both present or both absent.
+
+  - Transaction records can now contain the following optional object:
+
+```txt
+    "preconditions": {
+      "timebounds": {
+        "min_time": "0",  // uint64 unix time in seconds, as a string
+        "max_time": "0"   // as above
+      },
+      "ledgerbounds": {
+        "min_ledger": 0,  // uint32 ledger number
+        "max_ledger": 0   // as above
+      },
+      "min_account_sequence": "0",          // int64 sequence number, as a string
+      "min_account_sequence_age": "0",      // uint64 unix time in seconds, as a string
+      "min_account_sequence_ledger_gap": 0, // uint32 ledger count
+
+      "extra_signers": [] // list of signers as StrKeys
+    }
+```
+
+  All of the top-level fields within this object are also optional. However, the "ledgerbounds" object will always have at least its `min_ledger` field set.
+
+  Note that the existing "valid_before_time" and "valid_after_time" fields on the top-level object will be identical to the "preconditions.timebounds.min_time" and "preconditions.timebounds.min_time" fields, respectively, if those exist. The "valid_before_time" and "valid_after_time" fields are now considered deprecated and will be removed in Horizon v3.0.0.
+
+### DB Schema Migration
+
+The migration makes the following schema changes:
+
+  - adds new, optional columns to the `history_transactions` table related to the new preconditions
+  - adds new, optional columns to the `accounts` table related to the new account extension
+  - amends the `signer` column of the `accounts_signers` table to allow signers of arbitrary length
+
+### Deprecations
+
+The following fields on transaction records have been deprecated and will be removed in a future version:
+
+  - `"valid_before"` and `"valid_after"`
+
+These fields are now represented by `preconditions.timebounds.min_time` and `preconditions.timebounds.max_time` as `uint64` UNIX timestamps, in seconds.
+
 ## V2.16.1
 
 * v2.16.0 rebuilt using Golang 1.18.1 with security fixes for CVE-2022-24675, CVE-2022-28327 and CVE-2022-27536.
@@ -12,7 +263,6 @@ file. This project adheres to [Semantic Versioning](http://semver.org/).
 * Replace keybase with publicnode in the stellar core config. ([4291](https://github.com/stellar/go/pull/4291))
 * Add a rate limit for path finding requests. ([4310](https://github.com/stellar/go/pull/4310))
 * Horizonclient, fix multi-parameter url for claimable balance query. ([4248](https://github.com/stellar/go/pull/4248))
-
 
 ## v2.15.1
 
@@ -234,7 +484,7 @@ This is a minor release with no DB Schema migrations nor explicit state rebuild.
 
 **Upgrading to this version from <= v2.1.1 will trigger a state rebuild. During this process (which can take up to 20 minutes), Horizon will not ingest new ledgers.**
 
-* Add new command `horizon db detect-gaps`, which detects ingestion gaps in the database. The command prints out the `db reingest` commands to run in order to fill the gaps found ([3672](https://github.com/stellar/go/pull/3672)). 
+* Add new command `horizon db detect-gaps`, which detects ingestion gaps in the database. The command prints out the `db reingest` commands to run in order to fill the gaps found ([3672](https://github.com/stellar/go/pull/3672)).
 * Performance improvement: Captive Core now reuses bucket files whenever it finds existing ones in the corresponding `--captive-core-storage-path` (introduced in [v2.1.0](#v2.1.0) rather than generating a one-time temporary sub-directory ([3670](https://github.com/stellar/go/pull/3670)). **This feature requires Stellar-Core version 17.1 or later.**
 * Horizon now monitors the Stellar Core binary on disk (pointed to by `--stellar-core-binary-path`/`STELLAR_CORE_BINARY_PATH`) and restarts its Captive Core subprocess if it detects changes (i.e a more recent file timestamp for the Stellar Core binary) ([3687](https://github.com/stellar/go/pull/3687)).
 * `POST /transactions` return `503 Service Unavailable` instead of `504 Gateway Timeout` if connected Stellar-Core is out of sync ([3653](https://github.com/stellar/go/pull/3653)).
@@ -260,13 +510,13 @@ This is a minor release with no DB Schema migrations nor explicit state rebuild.
 
 ### DB State Migration
 
-* This release comes with a small DB schema change (new multiplexed-account-related columns are incorporated). It should not take more than five minutes to run due to new columns being NULL-able. 
+* This release comes with a small DB schema change (new multiplexed-account-related columns are incorporated). It should not take more than five minutes to run due to new columns being NULL-able.
 
 ### Deprecations
 
 * Deprecate `--captive-core-config-append-path` in favor of `--captive-core-config-path`. The difference between the two flags is that `--captive-core-config-path` will validate the configuration file to reject any fields which are not supported by captive core ([3629](https://github.com/stellar/go/pull/3629)).
 
-### New features 
+### New features
 
 * Add more in-depth Prometheus metrics (count & duration) for db queries. ([3597](https://github.com/stellar/go/pull/3597), [3605](https://github.com/stellar/go/pull/3605))
 
@@ -524,7 +774,7 @@ To solve this it's now possible to start a [`captivecore`](https://github.com/st
 
 This patch release fixes a regression introduced in 1.7.0, breaking the
  `/offers` endpoint. Thus, we recommend upgrading as soon as possible.
- 
+
 ### Changes
 * Fix path parameter mismatch in `/offers` endpoint
   [#2927](https://github.com/stellar/go/pull/2927).
@@ -551,7 +801,7 @@ This patch release fixes a regression introduced in 1.7.0, breaking the
 
 * Add `--parallel-workers` and `--parallel-job-size` to `horizon db reingest range`. `--parallel-workers` will parallelize reingestion using the supplied number of workers. ([#2724](https://github.com/stellar/go/pull/2724))
 * Remove Stellar Core's database dependency for non-ingesting instances of Horizon.  ([#2759](https://github.com/stellar/go/pull/2759))
-  Horizon doesn't require access to a Stellar Core database if it is only serving HTTP request, this allows the separation of front-end and ingesting instances. 
+  Horizon doesn't require access to a Stellar Core database if it is only serving HTTP request, this allows the separation of front-end and ingesting instances.
   The following config parameters were removed:
   - `core-db-max-open-connections`
   - `core-db-max-idle-connections`

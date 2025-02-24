@@ -7,7 +7,9 @@ import (
 	"net/url"
 	"testing"
 
+	"github.com/stellar/go/services/horizon/internal/db2/history"
 	"github.com/stellar/go/services/horizon/internal/test"
+	tdb "github.com/stellar/go/services/horizon/internal/test/db"
 )
 
 type HTTPT struct {
@@ -25,7 +27,7 @@ func startHTTPTest(t *testing.T, scenario string) *HTTPT {
 	} else {
 		ret.Scenario(scenario)
 	}
-	ret.App = NewTestApp()
+	ret.App = NewTestApp(tdb.HorizonURL())
 	ret.RH = test.NewRequestHelper(ret.App.webServer.Router.Mux)
 	ret.Assert = &test.Assertions{ret.T.Assert}
 
@@ -102,6 +104,7 @@ func (ht *HTTPT) Post(
 // setting the retention count to the provided number.
 func (ht *HTTPT) ReapHistory(retention uint) {
 	ht.App.reaper.RetentionCount = retention
+	ht.App.reaper.HistoryQ = &history.Q{ht.HorizonSession()}
 	err := ht.App.DeleteUnretainedHistory(context.Background())
 	ht.Require.NoError(err)
 	ht.App.UpdateCoreLedgerState(context.Background())

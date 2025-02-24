@@ -2,6 +2,7 @@ package history
 
 import (
 	"context"
+	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
 
@@ -14,42 +15,38 @@ import (
 // TransactionByHash is a query that loads a single row from the
 // `history_transactions` table based upon the provided hash.
 func (q *Q) TransactionByHash(ctx context.Context, dest interface{}, hash string) error {
-	byHash := selectTransaction.
-		Where("ht.transaction_hash = ?", hash)
-	byInnerHash := selectTransaction.
-		Where("ht.inner_transaction_hash = ?", hash)
+	innerOrOuter := sq.Or{sq.Eq{"ht.transaction_hash": hash}, sq.Eq{"ht.inner_transaction_hash": hash}}
+	byHashOrInnerHashHistory := selectTransactionHistory.Where(innerOrOuter)
 
-	byInnerHashString, args, err := byInnerHash.ToSql()
-	if err != nil {
-		return errors.Wrap(err, "could not get string for inner hash sql query")
-	}
-	union := byHash.Suffix("UNION ALL "+byInnerHashString, args...)
-
-	return q.Get(ctx, dest, union)
+	return q.Get(ctx, dest, byHashOrInnerHashHistory)
 }
 
-// TransactionsByHashesSinceLedger fetches transactions from the `history_transactions`
+func (q *Q) PreFilteredTransactionByHash(ctx context.Context, dest interface{}, hash string) error {
+	innerOrOuter := sq.Or{sq.Eq{"ht.transaction_hash": hash}, sq.Eq{"ht.inner_transaction_hash": hash}}
+	byHashOrInnerHashPreFilter := selectTransactionPreFilteredTmp.Where(innerOrOuter)
+
+	return q.Get(ctx, dest, byHashOrInnerHashPreFilter)
+}
+
+// TransactionsByHashesSinceLedger fetches transactions from `history_transactions_filtered_tmp`
 // table which match the given hash since the given ledger sequence (for perf reasons).
-func (q *Q) TransactionsByHashesSinceLedger(ctx context.Context, hashes []string, sinceLedgerSeq uint32) ([]Transaction, error) {
+func (q *Q) AllTransactionsByHashesSinceLedger(ctx context.Context, hashes []string, sinceLedgerSeq uint32) ([]Transaction, error) {
 	var dest []Transaction
-	byHash := selectTransaction.
-		Where(map[string]interface{}{"ht.transaction_hash": hashes}).
-		Where(sq.GtOrEq{"ht.ledger_sequence": sinceLedgerSeq})
-	byInnerHash := selectTransaction.
-		Where(map[string]interface{}{"ht.inner_transaction_hash": hashes}).
-		Where(sq.GtOrEq{"ht.ledger_sequence": sinceLedgerSeq})
+	innerOrOuterAndSeqGtEq :=
+		sq.And{sq.GtOrEq{"ht.ledger_sequence": sinceLedgerSeq}, sq.Or{sq.Eq{"ht.transaction_hash": hashes}, sq.Eq{"ht.inner_transaction_hash": hashes}}}
 
-	byInnerHashString, args, err := byInnerHash.ToSql()
+	preFilteredTxs := selectTransactionPreFilteredTmp.Where(innerOrOuterAndSeqGtEq)
+	historyTxs := selectTransactionHistory.Where(innerOrOuterAndSeqGtEq)
+
+	preFilteredTxsString, args, err := preFilteredTxs.ToSql()
 	if err != nil {
-		return nil, errors.Wrap(err, "could not get string for inner hash sql query")
+		return nil, errors.Wrap(err, "could not get string for un filtered sql query")
 	}
-	union := byHash.Suffix("UNION ALL "+byInnerHashString, args...)
 
-	err = q.Select(ctx, &dest, union)
-	if err != nil {
+	union := historyTxs.Suffix("UNION ALL "+preFilteredTxsString, args...)
+	if err := q.Select(ctx, &dest, union); err != nil {
 		return nil, err
 	}
-
 	return dest, nil
 }
 
@@ -60,7 +57,7 @@ func (q *Q) TransactionsByIDs(ctx context.Context, ids ...int64) (map[int64]Tran
 		return nil, errors.New("no id arguments provided")
 	}
 
-	sql := selectTransaction.Where(map[string]interface{}{
+	sql := selectTransactionHistory.Where(map[string]interface{}{
 		"ht.id": ids,
 	})
 
@@ -77,13 +74,24 @@ func (q *Q) TransactionsByIDs(ctx context.Context, ids ...int64) (map[int64]Tran
 	return byID, nil
 }
 
+// DeleteTransactionsFilteredTmpOlderThan deletes entries older than certain duration
+func (q *Q) DeleteTransactionsFilteredTmpOlderThan(ctx context.Context, howOldInSeconds uint64) (int64, error) {
+	sql := sq.Delete("history_transactions_filtered_tmp").
+		Where(sq.Expr("now() >= (created_at + interval '1 second' * ?)", howOldInSeconds))
+	result, err := q.Exec(ctx, sql)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 // Transactions provides a helper to filter rows from the `history_transactions`
 // table with pre-defined filters.  See `TransactionsQ` methods for the
 // available filters.
 func (q *Q) Transactions() *TransactionsQ {
 	return &TransactionsQ{
 		parent:        q,
-		sql:           selectTransaction,
+		sql:           selectTransactionHistory,
 		includeFailed: false,
 	}
 }
@@ -225,37 +233,48 @@ func (q *TransactionsQ) Select(ctx context.Context, dest interface{}) error {
 // QTransactions defines transaction related queries.
 type QTransactions interface {
 	NewTransactionBatchInsertBuilder(maxBatchSize int) TransactionBatchInsertBuilder
+	NewTransactionFilteredTmpBatchInsertBuilder(maxBatchSize int) TransactionBatchInsertBuilder
 }
 
-var selectTransaction = sq.Select(
-	"ht.id, " +
-		"ht.transaction_hash, " +
-		"ht.ledger_sequence, " +
-		"ht.application_order, " +
-		"ht.account, " +
-		"ht.account_muxed, " +
-		"ht.account_sequence, " +
-		"ht.max_fee, " +
-		// `fee_charged` is NULL by default, DB needs to be reingested
-		// to populate the value. If value is not present display `max_fee`.
-		"COALESCE(ht.fee_charged, ht.max_fee) as fee_charged, " +
-		"ht.operation_count, " +
-		"ht.tx_envelope, " +
-		"ht.tx_result, " +
-		"ht.tx_meta, " +
-		"ht.tx_fee_meta, " +
-		"ht.created_at, " +
-		"ht.updated_at, " +
-		"COALESCE(ht.successful, true) as successful, " +
-		"ht.signatures, " +
-		"ht.memo_type, " +
-		"ht.memo, " +
-		"time_bounds, " +
-		"hl.closed_at AS ledger_close_time, " +
-		"ht.inner_transaction_hash, " +
-		"ht.fee_account, " +
-		"ht.fee_account_muxed, " +
-		"ht.new_max_fee, " +
-		"ht.inner_signatures").
-	From("history_transactions ht").
-	LeftJoin("history_ledgers hl ON ht.ledger_sequence = hl.sequence")
+func selectTransaction(table string) sq.SelectBuilder {
+	return sq.Select(
+		"ht.id, " +
+			"ht.transaction_hash, " +
+			"ht.ledger_sequence, " +
+			"ht.application_order, " +
+			"ht.account, " +
+			"ht.account_muxed, " +
+			"ht.account_sequence, " +
+			"ht.max_fee, " +
+			// `fee_charged` is NULL by default, DB needs to be reingested
+			// to populate the value. If value is not present display `max_fee`.
+			"COALESCE(ht.fee_charged, ht.max_fee) as fee_charged, " +
+			"ht.operation_count, " +
+			"ht.tx_envelope, " +
+			"ht.tx_result, " +
+			"ht.tx_meta, " +
+			"ht.tx_fee_meta, " +
+			"ht.created_at, " +
+			"ht.updated_at, " +
+			"COALESCE(ht.successful, true) as successful, " +
+			"ht.signatures, " +
+			"ht.memo_type, " +
+			"ht.memo, " +
+			"ht.time_bounds, " +
+			"ht.ledger_bounds, " +
+			"ht.min_account_sequence, " +
+			"ht.min_account_sequence_age, " +
+			"ht.min_account_sequence_ledger_gap, " +
+			"ht.extra_signers, " +
+			"hl.closed_at AS ledger_close_time, " +
+			"ht.inner_transaction_hash, " +
+			"ht.fee_account, " +
+			"ht.fee_account_muxed, " +
+			"ht.new_max_fee, " +
+			"ht.inner_signatures").
+		From(fmt.Sprintf("%s ht", table)).
+		LeftJoin("history_ledgers hl ON ht.ledger_sequence = hl.sequence")
+}
+
+var selectTransactionHistory = selectTransaction("history_transactions")
+var selectTransactionPreFilteredTmp = selectTransaction("history_transactions_filtered_tmp")

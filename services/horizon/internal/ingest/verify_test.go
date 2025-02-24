@@ -1,13 +1,16 @@
 package ingest
 
 import (
+	"database/sql"
 	"io"
 	"math/rand"
 	"regexp"
 	"testing"
+	"time"
+
+	"github.com/stretchr/testify/mock"
 
 	"github.com/stellar/go/gxdr"
-	"github.com/stellar/go/historyarchive"
 	"github.com/stellar/go/ingest"
 	"github.com/stellar/go/randxdr"
 	"github.com/stellar/go/services/horizon/internal/db2/history"
@@ -38,6 +41,8 @@ func genAccount(tt *test.T, gen randxdr.Generator) xdr.LedgerEntryChange {
 			{randxdr.FieldEquals("created.data.account.ext.v1.ext.v2.numSponsoring"), randxdr.SetPositiveNum32},
 			{randxdr.FieldEquals("created.data.account.ext.v1.ext.v2.numSponsored"), randxdr.SetPositiveNum32},
 			{randxdr.FieldEquals("created.data.account.ext.v1.ext.v2.signerSponsoringIDs"), randxdr.SetVecLen(numSigners)},
+			{randxdr.FieldEquals("created.data.account.ext.v1.ext.v2.ext.v3.seqLedger"), randxdr.SetPositiveNum32},
+			{randxdr.FieldEquals("created.data.account.ext.v1.ext.v2.ext.v3.seqTime"), randxdr.SetPositiveNum64},
 		},
 	)
 
@@ -154,6 +159,59 @@ func genClaimableBalance(tt *test.T, gen randxdr.Generator) xdr.LedgerEntryChang
 	return change
 }
 
+func TestStateVerifierLockBusy(t *testing.T) {
+	tt := test.Start(t)
+	defer tt.Finish()
+	test.ResetHorizonDB(t, tt.HorizonDB)
+	q := &history.Q{&db.Session{DB: tt.HorizonDB}}
+
+	checkpointLedger := uint32(63)
+	changeProcessor := buildChangeProcessor(q, &ingest.StatsChangeProcessor{}, ledgerSource, checkpointLedger)
+
+	gen := randxdr.NewGenerator()
+	var changes []xdr.LedgerEntryChange
+	for i := 0; i < 10; i++ {
+		changes = append(changes,
+			genLiquidityPool(tt, gen),
+			genClaimableBalance(tt, gen),
+			genOffer(tt, gen),
+			genTrustLine(tt, gen),
+			genAccount(tt, gen),
+			genAccountData(tt, gen),
+		)
+	}
+	for _, change := range ingest.GetChangesFromLedgerEntryChanges(changes) {
+		tt.Assert.NoError(changeProcessor.ProcessChange(tt.Ctx, change))
+	}
+	tt.Assert.NoError(changeProcessor.Commit(tt.Ctx))
+
+	q.UpdateLastLedgerIngest(tt.Ctx, checkpointLedger)
+
+	mockHistoryAdapter := &mockHistoryArchiveAdapter{}
+	sys := &system{
+		ctx:                          tt.Ctx,
+		historyQ:                     q,
+		historyAdapter:               mockHistoryAdapter,
+		runStateVerificationOnLedger: ledgerEligibleForStateVerification(64, 1),
+		config:                       Config{StateVerificationTimeout: time.Hour},
+	}
+	sys.initMetrics()
+
+	otherQ := &history.Q{q.Clone()}
+	tt.Assert.NoError(otherQ.BeginTx(&sql.TxOptions{
+		Isolation: sql.LevelRepeatableRead,
+		ReadOnly:  true,
+	}))
+	ok, err := otherQ.TryStateVerificationLock(tt.Ctx)
+	tt.Assert.NoError(err)
+	tt.Assert.True(ok)
+
+	tt.Assert.NoError(sys.verifyState(false))
+	mockHistoryAdapter.AssertExpectations(t)
+
+	tt.Assert.NoError(otherQ.Rollback())
+}
+
 func TestStateVerifier(t *testing.T) {
 	tt := test.Start(t)
 	defer tt.Finish()
@@ -188,13 +246,14 @@ func TestStateVerifier(t *testing.T) {
 	mockChangeReader.On("Close").Return(nil).Once()
 
 	mockHistoryAdapter := &mockHistoryArchiveAdapter{}
-	mockHistoryAdapter.On("GetState", tt.Ctx, uint32(checkpointLedger)).Return(mockChangeReader, nil).Once()
+	mockHistoryAdapter.On("GetState", mock.AnythingOfType("*context.timerCtx"), uint32(checkpointLedger)).Return(mockChangeReader, nil).Once()
 
 	sys := &system{
-		ctx:               tt.Ctx,
-		historyQ:          q,
-		historyAdapter:    mockHistoryAdapter,
-		checkpointManager: historyarchive.NewCheckpointManager(64),
+		ctx:                          tt.Ctx,
+		historyQ:                     q,
+		historyAdapter:               mockHistoryAdapter,
+		runStateVerificationOnLedger: ledgerEligibleForStateVerification(64, 1),
+		config:                       Config{StateVerificationTimeout: time.Hour},
 	}
 	sys.initMetrics()
 

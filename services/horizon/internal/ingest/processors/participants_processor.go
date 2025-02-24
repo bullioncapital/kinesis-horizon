@@ -7,6 +7,7 @@ import (
 
 	"github.com/stellar/go/ingest"
 	"github.com/stellar/go/services/horizon/internal/db2/history"
+	set "github.com/stellar/go/support/collections/set"
 	"github.com/stellar/go/support/errors"
 	"github.com/stellar/go/toid"
 	"github.com/stellar/go/xdr"
@@ -30,22 +31,22 @@ func NewParticipantsProcessor(participantsQ history.QParticipants, sequence uint
 
 type participant struct {
 	accountID      int64
-	transactionSet map[int64]struct{}
-	operationSet   map[int64]struct{}
+	transactionSet set.Set[int64]
+	operationSet   set.Set[int64]
 }
 
 func (p *participant) addTransactionID(id int64) {
 	if p.transactionSet == nil {
-		p.transactionSet = map[int64]struct{}{}
+		p.transactionSet = set.Set[int64]{}
 	}
-	p.transactionSet[id] = struct{}{}
+	p.transactionSet.Add(id)
 }
 
 func (p *participant) addOperationID(id int64) {
 	if p.operationSet == nil {
-		p.operationSet = map[int64]struct{}{}
+		p.operationSet = set.Set[int64]{}
 	}
-	p.operationSet[id] = struct{}{}
+	p.operationSet.Add(id)
 }
 
 func (p *ParticipantsProcessor) loadAccountIDs(ctx context.Context, participantSet map[string]participant) error {
@@ -139,56 +140,13 @@ func participantsForMeta(
 	return participants, nil
 }
 
-func participantsForTransaction(
-	sequence uint32,
-	transaction ingest.LedgerTransaction,
-) ([]xdr.AccountId, error) {
-	participants := []xdr.AccountId{
-		transaction.Envelope.SourceAccount().ToAccountId(),
-	}
-	if transaction.Envelope.IsFeeBump() {
-		participants = append(participants, transaction.Envelope.FeeBumpAccount().ToAccountId())
-	}
-
-	p, err := participantsForMeta(transaction.UnsafeMeta)
-	if err != nil {
-		return nil, err
-	}
-	participants = append(participants, p...)
-
-	p, err = participantsForChanges(transaction.FeeChanges)
-	if err != nil {
-		return nil, err
-	}
-	participants = append(participants, p...)
-
-	for opi, op := range transaction.Envelope.Operations() {
-		operation := transactionOperationWrapper{
-			index:          uint32(opi),
-			transaction:    transaction,
-			operation:      op,
-			ledgerSequence: sequence,
-		}
-
-		p, err := operation.Participants()
-		if err != nil {
-			return nil, errors.Wrapf(
-				err, "could not determine operation %v participants", operation.ID(),
-			)
-		}
-		participants = append(participants, p...)
-	}
-
-	return dedupeParticipants(participants), nil
-}
-
 func (p *ParticipantsProcessor) addTransactionParticipants(
 	participantSet map[string]participant,
 	sequence uint32,
 	transaction ingest.LedgerTransaction,
 ) error {
 	transactionID := toid.New(int32(sequence), int32(transaction.Index), 0).ToInt64()
-	transactionParticipants, err := participantsForTransaction(
+	transactionParticipants, err := ParticipantsForTransaction(
 		sequence,
 		transaction,
 	)
@@ -292,4 +250,47 @@ func (p *ParticipantsProcessor) Commit(ctx context.Context) (err error) {
 	}
 
 	return err
+}
+
+func ParticipantsForTransaction(
+	sequence uint32,
+	transaction ingest.LedgerTransaction,
+) ([]xdr.AccountId, error) {
+	participants := []xdr.AccountId{
+		transaction.Envelope.SourceAccount().ToAccountId(),
+	}
+	if transaction.Envelope.IsFeeBump() {
+		participants = append(participants, transaction.Envelope.FeeBumpAccount().ToAccountId())
+	}
+
+	p, err := participantsForMeta(transaction.UnsafeMeta)
+	if err != nil {
+		return nil, err
+	}
+	participants = append(participants, p...)
+
+	p, err = participantsForChanges(transaction.FeeChanges)
+	if err != nil {
+		return nil, err
+	}
+	participants = append(participants, p...)
+
+	for opi, op := range transaction.Envelope.Operations() {
+		operation := transactionOperationWrapper{
+			index:          uint32(opi),
+			transaction:    transaction,
+			operation:      op,
+			ledgerSequence: sequence,
+		}
+
+		p, err := operation.Participants()
+		if err != nil {
+			return nil, errors.Wrapf(
+				err, "could not determine operation %v participants", operation.ID(),
+			)
+		}
+		participants = append(participants, p...)
+	}
+
+	return dedupeParticipants(participants), nil
 }

@@ -34,13 +34,19 @@ const (
 	//VersionByteHashX is the version byte used for encoded stellar hashX
 	//signer keys.
 	VersionByteHashX = 23 << 3 // Base32-encodes to 'X...'
+
+	//VersionByteSignedPayload is the version byte used for encoding "signed
+	//payload" (CAP-40) signer keys.
+	VersionByteSignedPayload = 15 << 3 // Base-32 encodes to 'P'
 )
 
-// maxPayloadSize is the maximum length of the payload for all versions.
-const maxPayloadSize = 40
+// maxPayloadSize is the maximum length of the payload for all versions. The
+// largest strkey is a signed payload: 32-byte public key + 4-byte payload
+// length + 64-byte payload
+const maxPayloadSize = 100
 
 // maxRawSize is the maximum length of a strkey in its raw form not encoded.
-const maxRawSize = 1 + maxPayloadSize + 2
+const maxRawSize = 1 + /* version byte */ maxPayloadSize + 2 /* checksum */
 
 // maxEncodedSize is the maximum length of a strkey when base32 encoded.
 const maxEncodedSize = (maxRawSize*8 + 4) / 5 // (8n+4)/5 is the EncodedLen for no padding
@@ -110,7 +116,7 @@ func Decode(expected VersionByte, src string) ([]byte, error) {
 		return nil, err
 	}
 
-	// if we made it through the gaunlet, return the decoded value
+	// if we made it through the gauntlet, return the decoded value
 	return payload, nil
 }
 
@@ -182,7 +188,7 @@ func Version(src string) (VersionByte, error) {
 // is not one of the defined valid version byte constants.
 func checkValidVersionByte(version VersionByte) error {
 	switch version {
-	case VersionByteAccountID, VersionByteMuxedAccount, VersionByteSeed, VersionByteHashTx, VersionByteHashX:
+	case VersionByteAccountID, VersionByteMuxedAccount, VersionByteSeed, VersionByteHashTx, VersionByteHashX, VersionByteSignedPayload:
 		return nil
 	default:
 		return ErrInvalidVersionByte
