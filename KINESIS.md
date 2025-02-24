@@ -13,7 +13,7 @@ To build your local docker image use this command:
 
 ```bash
 export TAG=kinesis-horizon:local
-docker build -t $TAG . -f Dockerfile.kinesis
+docker build --build-arg KINESIS_CORE_IMAGE=kinesis-core:v19.14.0-kinesis.1 -t $TAG . -f Dockerfile.kinesis
 ```
 
 ## Release build
