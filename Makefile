@@ -8,7 +8,7 @@ xdr/Stellar-overlay.x \
 xdr/Stellar-transaction.x \
 xdr/Stellar-types.x
 
-XDRGEN_COMMIT=9fccddf09dc8888d3b48be61404f0ab60149619e
+XDRGEN_COMMIT=e2cac557162d99b12ae73b846cf3d5bfe16636de
 
 .PHONY: xdr xdr-clean xdr-update
 
@@ -35,11 +35,12 @@ gxdr/xdr_generated.go: $(XDRS)
 	gofmt -s -w $@
 
 xdr/%.x:
-	curl -Lsf -o $@ https://raw.githubusercontent.com/stellar/stellar-core/master/src/protocol-curr/$@
+	curl -Lsf -o $@ https://raw.githubusercontent.com/bullioncapital/kinesis-core/refs/heads/develop/src/protocol-curr/$@
 
 xdr/xdr_generated.go: $(XDRS)
-	docker run -it --rm -v $$PWD:/wd -w /wd ruby /bin/bash -c '\
-		gem install specific_install -v 0.3.7 && \
+	docker run -it --rm -v $$PWD:/wd -w /wd ruby:3.4.2 /bin/bash -c '\
+		gem install concurrent-ruby -v 1.3.4 && \
+		gem install specific_install -v 0.3.8 && \
 		gem specific_install https://github.com/stellar/xdrgen.git -b $(XDRGEN_COMMIT) && \
 		xdrgen \
 			--language go \
