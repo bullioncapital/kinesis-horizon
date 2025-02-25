@@ -26,7 +26,7 @@ RUN go install ./...
 
 FROM ${KINESIS_CORE_IMAGE} AS core
 
-FROM ubuntu:22.04
+FROM stellar/stellar-horizon:2.26.1
 ENV DEBIAN_FRONTEND=noninteractive
 
 EXPOSE 8000
