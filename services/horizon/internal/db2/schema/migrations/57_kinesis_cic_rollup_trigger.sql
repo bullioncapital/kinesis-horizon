@@ -45,24 +45,6 @@ BEGIN
 END;
 $$;
 
--- setup cron job to cleanup the table every day at midnight
--- MANUAL RUN
--- SELECT cron.schedule('0 0 * * *', $$
---     SELECT cleanup_cic_rollup_table(
---         'YOUR_ROOT_ACCOUNT_HERE',
---         'YOUR_EMISSION_ACCOUNT_HERE',
---         'YOUR_HOT_ACCOUNT_HERE',
---         'YOUR_INFLATION_ACCOUNT_HERE'
---     );
--- $$);
--- CLEANUP SCHEDULE
--- SELECT * FROM cron.job;
--- -- By ID
--- SELECT cron.unschedule(1);
--- By Name
--- SELECT cron.unschedule('job_name');
-
-
 -- 2. Backfill Existing Data
 -- This runs the heavy parsing one time to seed the rollup table.
 -- Grouping by ops.id (the PK of history_operations) is sufficient: PostgreSQL infers
