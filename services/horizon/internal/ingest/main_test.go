@@ -295,6 +295,7 @@ type mockDBQ struct {
 	history.MockQAssetStats
 	history.MockQData
 	history.MockQEffects
+	history.MockQKinesisOpsRollup
 	history.MockQLedgers
 	history.MockQOffers
 	history.MockQOperations

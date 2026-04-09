@@ -244,6 +244,8 @@ func TestProcessorRunnerBuildTransactionProcessor(t *testing.T) {
 		Return(&history.MockTransactionsBatchInsertBuilder{}).Twice()
 	q.MockQClaimableBalances.On("NewClaimableBalanceClaimantBatchInsertBuilder", maxBatchSize).
 		Return(&history.MockClaimableBalanceClaimantBatchInsertBuilder{}).Twice()
+	q.MockQKinesisOpsRollup.On("NewKinesisOpsRollupBatchInsertBuilder", maxBatchSize).
+		Return(&history.MockKinesisOpsRollupBatchInsertBuilder{}).Twice()
 
 	runner := ProcessorRunner{
 		ctx:      ctx,
@@ -264,6 +266,9 @@ func TestProcessorRunnerBuildTransactionProcessor(t *testing.T) {
 	assert.IsType(t, &processors.TradeProcessor{}, processor.processors[4])
 	assert.IsType(t, &processors.ParticipantsProcessor{}, processor.processors[5])
 	assert.IsType(t, &processors.TransactionProcessor{}, processor.processors[6])
+	assert.IsType(t, &processors.ClaimableBalancesTransactionProcessor{}, processor.processors[7])
+	assert.IsType(t, &processors.LiquidityPoolsTransactionProcessor{}, processor.processors[8])
+	assert.IsType(t, &processors.KinesisOpsRollupProcessor{}, processor.processors[9])
 }
 
 func TestProcessorRunnerWithFilterEnabled(t *testing.T) {
@@ -312,6 +317,12 @@ func TestProcessorRunnerWithFilterEnabled(t *testing.T) {
 
 	q.MockQClaimableBalances.On("NewClaimableBalanceClaimantBatchInsertBuilder", maxBatchSize).
 		Return(&history.MockClaimableBalanceClaimantBatchInsertBuilder{}).Once()
+
+	mockKinesisOpsRollupBatchInsertBuilder := &history.MockKinesisOpsRollupBatchInsertBuilder{}
+	defer mock.AssertExpectationsForObjects(t, mockKinesisOpsRollupBatchInsertBuilder)
+	mockKinesisOpsRollupBatchInsertBuilder.On("Exec", ctx).Return(nil).Once()
+	q.MockQKinesisOpsRollup.On("NewKinesisOpsRollupBatchInsertBuilder", maxBatchSize).
+		Return(mockKinesisOpsRollupBatchInsertBuilder).Twice()
 
 	q.On("DeleteTransactionsFilteredTmpOlderThan", ctx, mock.AnythingOfType("uint64")).
 		Return(int64(0), nil)
@@ -372,6 +383,12 @@ func TestProcessorRunnerRunAllProcessorsOnLedger(t *testing.T) {
 	q.MockQClaimableBalances.On("NewClaimableBalanceClaimantBatchInsertBuilder", maxBatchSize).
 		Return(&history.MockClaimableBalanceClaimantBatchInsertBuilder{}).Once()
 
+	mockKinesisOpsRollupBatchInsertBuilder := &history.MockKinesisOpsRollupBatchInsertBuilder{}
+	defer mock.AssertExpectationsForObjects(t, mockKinesisOpsRollupBatchInsertBuilder)
+	mockKinesisOpsRollupBatchInsertBuilder.On("Exec", ctx).Return(nil).Once()
+	q.MockQKinesisOpsRollup.On("NewKinesisOpsRollupBatchInsertBuilder", maxBatchSize).
+		Return(mockKinesisOpsRollupBatchInsertBuilder).Twice()
+
 	q.MockQLedgers.On("InsertLedger", ctx, ledger.V0.LedgerHeader, 0, 0, 0, 0, CurrentVersion).
 		Return(int64(1), nil).Once()
 
@@ -423,6 +440,9 @@ func TestProcessorRunnerRunAllProcessorsOnLedgerProtocolVersionNotSupported(t *t
 	defer mock.AssertExpectationsForObjects(t, mockTransactionsBatchInsertBuilder)
 	q.MockQTransactions.On("NewTransactionBatchInsertBuilder", maxBatchSize).
 		Return(mockTransactionsBatchInsertBuilder).Twice()
+
+	q.MockQKinesisOpsRollup.On("NewKinesisOpsRollupBatchInsertBuilder", maxBatchSize).
+		Return(&history.MockKinesisOpsRollupBatchInsertBuilder{}).Twice()
 
 	runner := ProcessorRunner{
 		ctx:      ctx,

@@ -247,6 +247,7 @@ type IngestionQ interface {
 	QHistoryClaimableBalances
 	QData
 	QEffects
+	QKinesisOpsRollup
 	QLedgers
 	QLiquidityPools
 	QHistoryLiquidityPools
