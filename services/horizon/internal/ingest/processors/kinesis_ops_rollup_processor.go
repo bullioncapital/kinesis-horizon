@@ -17,8 +17,8 @@ import (
 // the kinesis_ledger_ops_rollup table. It filters operations at the Go
 // ingestion level so that only mint and redemption rows are stored.
 //
-// Mint: create_account or payment from EmissionAccount to non-RootAccount
-// Redemption: payment from HotWalletAccount to EmissionAccount or RootAccount
+// Mint: create_account or native-asset payment from EmissionAccount to non-RootAccount
+// Redemption: native-asset payment from HotWalletAccount to EmissionAccount or RootAccount
 type KinesisOpsRollupProcessor struct {
 	rollupQ  history.QKinesisOpsRollup
 	batch    history.KinesisOpsRollupBatchInsertBuilder
@@ -84,6 +84,10 @@ func (p *KinesisOpsRollupProcessor) ProcessTransaction(ctx context.Context, tran
 
 		case xdr.OperationTypePayment:
 			payOp := op.Body.MustPaymentOp()
+			// Only native-asset payments qualify as mint or redemption.
+			if payOp.Asset.Type != xdr.AssetTypeAssetTypeNative {
+				continue
+			}
 			sourceAccount = p.resolveSourceAccount(&op, &transaction)
 			destAccount = payOp.Destination.ToAccountId().Address()
 			totalAmount = amount.String(payOp.Amount)
@@ -126,7 +130,8 @@ func (p *KinesisOpsRollupProcessor) Commit(ctx context.Context) error {
 }
 
 // isMintOrRedemption returns true if the operation matches mint or redemption
-// criteria:
+// criteria. The caller is responsible for ensuring the operation involves only
+// native assets before calling this function.
 //
 //   - Mint: source is EmissionAccount AND dest is NOT RootAccount
 //   - Redemption: source is HotWalletAccount AND dest is EmissionAccount OR RootAccount
