@@ -150,6 +150,7 @@ func (s *ProcessorRunner) buildTransactionProcessor(
 		processors.NewTransactionProcessor(s.historyQ, sequence),
 		processors.NewClaimableBalancesTransactionProcessor(s.historyQ, sequence),
 		processors.NewLiquidityPoolsTransactionProcessor(s.historyQ, sequence),
+		processors.NewKinesisOpsRollupProcessor(s.historyQ, ledger, s.config.NetworkPassphrase),
 	})
 }
 
