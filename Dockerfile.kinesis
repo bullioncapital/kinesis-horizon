@@ -35,7 +35,7 @@ EXPOSE 9473
 # ca-certificates are required to make tls connections
 RUN apt-get update && apt-get upgrade -y \
   && apt-get install -y --no-install-recommends ca-certificates curl wget gnupg apt-utils jq libpq5 libc++1 \
-  && apt-get clean
+  && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 COPY --from=core /usr/bin/stellar-core /usr/bin/stellar-core
 COPY --from=builder /go/bin/horizon \
