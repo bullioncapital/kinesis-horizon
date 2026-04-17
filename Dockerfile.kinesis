@@ -1,5 +1,7 @@
 ARG KINESIS_CORE_IMAGE=abxit/kinesis-core:5b08ad3
 
+FROM ${KINESIS_CORE_IMAGE} AS core
+
 FROM golang:1.26 AS builder
 ENV DEBIAN_FRONTEND=noninteractive
 ARG VERSION=develop
@@ -15,16 +17,13 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
-# skip tests
-# RUN /etc/init.d/postgresql start 13 && \
-#   go test -race -cover ./...
+RUN /etc/init.d/postgresql start 13 \
+    && go test -race -cover ./services/horizon/...
 
 ENV CGO_ENABLED=0
 ENV HORIZON_VERSION="-X=github.com/stellar/go/support/app.version=$VERSION"
 ENV GOFLAGS="-ldflags=$HORIZON_VERSION"
 RUN go install ./...
-
-FROM ${KINESIS_CORE_IMAGE} AS core
 
 FROM ubuntu:22.04
 ENV DEBIAN_FRONTEND=noninteractive

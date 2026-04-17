@@ -338,7 +338,7 @@ func TestTransactionWithoutPreconditions(t *testing.T) {
 		V1: &xdr.TransactionV1Envelope{
 			Tx: xdr.Transaction{
 				SourceAccount: account,
-				Fee:           xdr.Uint32(1000),
+				Fee:           xdr.Uint64(1000),
 				SeqNum:        xdr.SequenceNumber(seqNum + 1),
 				Operations:    []xdr.Operation{paymentOp},
 				Cond: xdr.Preconditions{

@@ -81,7 +81,7 @@ func TestOperationByLiquidityPool(t *testing.T) {
 	transactionBuilder := q.NewTransactionBatchInsertBuilder(2)
 	firstTransaction := buildLedgerTransaction(tt.T, testTransaction{
 		index:         uint32(txIndex),
-		envelopeXDR:   "AAAAACiSTRmpH6bHC6Ekna5e82oiGY5vKDEEUgkq9CB//t+rAAAAyAEXUhsAADDRAAAAAAAAAAAAAAABAAAAAAAAAAsBF1IbAABX4QAAAAAAAAAA",
+		envelopeXDR:   "AAAAACiSTRmpH6bHC6Ekna5e82oiGY5vKDEEUgkq9CB//t+rAAAAAAAAAMgBF1IbAAAw0QAAAAAAAAAAAAAAAQAAAAAAAAALARdSGwAAV+EAAAAAAAAAAA==",
 		resultXDR:     "AAAAAAAAASwAAAAAAAAAAwAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAFAAAAAAAAAAA=",
 		feeChangesXDR: "AAAAAA==",
 		metaXDR:       "AAAAAQAAAAAAAAAA",

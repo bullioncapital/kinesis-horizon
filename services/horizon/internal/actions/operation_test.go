@@ -177,7 +177,7 @@ func TestGetOperationsFilterByTxID(t *testing.T) {
 		},
 	}
 	for _, tc := range testCases {
-		t.Run(fmt.Sprintf(tc.desc), func(t *testing.T) {
+		t.Run(tc.desc, func(t *testing.T) {
 			records, err := handler.GetResourcePage(
 				httptest.NewRecorder(),
 				makeRequest(
