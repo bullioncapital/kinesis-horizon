@@ -331,8 +331,8 @@ func FeeBumpScenario(tt *test.T, q *Q, successful bool) FeeBumpFixture {
 
 	fixture.NormalTransaction = Transaction{
 		TransactionWithoutLedger: TransactionWithoutLedger{
-			TotalOrderID:     TotalOrderID{528280981504},
-			TransactionHash:  "e949d96bc5d720a43afa4a9d400ea23938d4fe31b30932fda46b4549fdb2e22a",
+			TotalOrderID:     TotalOrderID{528280985600},
+			TransactionHash:  "5823b7fec5eef128b895e80b143042d89c64c5e10b7776b2ea204c48387dffbb",
 			LedgerSequence:   fixture.Ledger.Sequence,
 			ApplicationOrder: 1,
 			Account:          "GAUJETIZVEP2NRYLUESJ3LS66NVCEGMON4UDCBCSBEVPIID773P2W6AY",

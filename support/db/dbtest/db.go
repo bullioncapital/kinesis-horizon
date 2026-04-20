@@ -1,9 +1,7 @@
 package dbtest
 
 import (
-	"context"
 	"crypto/rand"
-	"database/sql"
 
 	"encoding/hex"
 	"fmt"
@@ -118,19 +116,15 @@ func checkReadOnly(t testing.TB, DSN string) {
 	require.NoError(t, err)
 	defer conn.Close()
 
-	tx, err := conn.BeginTx(context.Background(), &sql.TxOptions{Isolation: sql.LevelSerializable})
-	require.NoError(t, err)
-	defer tx.Rollback()
-
-	rows, err := tx.Query("SELECT FROM pg_user WHERE  usename = 'user_ro'")
-	require.NoError(t, err)
-
-	if !rows.Next() {
-		_, err = tx.Exec("CREATE ROLE user_ro WITH LOGIN PASSWORD 'user_ro';")
-		require.NoError(t, err)
-	}
-
-	err = tx.Commit()
+	_, err = conn.Exec(`
+		DO $$
+		BEGIN
+			CREATE ROLE user_ro WITH LOGIN PASSWORD 'user_ro';
+		EXCEPTION WHEN duplicate_object THEN
+			-- do nothing
+		END
+		$$;
+	`)
 	require.NoError(t, err)
 }
 
