@@ -41,7 +41,7 @@ func TestOperationQueries(t *testing.T) {
 	tt.Assert.Len(transactions, 0)
 
 	// tx filter works
-	hash := "2374e99349b9ef7dba9a5db3339b78fda8f34777b1af33ba468ad5c0df946d4d"
+	hash := "ff5cba32e8918327f1d563f57cd54dc5f5906f33ce53aeb119df06a16f797387"
 	ops, transactions, err = q.Operations().ForTransaction(tt.Ctx, hash).Fetch(tt.Ctx)
 	if tt.Assert.NoError(err) {
 		tt.Assert.Len(ops, 1)
@@ -314,7 +314,7 @@ func TestExtraChecksOperationsTransactionSuccessfulTrueResultFalse(t *testing.T)
 
 	// successful `true` but tx result `false`
 	_, err := tt.HorizonDB.Exec(
-		`UPDATE history_transactions SET successful = true WHERE transaction_hash = 'aa168f12124b7c196c0adaee7c73a64d37f99428cacb59a91ff389626845e7cf'`,
+		`UPDATE history_transactions SET successful = true WHERE transaction_hash = 'e34941080e33bf0ce90c7fac31ec13a0f7e9e5489204e766c3def374164aa3fa'`,
 	)
 	tt.Require.NoError(err)
 

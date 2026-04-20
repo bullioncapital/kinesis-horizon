@@ -61,7 +61,7 @@ func TestOperationActions_Index(t *testing.T) {
 	}
 
 	// filtered by transaction
-	w = ht.Get("/transactions/2374e99349b9ef7dba9a5db3339b78fda8f34777b1af33ba468ad5c0df946d4d/operations")
+	w = ht.Get("/transactions/ff5cba32e8918327f1d563f57cd54dc5f5906f33ce53aeb119df06a16f797387/operations")
 	if ht.Assert.Equal(200, w.Code) {
 		ht.Assert.PageOf(1, w.Body)
 	}
@@ -143,7 +143,7 @@ func TestOperationActions_Show_Failed(t *testing.T) {
 		ht.Assert.Equal(1, failed)
 	}
 
-	w = ht.Get("/transactions/aa168f12124b7c196c0adaee7c73a64d37f99428cacb59a91ff389626845e7cf/operations")
+	w = ht.Get("/transactions/e34941080e33bf0ce90c7fac31ec13a0f7e9e5489204e766c3def374164aa3fa/operations")
 
 	if ht.Assert.Equal(200, w.Code) {
 		records := []operations.Base{}
@@ -152,11 +152,11 @@ func TestOperationActions_Show_Failed(t *testing.T) {
 		ht.Assert.Equal(1, len(records))
 		for _, op := range records {
 			ht.Assert.False(op.TransactionSuccessful)
-			ht.Assert.Equal("aa168f12124b7c196c0adaee7c73a64d37f99428cacb59a91ff389626845e7cf", op.TransactionHash)
+			ht.Assert.Equal("e34941080e33bf0ce90c7fac31ec13a0f7e9e5489204e766c3def374164aa3fa", op.TransactionHash)
 		}
 	}
 
-	w = ht.Get("/transactions/56e3216045d579bea40f2d35a09406de3a894ecb5be70dbda5ec9c0427a0d5a1/operations")
+	w = ht.Get("/transactions/263b8b93313084b938891187081f8c6d2a756f7f2cb1fc5aaa2f7737517e7f4c/operations")
 
 	if ht.Assert.Equal(200, w.Code) {
 		records := []operations.Base{}
@@ -171,11 +171,11 @@ func TestOperationActions_Show_Failed(t *testing.T) {
 	// NULL value
 	_, err := ht.HorizonSession().ExecRaw(ht.Ctx,
 		`UPDATE history_transactions SET successful = NULL WHERE transaction_hash = ?`,
-		"56e3216045d579bea40f2d35a09406de3a894ecb5be70dbda5ec9c0427a0d5a1",
+		"263b8b93313084b938891187081f8c6d2a756f7f2cb1fc5aaa2f7737517e7f4c",
 	)
 	ht.Require.NoError(err)
 
-	w = ht.Get("/transactions/56e3216045d579bea40f2d35a09406de3a894ecb5be70dbda5ec9c0427a0d5a1/operations")
+	w = ht.Get("/transactions/263b8b93313084b938891187081f8c6d2a756f7f2cb1fc5aaa2f7737517e7f4c/operations")
 
 	if ht.Assert.Equal(200, w.Code) {
 		records := []operations.Base{}
@@ -229,7 +229,7 @@ func TestOperationActions_Show(t *testing.T) {
 		err := json.Unmarshal(w.Body.Bytes(), &result)
 		ht.Require.NoError(err, "failed to parse body")
 		ht.Assert.Equal("8589938689", result.PT)
-		ht.Assert.Equal("2374e99349b9ef7dba9a5db3339b78fda8f34777b1af33ba468ad5c0df946d4d", result.TransactionHash)
+		ht.Assert.Equal("ff5cba32e8918327f1d563f57cd54dc5f5906f33ce53aeb119df06a16f797387", result.TransactionHash)
 	}
 
 	// doesn't exist
@@ -356,7 +356,7 @@ func TestOperationActions_Show_Extra_TxID(t *testing.T) {
 	ht := StartHTTPTest(t, "failed_transactions")
 	defer ht.Finish()
 
-	w := ht.Get("/accounts/GBXGQJWVLWOYHFLVTKWV5FGHA3LNYY2JQKM7OAJAUEQFU6LPCSEFVXON/operations?limit=200&tx_id=aa168f12124b7c196c0adaee7c73a64d37f99428cacb59a91ff389626845e7cf")
+	w := ht.Get("/accounts/GBXGQJWVLWOYHFLVTKWV5FGHA3LNYY2JQKM7OAJAUEQFU6LPCSEFVXON/operations?limit=200&tx_id=e34941080e33bf0ce90c7fac31ec13a0f7e9e5489204e766c3def374164aa3fa")
 
 	ht.Assert.Equal(400, w.Code)
 	payload := ht.UnmarshalExtras(w.Body)

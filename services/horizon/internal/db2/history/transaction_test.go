@@ -24,7 +24,7 @@ func TestTransactionQueries(t *testing.T) {
 
 	// Test TransactionByHash
 	var tx Transaction
-	real := "2374e99349b9ef7dba9a5db3339b78fda8f34777b1af33ba468ad5c0df946d4d"
+	real := "ff5cba32e8918327f1d563f57cd54dc5f5906f33ce53aeb119df06a16f797387"
 	err := q.TransactionByHash(tt.Ctx, &tx, real)
 	tt.Assert.NoError(err)
 
@@ -161,7 +161,7 @@ func TestExtraChecksTransactionSuccessfulTrueResultFalse(t *testing.T) {
 
 	// successful `true` but tx result `false`
 	_, err := tt.HorizonDB.Exec(
-		`UPDATE history_transactions SET successful = true WHERE transaction_hash = 'aa168f12124b7c196c0adaee7c73a64d37f99428cacb59a91ff389626845e7cf'`,
+		`UPDATE history_transactions SET successful = true WHERE transaction_hash = 'e34941080e33bf0ce90c7fac31ec13a0f7e9e5489204e766c3def374164aa3fa'`,
 	)
 	tt.Require.NoError(err)
 
