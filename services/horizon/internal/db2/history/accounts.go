@@ -54,7 +54,7 @@ func (q *Q) GetAccountByID(ctx context.Context, id string) (AccountEntry, error)
 
 func (q *Q) GetAccountsByIDs(ctx context.Context, ids []string) ([]AccountEntry, error) {
 	var accounts []AccountEntry
-	sql := selectAccounts.Where(map[string]interface{}{"accounts.account_id": ids})
+	sql := selectAccounts.Where(map[string]interface{}{"accounts.account_id": ids}).OrderBy("accounts.account_id ASC")
 	err := q.Select(ctx, &accounts, sql)
 	return accounts, err
 }

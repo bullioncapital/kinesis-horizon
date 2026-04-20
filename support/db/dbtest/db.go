@@ -120,7 +120,7 @@ func checkReadOnly(t testing.TB, DSN string) {
 		DO $$
 		BEGIN
 			CREATE ROLE user_ro WITH LOGIN PASSWORD 'user_ro';
-		EXCEPTION WHEN duplicate_object THEN
+		EXCEPTION WHEN duplicate_object OR unique_violation THEN
 			-- do nothing
 		END
 		$$;
