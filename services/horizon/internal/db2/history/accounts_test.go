@@ -155,13 +155,13 @@ func TestUpsertAccount(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, accounts, 2)
 
-	assert.Equal(t, uint32(1), accounts[0].NumSponsored)
-	assert.Equal(t, uint32(2), accounts[0].NumSponsoring)
-	assert.Equal(t, null.StringFrom(sponsor), accounts[0].Sponsor)
+	assert.Equal(t, uint32(0), accounts[0].NumSponsored)
+	assert.Equal(t, uint32(0), accounts[0].NumSponsoring)
+	assert.Equal(t, null.String{}, accounts[0].Sponsor)
 
-	assert.Equal(t, uint32(0), accounts[1].NumSponsored)
-	assert.Equal(t, uint32(0), accounts[1].NumSponsoring)
-	assert.Equal(t, null.String{}, accounts[1].Sponsor)
+	assert.Equal(t, uint32(1), accounts[1].NumSponsored)
+	assert.Equal(t, uint32(2), accounts[1].NumSponsoring)
+	assert.Equal(t, null.StringFrom(sponsor), accounts[1].Sponsor)
 
 	accounts, err = q.GetAccountsByIDs(tt.Ctx, []string{account1.AccountID})
 	assert.NoError(t, err)

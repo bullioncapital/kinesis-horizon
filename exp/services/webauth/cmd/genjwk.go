@@ -6,7 +6,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/stellar/go/exp/support/jwtkey"
 	supportlog "github.com/stellar/go/support/log"
-	"gopkg.in/square/go-jose.v2"
+	"github.com/go-jose/go-jose/v4"
 )
 
 type GenJWKCommand struct {

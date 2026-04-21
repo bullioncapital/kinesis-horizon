@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/v5"
 	"github.com/stellar/go/clients/horizonclient"
 	"github.com/stellar/go/network"
 	"github.com/stellar/go/protocols/horizon"

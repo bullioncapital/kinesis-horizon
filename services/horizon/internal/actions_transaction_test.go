@@ -19,7 +19,7 @@ func TestTransactionActions_Show(t *testing.T) {
 	ht := StartHTTPTest(t, "base")
 	defer ht.Finish()
 
-	w := ht.Get("/transactions/2374e99349b9ef7dba9a5db3339b78fda8f34777b1af33ba468ad5c0df946d4d")
+	w := ht.Get("/transactions/ff5cba32e8918327f1d563f57cd54dc5f5906f33ce53aeb119df06a16f797387")
 
 	if ht.Assert.Equal(200, w.Code) {
 		var actual horizon.Transaction
@@ -27,7 +27,7 @@ func TestTransactionActions_Show(t *testing.T) {
 		ht.Require.NoError(err)
 
 		ht.Assert.Equal(
-			"2374e99349b9ef7dba9a5db3339b78fda8f34777b1af33ba468ad5c0df946d4d",
+			"ff5cba32e8918327f1d563f57cd54dc5f5906f33ce53aeb119df06a16f797387",
 			actual.Hash,
 		)
 	}
@@ -50,7 +50,7 @@ func TestTransactionActions_Show_Failed(t *testing.T) {
 	defer ht.Finish()
 
 	// Failed single
-	w := ht.Get("/transactions/aa168f12124b7c196c0adaee7c73a64d37f99428cacb59a91ff389626845e7cf")
+	w := ht.Get("/transactions/e34941080e33bf0ce90c7fac31ec13a0f7e9e5489204e766c3def374164aa3fa")
 
 	if ht.Assert.Equal(200, w.Code) {
 		var actual horizon.Transaction
@@ -58,7 +58,7 @@ func TestTransactionActions_Show_Failed(t *testing.T) {
 		ht.Require.NoError(err)
 
 		ht.Assert.Equal(
-			"aa168f12124b7c196c0adaee7c73a64d37f99428cacb59a91ff389626845e7cf",
+			"e34941080e33bf0ce90c7fac31ec13a0f7e9e5489204e766c3def374164aa3fa",
 			actual.Hash,
 		)
 
@@ -66,7 +66,7 @@ func TestTransactionActions_Show_Failed(t *testing.T) {
 	}
 
 	// Successful single
-	w = ht.Get("/transactions/56e3216045d579bea40f2d35a09406de3a894ecb5be70dbda5ec9c0427a0d5a1")
+	w = ht.Get("/transactions/263b8b93313084b938891187081f8c6d2a756f7f2cb1fc5aaa2f7737517e7f4c")
 
 	if ht.Assert.Equal(200, w.Code) {
 		var actual horizon.Transaction
@@ -74,7 +74,7 @@ func TestTransactionActions_Show_Failed(t *testing.T) {
 		ht.Require.NoError(err)
 
 		ht.Assert.Equal(
-			"56e3216045d579bea40f2d35a09406de3a894ecb5be70dbda5ec9c0427a0d5a1",
+			"263b8b93313084b938891187081f8c6d2a756f7f2cb1fc5aaa2f7737517e7f4c",
 			actual.Hash,
 		)
 
@@ -125,7 +125,7 @@ func TestTransactionActions_Show_Failed(t *testing.T) {
 		ht.Assert.Equal(1, failed)
 	}
 
-	w = ht.Get("/transactions/aa168f12124b7c196c0adaee7c73a64d37f99428cacb59a91ff389626845e7cf")
+	w = ht.Get("/transactions/e34941080e33bf0ce90c7fac31ec13a0f7e9e5489204e766c3def374164aa3fa")
 
 	if ht.Assert.Equal(200, w.Code) {
 		var actual horizon.Transaction
@@ -135,7 +135,7 @@ func TestTransactionActions_Show_Failed(t *testing.T) {
 		ht.Assert.False(actual.Successful)
 	}
 
-	w = ht.Get("/transactions/56e3216045d579bea40f2d35a09406de3a894ecb5be70dbda5ec9c0427a0d5a1")
+	w = ht.Get("/transactions/263b8b93313084b938891187081f8c6d2a756f7f2cb1fc5aaa2f7737517e7f4c")
 
 	if ht.Assert.Equal(200, w.Code) {
 		var actual horizon.Transaction
@@ -148,11 +148,11 @@ func TestTransactionActions_Show_Failed(t *testing.T) {
 	// NULL value
 	_, err := ht.HorizonSession().ExecRaw(ht.Ctx,
 		`UPDATE history_transactions SET successful = NULL WHERE transaction_hash = ?`,
-		"56e3216045d579bea40f2d35a09406de3a894ecb5be70dbda5ec9c0427a0d5a1",
+		"263b8b93313084b938891187081f8c6d2a756f7f2cb1fc5aaa2f7737517e7f4c",
 	)
 	ht.Require.NoError(err)
 
-	w = ht.Get("/transactions/56e3216045d579bea40f2d35a09406de3a894ecb5be70dbda5ec9c0427a0d5a1")
+	w = ht.Get("/transactions/263b8b93313084b938891187081f8c6d2a756f7f2cb1fc5aaa2f7737517e7f4c")
 
 	if ht.Assert.Equal(200, w.Code) {
 		var actual horizon.Transaction
@@ -335,7 +335,7 @@ func TestTransactionActions_PostSuccessful(t *testing.T) {
 	txStr, err := xdr.MarshalBase64(tx2)
 	assert.NoError(t, err)
 
-	// 56e3216045d579bea40f2d35a09406de3a894ecb5be70dbda5ec9c0427a0d5a1
+	// 263b8b93313084b938891187081f8c6d2a756f7f2cb1fc5aaa2f7737517e7f4c
 	form := url.Values{"tx": []string{txStr}}
 
 	w := ht.Post("/transactions", form)
@@ -350,8 +350,8 @@ func TestTransactionActions_PostFailed(t *testing.T) {
 	// Pass Synced check
 	ht.App.coreState.SetState(corestate.State{Synced: true})
 
-	// aa168f12124b7c196c0adaee7c73a64d37f99428cacb59a91ff389626845e7cf
-	form := url.Values{"tx": []string{"AAAAAG5oJtVdnYOVdZqtXpTHBtbcY0mCmfcBIKEgWnlvFIhaAAAAZAAAAAIAAAACAAAAAAAAAAAAAAABAAAAAAAAAAEAAAAAO2C/AO45YBD3tHVFO1R3A0MekP8JR6nN1A9eWidyItUAAAABVVNEAAAAAACuo3ot45qCPExpQ/3oHN+z17Ryis1lfMFYmQWgruS+TAAAAAB3NZQAAAAAAAAAAAFvFIhaAAAAQKcGS9OsVnVHCVIH04C9ZKzzKYBRdCmy+Jwmzld7QcALOxZUcAgkuGfoSdvXpH38mNvrqQiaMsSNmTJWYRzHvgo="}}
+	// e34941080e33bf0ce90c7fac31ec13a0f7e9e5489204e766c3def374164aa3fa
+	form := url.Values{"tx": []string{"AAAAAG5oJtVdnYOVdZqtXpTHBtbcY0mCmfcBIKEgWnlvFIhaAAAAAAAAAGQAAAACAAAAAgAAAAAAAAAAAAAAAQAAAAAAAAABAAAAADtgvwDuOWAQ97R1RTtUdwNDHpD/CUepzdQPXlonciLVAAAAAVVTRAAAAAAArqN6LeOagjxMaUP96Bzfs9e0corNZXzBWJkFoK7kvkwAAAAAdzWUAAAAAAAAAAABbxSIWgAAAECnBkvTrFZ1RwlSB9OAvWSs8ymAUXQpsvicJs5Xe0HACzsWVHAIJLhn6Enb16R9/Jjb66kImjLEjZkyVmEcx74K"}}
 
 	w := ht.Post("/transactions", form)
 	ht.Assert.Equal(400, w.Code)

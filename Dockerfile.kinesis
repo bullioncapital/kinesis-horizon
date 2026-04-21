@@ -1,13 +1,15 @@
 ARG KINESIS_CORE_IMAGE=abxit/kinesis-core:5b08ad3
 
-FROM golang:1.26 AS builder
+FROM ${KINESIS_CORE_IMAGE} AS core
+
+FROM golang:1.26.2 AS builder
 ENV DEBIAN_FRONTEND=noninteractive
 ARG VERSION=develop
 RUN apt-get update && apt-get upgrade -y && apt-get clean
 
 # install PGSQL for integration testing
 RUN apt-get install -y --no-install-suggests --no-install-recommends postgresql && apt-get clean
-COPY pg_hba.conf /etc/postgresql/13/main/pg_hba.conf
+COPY pg_hba.conf /etc/postgresql/17/main/pg_hba.conf
 
 # install modules
 WORKDIR /src
@@ -15,16 +17,15 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
-# skip tests
-# RUN /etc/init.d/postgresql start 13 && \
-#   go test -race -cover ./...
+RUN service postgresql start 17 \
+    && pg_isready \
+    && go test -race -cover ./services/horizon/... \
+    && service postgresql stop 17
 
 ENV CGO_ENABLED=0
 ENV HORIZON_VERSION="-X=github.com/stellar/go/support/app.version=$VERSION"
 ENV GOFLAGS="-ldflags=$HORIZON_VERSION"
 RUN go install ./...
-
-FROM ${KINESIS_CORE_IMAGE} AS core
 
 FROM ubuntu:22.04
 ENV DEBIAN_FRONTEND=noninteractive

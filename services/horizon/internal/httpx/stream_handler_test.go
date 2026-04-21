@@ -12,7 +12,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/v5"
 
 	"github.com/stellar/go/services/horizon/internal/actions"
 	horizonContext "github.com/stellar/go/services/horizon/internal/context"

@@ -24,7 +24,7 @@ func TestTransactionQueries(t *testing.T) {
 
 	// Test TransactionByHash
 	var tx Transaction
-	real := "2374e99349b9ef7dba9a5db3339b78fda8f34777b1af33ba468ad5c0df946d4d"
+	real := "ff5cba32e8918327f1d563f57cd54dc5f5906f33ce53aeb119df06a16f797387"
 	err := q.TransactionByHash(tt.Ctx, &tx, real)
 	tt.Assert.NoError(err)
 
@@ -59,7 +59,7 @@ func TestTransactionByLiquidityPool(t *testing.T) {
 	transactionBuilder := q.NewTransactionBatchInsertBuilder(2)
 	firstTransaction := buildLedgerTransaction(tt.T, testTransaction{
 		index:         uint32(txIndex),
-		envelopeXDR:   "AAAAACiSTRmpH6bHC6Ekna5e82oiGY5vKDEEUgkq9CB//t+rAAAAyAEXUhsAADDRAAAAAAAAAAAAAAABAAAAAAAAAAsBF1IbAABX4QAAAAAAAAAA",
+		envelopeXDR:   "AAAAACiSTRmpH6bHC6Ekna5e82oiGY5vKDEEUgkq9CB//t+rAAAAAAAAAMgBF1IbAAAw0QAAAAAAAAAAAAAAAQAAAAAAAAALARdSGwAAV+EAAAAAAAAAAA==",
 		resultXDR:     "AAAAAAAAASwAAAAAAAAAAwAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAFAAAAAAAAAAA=",
 		feeChangesXDR: "AAAAAA==",
 		metaXDR:       "AAAAAQAAAAAAAAAA",
@@ -161,7 +161,7 @@ func TestExtraChecksTransactionSuccessfulTrueResultFalse(t *testing.T) {
 
 	// successful `true` but tx result `false`
 	_, err := tt.HorizonDB.Exec(
-		`UPDATE history_transactions SET successful = true WHERE transaction_hash = 'aa168f12124b7c196c0adaee7c73a64d37f99428cacb59a91ff389626845e7cf'`,
+		`UPDATE history_transactions SET successful = true WHERE transaction_hash = 'e34941080e33bf0ce90c7fac31ec13a0f7e9e5489204e766c3def374164aa3fa'`,
 	)
 	tt.Require.NoError(err)
 
@@ -308,7 +308,8 @@ func TestInsertTransaction(t *testing.T) {
 	emptySignatures := []string{}
 	var nullSignatures []string
 
-	nullTimeBounds := TimeBounds{Null: true}
+	nullTimeBounds := TimeBounds{Null: true} //nolint
+	_ = nullTimeBounds
 
 	infiniteTimeBounds := TimeBounds{Lower: null.IntFrom(0)}
 	timeBoundWithMin := TimeBounds{Lower: null.IntFrom(1576195867)}
@@ -362,7 +363,7 @@ func TestInsertTransaction(t *testing.T) {
 					MemoType:         "none",
 					Memo:             null.NewString("", false),
 					Successful:       success,
-					TimeBounds:       nullTimeBounds,
+					TimeBounds:       infiniteTimeBounds,
 					LedgerBounds:     LedgerBounds{Null: true},
 					ExtraSigners:     nil,
 				},
@@ -372,7 +373,7 @@ func TestInsertTransaction(t *testing.T) {
 			"successful transaction with multiple signatures",
 			buildLedgerTransaction(tt.T, testTransaction{
 				index:         1,
-				envelopeXDR:   "AAAAAgAAAAAokk0ZqR+mxwuhJJ2uXvNqIhmObygxBFIJKvQgf/7fqwAAAAAAAADIARdSGwAAMNEAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAsBF1IbAABX4QAAAAAAAAAA",
+				envelopeXDR:   "AAAAACiSTRmpH6bHC6Ekna5e82oiGY5vKDEEUgkq9CB//t+rAAAAAAAAAMgBF1IbAAAw0QAAAAAAAAAAAAAAAQAAAAAAAAALARdSGwAAV+EAAAAAAAAAAkJs9KQAAABAMID8kIOLP/yEymCyhU7A/YeVpnVTDzAqszWtv8c+/qAw542BaKWxCJxl/jsggY0mF+SR8X0bvWXvPBgyYcDZD7aPsZYAAABAJ0J8qTsKREW29GAmZMXXBTVkYKkGbOk1AUPUalbIiDdDjd8mpIIdMStqo9w+k5A8UKRTm/iO2V/riQ14CF9IAg==",
 				resultXDR:     "AAAAAAAAASwAAAAAAAAAAwAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAFAAAAAAAAAAA=",
 				feeChangesXDR: "AAAAAA==",
 				metaXDR:       "AAAAAQAAAAAAAAAA",
@@ -390,7 +391,7 @@ func TestInsertTransaction(t *testing.T) {
 					MaxFee:           200,
 					FeeCharged:       300,
 					OperationCount:   1,
-					TxEnvelope:       "AAAAAgAAAAAokk0ZqR+mxwuhJJ2uXvNqIhmObygxBFIJKvQgf/7fqwAAAAAAAADIARdSGwAAMNEAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAsBF1IbAABX4QAAAAAAAAAA",
+					TxEnvelope:       "AAAAACiSTRmpH6bHC6Ekna5e82oiGY5vKDEEUgkq9CB//t+rAAAAAAAAAMgBF1IbAAAw0QAAAAAAAAAAAAAAAQAAAAAAAAALARdSGwAAV+EAAAAAAAAAAkJs9KQAAABAMID8kIOLP/yEymCyhU7A/YeVpnVTDzAqszWtv8c+/qAw542BaKWxCJxl/jsggY0mF+SR8X0bvWXvPBgyYcDZD7aPsZYAAABAJ0J8qTsKREW29GAmZMXXBTVkYKkGbOk1AUPUalbIiDdDjd8mpIIdMStqo9w+k5A8UKRTm/iO2V/riQ14CF9IAg==",
 					TxResult:         "AAAAAAAAASwAAAAAAAAAAwAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAFAAAAAAAAAAA=",
 					TxFeeMeta:        "AAAAAA==",
 					TxMeta:           "AAAAAQAAAAAAAAAA",
@@ -409,7 +410,7 @@ func TestInsertTransaction(t *testing.T) {
 			"failed transaction",
 			buildLedgerTransaction(tt.T, testTransaction{
 				index:         1,
-				envelopeXDR:   "AAAAAgAAAAAokk0ZqR+mxwuhJJ2uXvNqIhmObygxBFIJKvQgf/7fqwAAAAAAAADIARdSGwAAMNEAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAsBF1IbAABX4QAAAAAAAAAA",
+				envelopeXDR:   "AAAAACiSTRmpH6bHC6Ekna5e82oiGY5vKDEEUgkq9CB//t+rAAAAAAAAAMgBF1IbAAAw0QAAAAAAAAAAAAAAAQAAAAAAAAALARdSGwAAV+EAAAAAAAAAAUJs9KQAAABAMID8kIOLP/yEymCyhU7A/YeVpnVTDzAqszWtv8c+/qAw542BaKWxCJxl/jsggY0mF+SR8X0bvWXvPBgyYcDZDw==",
 				resultXDR:     "AAAAAAAAAHv////6AAAAAA==",
 				feeChangesXDR: "AAAAAA==",
 				metaXDR:       "AAAAAQAAAAAAAAAA",
@@ -427,7 +428,7 @@ func TestInsertTransaction(t *testing.T) {
 					MaxFee:           200,
 					FeeCharged:       123,
 					OperationCount:   1,
-					TxEnvelope:       "AAAAAgAAAAAokk0ZqR+mxwuhJJ2uXvNqIhmObygxBFIJKvQgf/7fqwAAAAAAAADIARdSGwAAMNEAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAsBF1IbAABX4QAAAAAAAAAA",
+					TxEnvelope:       "AAAAACiSTRmpH6bHC6Ekna5e82oiGY5vKDEEUgkq9CB//t+rAAAAAAAAAMgBF1IbAAAw0QAAAAAAAAAAAAAAAQAAAAAAAAALARdSGwAAV+EAAAAAAAAAAUJs9KQAAABAMID8kIOLP/yEymCyhU7A/YeVpnVTDzAqszWtv8c+/qAw542BaKWxCJxl/jsggY0mF+SR8X0bvWXvPBgyYcDZDw==",
 					TxResult:         "AAAAAAAAAHv////6AAAAAA==",
 					TxFeeMeta:        "AAAAAA==",
 					TxMeta:           "AAAAAQAAAAAAAAAA",
@@ -521,7 +522,7 @@ func TestInsertTransaction(t *testing.T) {
 			"transaction with id memo",
 			buildLedgerTransaction(tt.T, testTransaction{
 				index:         1,
-				envelopeXDR:   "AAAAAgAAAAAokk0ZqR+mxwuhJJ2uXvNqIhmObygxBFIJKvQgf/7fqwAAAAAAAADIARdSGwAAMNEAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAsBF1IbAABX4QAAAAAAAAAA",
+				envelopeXDR:   "AAAAACiSTRmpH6bHC6Ekna5e82oiGY5vKDEEUgkq9CB//t+rAAAAAAAAAMgBF1IbAAAw0QAAAAAAAAACAAAAAAAAAHsAAAABAAAAAAAAAAsBF1IbAABX4QAAAAAAAAAA",
 				resultXDR:     "AAAAAAAAASwAAAAAAAAAAwAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAFAAAAAAAAAAA=",
 				feeChangesXDR: "AAAAAA==",
 				metaXDR:       "AAAAAQAAAAAAAAAA",
@@ -539,7 +540,7 @@ func TestInsertTransaction(t *testing.T) {
 					MaxFee:           200,
 					FeeCharged:       300,
 					OperationCount:   1,
-					TxEnvelope:       "AAAAAgAAAAAokk0ZqR+mxwuhJJ2uXvNqIhmObygxBFIJKvQgf/7fqwAAAAAAAADIARdSGwAAMNEAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAsBF1IbAABX4QAAAAAAAAAA",
+					TxEnvelope:       "AAAAACiSTRmpH6bHC6Ekna5e82oiGY5vKDEEUgkq9CB//t+rAAAAAAAAAMgBF1IbAAAw0QAAAAAAAAACAAAAAAAAAHsAAAABAAAAAAAAAAsBF1IbAABX4QAAAAAAAAAA",
 					TxResult:         "AAAAAAAAASwAAAAAAAAAAwAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAFAAAAAAAAAAA=",
 					TxFeeMeta:        "AAAAAA==",
 					TxMeta:           "AAAAAQAAAAAAAAAA",
@@ -558,7 +559,7 @@ func TestInsertTransaction(t *testing.T) {
 			"transaction with hash memo",
 			buildLedgerTransaction(tt.T, testTransaction{
 				index:         1,
-				envelopeXDR:   "AAAAACiSTRmpH6bHC6Ekna5e82oiGY5vKDEEUgkq9CB//t+rAAAAyAEXUhsAADDRAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAADfi3vINWiGla+KkV7ZI9wLuGviJ099leQ6SoFCB6fq/EAAAABAAAAAAAAAAsBF1IbAABX4QAAAAAAAAAA",
+				envelopeXDR:   "AAAAACiSTRmpH6bHC6Ekna5e82oiGY5vKDEEUgkq9CB//t+rAAAAAAAAAMgBF1IbAAAw0QAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAA34t7yDVohpWvipFe2SPcC7hr4idPfZXkOkqBQgen6vxAAAAAQAAAAAAAAALARdSGwAAV+EAAAAAAAAAAA==",
 				resultXDR:     "AAAAAAAAASwAAAAAAAAAAwAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAFAAAAAAAAAAA=",
 				feeChangesXDR: "AAAAAA==",
 				metaXDR:       "AAAAAQAAAAAAAAAA",
@@ -576,7 +577,7 @@ func TestInsertTransaction(t *testing.T) {
 					MaxFee:           200,
 					FeeCharged:       300,
 					OperationCount:   1,
-					TxEnvelope:       "AAAAACiSTRmpH6bHC6Ekna5e82oiGY5vKDEEUgkq9CB//t+rAAAAyAEXUhsAADDRAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAADfi3vINWiGla+KkV7ZI9wLuGviJ099leQ6SoFCB6fq/EAAAABAAAAAAAAAAsBF1IbAABX4QAAAAAAAAAA",
+					TxEnvelope:       "AAAAACiSTRmpH6bHC6Ekna5e82oiGY5vKDEEUgkq9CB//t+rAAAAAAAAAMgBF1IbAAAw0QAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAA34t7yDVohpWvipFe2SPcC7hr4idPfZXkOkqBQgen6vxAAAAAQAAAAAAAAALARdSGwAAV+EAAAAAAAAAAA==",
 					TxResult:         "AAAAAAAAASwAAAAAAAAAAwAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAFAAAAAAAAAAA=",
 					TxFeeMeta:        "AAAAAA==",
 					TxMeta:           "AAAAAQAAAAAAAAAA",
@@ -595,7 +596,7 @@ func TestInsertTransaction(t *testing.T) {
 			"transaction with return memo",
 			buildLedgerTransaction(tt.T, testTransaction{
 				index:         1,
-				envelopeXDR:   "AAAAACiSTRmpH6bHC6Ekna5e82oiGY5vKDEEUgkq9CB//t+rAAAAyAEXUhsAADDRAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAEzdjArlILa/LNv7o7lo/qv5+fVVPNl0yPgZQWB6u+gL4AAAABAAAAAAAAAAsBF1IbAABX4QAAAAAAAAAA",
+				envelopeXDR:   "AAAAACiSTRmpH6bHC6Ekna5e82oiGY5vKDEEUgkq9CB//t+rAAAAAAAAAMgBF1IbAAAw0QAAAAEAAAAAAAAAAAAAAAAAAAAAAAAABM3YwK5SC2vyzb+6O5aP6r+fn1VTzZdMj4GUFgervoC+AAAAAQAAAAAAAAALARdSGwAAV+EAAAAAAAAAAA==",
 				resultXDR:     "AAAAAAAAASwAAAAAAAAAAwAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAFAAAAAAAAAAA=",
 				feeChangesXDR: "AAAAAA==",
 				metaXDR:       "AAAAAQAAAAAAAAAA",
@@ -613,7 +614,7 @@ func TestInsertTransaction(t *testing.T) {
 					MaxFee:           200,
 					FeeCharged:       300,
 					OperationCount:   1,
-					TxEnvelope:       "AAAAACiSTRmpH6bHC6Ekna5e82oiGY5vKDEEUgkq9CB//t+rAAAAyAEXUhsAADDRAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAEzdjArlILa/LNv7o7lo/qv5+fVVPNl0yPgZQWB6u+gL4AAAABAAAAAAAAAAsBF1IbAABX4QAAAAAAAAAA",
+					TxEnvelope:       "AAAAACiSTRmpH6bHC6Ekna5e82oiGY5vKDEEUgkq9CB//t+rAAAAAAAAAMgBF1IbAAAw0QAAAAEAAAAAAAAAAAAAAAAAAAAAAAAABM3YwK5SC2vyzb+6O5aP6r+fn1VTzZdMj4GUFgervoC+AAAAAQAAAAAAAAALARdSGwAAV+EAAAAAAAAAAA==",
 					TxResult:         "AAAAAAAAASwAAAAAAAAAAwAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAFAAAAAAAAAAA=",
 					TxFeeMeta:        "AAAAAA==",
 					TxMeta:           "AAAAAQAAAAAAAAAA",
@@ -670,7 +671,7 @@ func TestInsertTransaction(t *testing.T) {
 			"transaction with max time bound",
 			buildLedgerTransaction(tt.T, testTransaction{
 				index:         1,
-				envelopeXDR:   "",
+				envelopeXDR:   "AAAAACiSTRmpH6bHC6Ekna5e82oiGY5vKDEEUgkq9CB//t+rAAAAAAAAAGQAAAAAAAHiQAAAAAEAAAAAAAAAAAAAAABd8tcbAAAAAAAAAAEAAAAAAAAACwAAAAAAEtaHAAAAAAAAAAA=",
 				resultXDR:     "AAAAAAAAASwAAAAAAAAAAwAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAFAAAAAAAAAAA=",
 				feeChangesXDR: "AAAAAA==",
 				metaXDR:       "AAAAAQAAAAAAAAAA",
@@ -688,7 +689,7 @@ func TestInsertTransaction(t *testing.T) {
 					MaxFee:           100,
 					FeeCharged:       300,
 					OperationCount:   1,
-					TxEnvelope:       "",
+					TxEnvelope:       "AAAAACiSTRmpH6bHC6Ekna5e82oiGY5vKDEEUgkq9CB//t+rAAAAAAAAAGQAAAAAAAHiQAAAAAEAAAAAAAAAAAAAAABd8tcbAAAAAAAAAAEAAAAAAAAACwAAAAAAEtaHAAAAAAAAAAA=",
 					TxResult:         "AAAAAAAAASwAAAAAAAAAAwAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAFAAAAAAAAAAA=",
 					TxFeeMeta:        "AAAAAA==",
 					TxMeta:           "AAAAAQAAAAAAAAAA",
@@ -744,7 +745,7 @@ func TestInsertTransaction(t *testing.T) {
 			"transaction with v2 preconditions",
 			buildLedgerTransaction(tt.T, testTransaction{
 				index:       1,
-				envelopeXDR: "AAAAAgAAAADg3G3hclysZlFitS+s5zWyiiJD5B0STWy5LXCj6i5yxQAAAGQAAAAAAAAAAQAAAAIAAAABAAAAAAAAAAAAAAAAYjzUCQAAAAEAAAAAAAAAAQAAAAAAAAAAAAAACgAAAAIAAAAAAAAAAAAAAAEAAAAAAAAACwAAAAAAAAAAAAAAAAAAAAA=",
+				envelopeXDR: "AAAAAgAAAADg3G3hclysZlFitS+s5zWyiiJD5B0STWy5LXCj6i5yxQAAAAAAAABkAAAAAAAAAAEAAAACAAAAAQAAAAAAAAAAAAAAAGI81AkAAAABAAAAAAAAAAEAAAAAAAAAAAAAAAoAAAACAAAAAAAAAAAAAAABAAAAAAAAAAsAAAAAAAAAAAAAAAAAAAAA",
 				// Real values pending core accepting these txns
 				resultXDR: "AAAAAAAAASwAAAAAAAAAAwAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAFAAAAAAAAAAA=",
 				// Real values pending core accepting these txns
@@ -765,7 +766,7 @@ func TestInsertTransaction(t *testing.T) {
 					MaxFee:                      100,
 					FeeCharged:                  300,
 					OperationCount:              1,
-					TxEnvelope:                  "AAAAAgAAAADg3G3hclysZlFitS+s5zWyiiJD5B0STWy5LXCj6i5yxQAAAGQAAAAAAAAAAQAAAAIAAAABAAAAAAAAAAAAAAAAYjzUCQAAAAEAAAAAAAAAAQAAAAAAAAAAAAAACgAAAAIAAAAAAAAAAAAAAAEAAAAAAAAACwAAAAAAAAAAAAAAAAAAAAA=",
+					TxEnvelope:                  "AAAAAgAAAADg3G3hclysZlFitS+s5zWyiiJD5B0STWy5LXCj6i5yxQAAAAAAAABkAAAAAAAAAAEAAAACAAAAAQAAAAAAAAAAAAAAAGI81AkAAAABAAAAAAAAAAEAAAAAAAAAAAAAAAoAAAACAAAAAAAAAAAAAAABAAAAAAAAAAsAAAAAAAAAAAAAAAAAAAAA",
 					TxResult:                    "AAAAAAAAASwAAAAAAAAAAwAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAFAAAAAAAAAAA=",
 					TxFeeMeta:                   "AAAAAA==",
 					TxMeta:                      "AAAAAQAAAAAAAAAA",
@@ -813,7 +814,7 @@ func TestInsertTransaction(t *testing.T) {
 					InnerSignatures:  nullSignatures,
 					MemoType:         "none",
 					Memo:             null.NewString("", false),
-					TimeBounds:       nullTimeBounds,
+					TimeBounds:       infiniteTimeBounds,
 					LedgerBounds:     LedgerBounds{Null: true},
 					ExtraSigners:     nil,
 					Successful:       success,

@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/stellar/go/clients/horizonclient"
 	"github.com/stellar/go/exp/support/jwtkey"
 	"github.com/stellar/go/keypair"
@@ -25,7 +25,7 @@ import (
 	"github.com/stellar/go/txnbuild"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gopkg.in/square/go-jose.v2"
+	"github.com/go-jose/go-jose/v4"
 )
 
 func TestToken_formInputSuccess(t *testing.T) {
