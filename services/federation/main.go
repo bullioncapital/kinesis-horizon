@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/v5"
 	"github.com/spf13/cobra"
 	"github.com/stellar/go/handlers/federation"
 	"github.com/stellar/go/support/app"

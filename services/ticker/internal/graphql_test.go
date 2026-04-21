@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/v5"
 
 	"github.com/stellar/go/services/ticker/internal/gql"
 	"github.com/stellar/go/services/ticker/internal/tickerdb/tickerdbtest"

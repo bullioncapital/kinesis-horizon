@@ -13,8 +13,8 @@ import (
 	"github.com/stellar/go/support/render/httpjson"
 	"github.com/stellar/go/txnbuild"
 	"github.com/stellar/go/xdr"
-	"gopkg.in/square/go-jose.v2"
-	"gopkg.in/square/go-jose.v2/jwt"
+	"github.com/go-jose/go-jose/v4"
+	"github.com/go-jose/go-jose/v4/jwt"
 )
 
 type tokenHandler struct {
@@ -170,7 +170,7 @@ func (h tokenHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		IssuedAt: jwt.NewNumericDate(issuedAt),
 		Expiry:   jwt.NewNumericDate(issuedAt.Add(h.JWTExpiresIn)),
 	}
-	tokenStr, err := jwt.Signed(jws).Claims(claims).CompactSerialize()
+	tokenStr, err := jwt.Signed(jws).Claims(claims).Serialize()
 	if err != nil {
 		l.WithStack(err).Error(err)
 		serverError.Render(w)

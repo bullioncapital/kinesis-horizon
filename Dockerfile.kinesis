@@ -2,7 +2,7 @@ ARG KINESIS_CORE_IMAGE=abxit/kinesis-core:5b08ad3
 
 FROM ${KINESIS_CORE_IMAGE} AS core
 
-FROM golang:1.26 AS builder
+FROM golang:1.26.2 AS builder
 ENV DEBIAN_FRONTEND=noninteractive
 ARG VERSION=develop
 RUN apt-get update && apt-get upgrade -y && apt-get clean
