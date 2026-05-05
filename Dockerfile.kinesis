@@ -1,4 +1,4 @@
-ARG KINESIS_CORE_IMAGE=abxit/kinesis-core:5b08ad3
+ARG KINESIS_CORE_IMAGE=abxit/kinesis-core:v19.14.0-kinesis.1
 
 FROM ${KINESIS_CORE_IMAGE} AS core
 
