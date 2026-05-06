@@ -129,10 +129,12 @@ func TestStatsLedgerTransactionProcessor(t *testing.T) {
 	}))
 
 	results := processor.GetResults()
+	results.TransactionsFiltered = 1
 
 	assert.Equal(t, int64(2), results.Transactions)
 	assert.Equal(t, int64(1), results.TransactionsSuccessful)
 	assert.Equal(t, int64(1), results.TransactionsFailed)
+	assert.Equal(t, int64(1), results.TransactionsFiltered)
 
 	assert.Equal(t, int64(21*2), results.Operations)
 	assert.Equal(t, int64(21), results.OperationsInSuccessful)

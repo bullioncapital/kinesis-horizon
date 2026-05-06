@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -23,11 +24,14 @@ func TestGetLedgerSucceeds(t *testing.T) {
 		},
 	}
 	called := 0
+	var encodeFailed int64
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		called++
-		json.NewEncoder(w).Encode(LedgerResponse{
+		if nil != json.NewEncoder(w).Encode(LedgerResponse{
 			Ledger: Base64Ledger(expectedLedger),
-		})
+		}) {
+			atomic.AddInt64(&encodeFailed, 1)
+		}
 	}))
 	defer server.Close()
 
@@ -38,6 +42,7 @@ func TestGetLedgerSucceeds(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 1, called)
 	require.Equal(t, expectedLedger, ledger)
+	require.Equal(t, int64(0), atomic.LoadInt64(&encodeFailed))
 }
 
 func TestGetLedgerTakesAWhile(t *testing.T) {
@@ -51,6 +56,7 @@ func TestGetLedgerTakesAWhile(t *testing.T) {
 		},
 	}
 	called := 0
+	var encodeFailed int64
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		called++
 		if called == 1 {
@@ -58,9 +64,11 @@ func TestGetLedgerTakesAWhile(t *testing.T) {
 			w.WriteHeader(http.StatusRequestTimeout)
 			return
 		}
-		json.NewEncoder(w).Encode(LedgerResponse{
+		if nil != json.NewEncoder(w).Encode(LedgerResponse{
 			Ledger: Base64Ledger(expectedLedger),
-		})
+		}) {
+			atomic.AddInt64(&encodeFailed, 1)
+		}
 	}))
 	defer server.Close()
 
@@ -71,4 +79,5 @@ func TestGetLedgerTakesAWhile(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 2, called)
 	require.Equal(t, expectedLedger, ledger)
+	require.Equal(t, int64(0), atomic.LoadInt64(&encodeFailed))
 }

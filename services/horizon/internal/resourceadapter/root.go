@@ -6,6 +6,7 @@ import (
 
 	"github.com/stellar/go/protocols/horizon"
 	horizonContext "github.com/stellar/go/services/horizon/internal/context"
+	"github.com/stellar/go/services/horizon/internal/ingest"
 	"github.com/stellar/go/services/horizon/internal/ledger"
 	"github.com/stellar/go/support/render/hal"
 )
@@ -31,6 +32,7 @@ func PopulateRoot(
 	dest.StellarCoreVersion = cVersion
 	dest.NetworkPassphrase = passphrase
 	dest.CurrentProtocolVersion = currentProtocolVersion
+	dest.SupportedProtocolVersion = ingest.MaxSupportedProtocolVersion
 	dest.CoreSupportedProtocolVersion = coreSupportedProtocolVersion
 
 	lb := hal.LinkBuilder{Base: horizonContext.BaseURL(ctx)}

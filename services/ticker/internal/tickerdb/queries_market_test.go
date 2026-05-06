@@ -8,13 +8,12 @@ import (
 	"time"
 
 	migrate "github.com/rubenv/sql-migrate"
-	"github.com/stellar/go/support/db/dbtest"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestRetrieveMarketData(t *testing.T) {
-	db := dbtest.Postgres(t)
+	db := OpenTestDBConnection(t)
 	defer db.Close()
 
 	var session TickerSession
@@ -107,7 +106,7 @@ func TestRetrieveMarketData(t *testing.T) {
 
 	// Now let's create the trades:
 	trades := []Trade{
-		Trade{ // XLM_BTC trade
+		{ // XLM_BTC trade
 			HorizonID:       "hrzid1",
 			BaseAssetID:     xlmAsset.ID,
 			BaseAmount:      100.0,
@@ -116,7 +115,7 @@ func TestRetrieveMarketData(t *testing.T) {
 			Price:           0.1,
 			LedgerCloseTime: now,
 		},
-		Trade{ // XLM_ETH trade
+		{ // XLM_ETH trade
 			HorizonID:       "hrzid3",
 			BaseAssetID:     xlmAsset.ID,
 			BaseAmount:      24.0,
@@ -125,7 +124,7 @@ func TestRetrieveMarketData(t *testing.T) {
 			Price:           0.92,
 			LedgerCloseTime: oneHourAgo,
 		},
-		Trade{ // XLM_ETH trade
+		{ // XLM_ETH trade
 			HorizonID:       "hrzid2",
 			BaseAssetID:     xlmAsset.ID,
 			BaseAmount:      50.0,
@@ -134,7 +133,7 @@ func TestRetrieveMarketData(t *testing.T) {
 			Price:           1.0,
 			LedgerCloseTime: now,
 		},
-		Trade{ // XLM_BTC trade
+		{ // XLM_BTC trade
 			HorizonID:       "hrzid4",
 			BaseAssetID:     xlmAsset.ID,
 			BaseAmount:      50.0,
@@ -143,7 +142,7 @@ func TestRetrieveMarketData(t *testing.T) {
 			Price:           0.12,
 			LedgerCloseTime: threeDaysAgo,
 		},
-		Trade{ // XLM_ETH trade
+		{ // XLM_ETH trade
 			HorizonID:       "hrzid5",
 			BaseAssetID:     xlmAsset.ID,
 			BaseAmount:      24.0,
@@ -286,7 +285,7 @@ func TestRetrieveMarketData(t *testing.T) {
 
 	assert.Equal(t, priceChange24hDiff, priceChange7dDiff)
 
-	// Analysing aggregated orderbook data:
+	// Analyzing aggregated orderbook data:
 	assert.Equal(t, 15, xlmethMkt.NumBids)
 	assert.Equal(t, 0.15, xlmethMkt.BidVolume)
 	assert.Equal(t, 200.0, xlmethMkt.HighestBid)
@@ -303,7 +302,7 @@ func TestRetrieveMarketData(t *testing.T) {
 }
 
 func TestRetrievePartialMarkets(t *testing.T) {
-	db := dbtest.Postgres(t)
+	db := OpenTestDBConnection(t)
 	defer db.Close()
 
 	var session TickerSession
@@ -417,7 +416,7 @@ func TestRetrievePartialMarkets(t *testing.T) {
 
 	// Now let's create the trades:
 	trades := []Trade{
-		Trade{ // BTC_ETH  trade (ETH is from issuer 1)
+		{ // BTC_ETH  trade (ETH is from issuer 1)
 			HorizonID:       "hrzid1",
 			BaseAssetID:     btcAsset.ID,
 			BaseAmount:      100.0,
@@ -426,7 +425,7 @@ func TestRetrievePartialMarkets(t *testing.T) {
 			Price:           0.1,
 			LedgerCloseTime: tenMinutesAgo,
 		},
-		Trade{ // BTC_ETH trade (ETH is from issuer 2)
+		{ // BTC_ETH trade (ETH is from issuer 2)
 			HorizonID:       "hrzid3",
 			BaseAssetID:     btcAsset.ID,
 			BaseAmount:      24.0,
@@ -435,7 +434,7 @@ func TestRetrievePartialMarkets(t *testing.T) {
 			Price:           0.92,
 			LedgerCloseTime: now,
 		},
-		Trade{ // BTC_ETH  trade (ETH is from issuer 1)
+		{ // BTC_ETH  trade (ETH is from issuer 1)
 			HorizonID:       "hrzid2",
 			BaseAssetID:     btcAsset.ID,
 			BaseAmount:      50.0,
@@ -444,7 +443,7 @@ func TestRetrievePartialMarkets(t *testing.T) {
 			Price:           1.0,
 			LedgerCloseTime: oneHourAgo,
 		},
-		Trade{ // BTC_ETH  trade (ETH is from issuer 1)
+		{ // BTC_ETH  trade (ETH is from issuer 1)
 			HorizonID:       "hrzid4",
 			BaseAssetID:     btcAsset.ID,
 			BaseAmount:      50.0,
@@ -618,7 +617,7 @@ func TestRetrievePartialMarkets(t *testing.T) {
 }
 
 func Test24hStatsFallback(t *testing.T) {
-	db := dbtest.Postgres(t)
+	db := OpenTestDBConnection(t)
 	defer db.Close()
 
 	var session TickerSession
@@ -689,7 +688,7 @@ func Test24hStatsFallback(t *testing.T) {
 
 	// Now let's create the trades:
 	trades := []Trade{
-		Trade{
+		{
 			HorizonID:       "hrzid1",
 			BaseAssetID:     xlmAsset.ID,
 			BaseAmount:      1.0,
@@ -698,7 +697,7 @@ func Test24hStatsFallback(t *testing.T) {
 			Price:           0.5, // close price & lowest price
 			LedgerCloseTime: twoDaysAgo,
 		},
-		Trade{ // BTC_ETH trade (ETH is from issuer 2)
+		{ // BTC_ETH trade (ETH is from issuer 2)
 			HorizonID:       "hrzid2",
 			BaseAssetID:     xlmAsset.ID,
 			BaseAmount:      1.0,
@@ -724,7 +723,7 @@ func Test24hStatsFallback(t *testing.T) {
 }
 
 func TestPreferAnchorAssetCode(t *testing.T) {
-	db := dbtest.Postgres(t)
+	db := OpenTestDBConnection(t)
 	defer db.Close()
 
 	var session TickerSession
@@ -796,7 +795,7 @@ func TestPreferAnchorAssetCode(t *testing.T) {
 
 	// Now let's create the trades:
 	trades := []Trade{
-		Trade{
+		{
 			HorizonID:       "hrzid1",
 			BaseAssetID:     xlmAsset.ID,
 			BaseAmount:      1.0,
@@ -805,7 +804,7 @@ func TestPreferAnchorAssetCode(t *testing.T) {
 			Price:           0.5, // close price & lowest price
 			LedgerCloseTime: twoDaysAgo,
 		},
-		Trade{ // BTC_ETH trade (ETH is from issuer 2)
+		{ // BTC_ETH trade (ETH is from issuer 2)
 			HorizonID:       "hrzid2",
 			BaseAssetID:     xlmAsset.ID,
 			BaseAmount:      1.0,

@@ -20,14 +20,19 @@ func TestClaimableBalancesChangeProcessorTestSuiteState(t *testing.T) {
 
 type ClaimableBalancesChangeProcessorTestSuiteState struct {
 	suite.Suite
-	ctx       context.Context
-	processor *ClaimableBalancesChangeProcessor
-	mockQ     *history.MockQClaimableBalances
+	ctx                    context.Context
+	processor              *ClaimableBalancesChangeProcessor
+	mockQ                  *history.MockQClaimableBalances
+	mockBatchInsertBuilder *history.MockClaimableBalanceClaimantBatchInsertBuilder
 }
 
 func (s *ClaimableBalancesChangeProcessorTestSuiteState) SetupTest() {
 	s.ctx = context.Background()
+	s.mockBatchInsertBuilder = &history.MockClaimableBalanceClaimantBatchInsertBuilder{}
 	s.mockQ = &history.MockQClaimableBalances{}
+	s.mockQ.
+		On("NewClaimableBalanceClaimantBatchInsertBuilder", maxBatchSize).
+		Return(s.mockBatchInsertBuilder).Once()
 
 	s.processor = NewClaimableBalancesChangeProcessor(s.mockQ)
 }
@@ -50,21 +55,39 @@ func (s *ClaimableBalancesChangeProcessorTestSuiteState) TestCreatesClaimableBal
 
 	cBalance := xdr.ClaimableBalanceEntry{
 		BalanceId: balanceID,
-		Claimants: []xdr.Claimant{},
-		Asset:     xdr.MustNewCreditAsset("USD", "GC3C4AKRBQLHOJ45U4XG35ESVWRDECWO5XLDGYADO6DPR3L7KIDVUMML"),
-		Amount:    10,
+		Claimants: []xdr.Claimant{
+			{
+				V0: &xdr.ClaimantV0{
+					Destination: xdr.MustAddress("GC3C4AKRBQLHOJ45U4XG35ESVWRDECWO5XLDGYADO6DPR3L7KIDVUMML"),
+				},
+			},
+		},
+		Asset:  xdr.MustNewCreditAsset("USD", "GC3C4AKRBQLHOJ45U4XG35ESVWRDECWO5XLDGYADO6DPR3L7KIDVUMML"),
+		Amount: 10,
 	}
 	id, err := xdr.MarshalHex(balanceID)
 	s.Assert().NoError(err)
 	s.mockQ.On("UpsertClaimableBalances", s.ctx, []history.ClaimableBalance{
 		{
-			BalanceID:          id,
-			Claimants:          []history.Claimant{},
+			BalanceID: id,
+			Claimants: []history.Claimant{
+				{
+					Destination: "GC3C4AKRBQLHOJ45U4XG35ESVWRDECWO5XLDGYADO6DPR3L7KIDVUMML",
+				},
+			},
 			Asset:              cBalance.Asset,
 			Amount:             cBalance.Amount,
 			LastModifiedLedger: uint32(lastModifiedLedgerSeq),
 		},
 	}).Return(nil).Once()
+
+	s.mockBatchInsertBuilder.On("Add", s.ctx, history.ClaimableBalanceClaimant{
+		BalanceID:          id,
+		Destination:        "GC3C4AKRBQLHOJ45U4XG35ESVWRDECWO5XLDGYADO6DPR3L7KIDVUMML",
+		LastModifiedLedger: uint32(lastModifiedLedgerSeq),
+	}).Return(nil).Once()
+
+	s.mockBatchInsertBuilder.On("Exec", s.ctx).Return(nil).Once()
 
 	err = s.processor.ProcessChange(s.ctx, ingest.Change{
 		Type: xdr.LedgerEntryTypeClaimableBalance,
@@ -86,14 +109,19 @@ func TestClaimableBalancesChangeProcessorTestSuiteLedger(t *testing.T) {
 
 type ClaimableBalancesChangeProcessorTestSuiteLedger struct {
 	suite.Suite
-	ctx       context.Context
-	processor *ClaimableBalancesChangeProcessor
-	mockQ     *history.MockQClaimableBalances
+	ctx                    context.Context
+	processor              *ClaimableBalancesChangeProcessor
+	mockQ                  *history.MockQClaimableBalances
+	mockBatchInsertBuilder *history.MockClaimableBalanceClaimantBatchInsertBuilder
 }
 
 func (s *ClaimableBalancesChangeProcessorTestSuiteLedger) SetupTest() {
 	s.ctx = context.Background()
+	s.mockBatchInsertBuilder = &history.MockClaimableBalanceClaimantBatchInsertBuilder{}
 	s.mockQ = &history.MockQClaimableBalances{}
+	s.mockQ.
+		On("NewClaimableBalanceClaimantBatchInsertBuilder", maxBatchSize).
+		Return(s.mockBatchInsertBuilder).Once()
 
 	s.processor = NewClaimableBalancesChangeProcessor(s.mockQ)
 }
@@ -132,6 +160,8 @@ func (s *ClaimableBalancesChangeProcessorTestSuiteLedger) TestNewClaimableBalanc
 			},
 		},
 	}
+	s.mockBatchInsertBuilder.On("Exec", s.ctx).Return(nil).Once()
+
 	err := s.processor.ProcessChange(s.ctx, ingest.Change{
 		Type: xdr.LedgerEntryTypeClaimableBalance,
 		Pre:  nil,
@@ -222,6 +252,7 @@ func (s *ClaimableBalancesChangeProcessorTestSuiteLedger) TestUpdateClaimableBal
 			},
 		},
 	}
+	s.mockBatchInsertBuilder.On("Exec", s.ctx).Return(nil).Once()
 
 	err := s.processor.ProcessChange(s.ctx, ingest.Change{
 		Type: xdr.LedgerEntryTypeClaimableBalance,
@@ -284,6 +315,12 @@ func (s *ClaimableBalancesChangeProcessorTestSuiteLedger) TestRemoveClaimableBal
 	s.Assert().NoError(err)
 	s.mockQ.On(
 		"RemoveClaimableBalances",
+		s.ctx,
+		[]string{id},
+	).Return(int64(1), nil).Once()
+
+	s.mockQ.On(
+		"RemoveClaimableBalanceClaimants",
 		s.ctx,
 		[]string{id},
 	).Return(int64(1), nil).Once()

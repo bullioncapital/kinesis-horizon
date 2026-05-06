@@ -44,7 +44,7 @@ func (minion *Minion) Run(destAddress string, resultChan chan SubmitResult) {
 		}
 		return
 	}
-	txStr, err := minion.makeTx(destAddress)
+	txHash, txStr, err := minion.makeTx(destAddress)
 	if err != nil {
 		resultChan <- SubmitResult{
 			maybeTransactionSuccess: nil,
@@ -55,7 +55,7 @@ func (minion *Minion) Run(destAddress string, resultChan chan SubmitResult) {
 	succ, err := minion.SubmitTransaction(minion, minion.Horizon, txStr)
 	resultChan <- SubmitResult{
 		maybeTransactionSuccess: succ,
-		maybeErr:                errors.Wrap(err, "submitting tx to minion"),
+		maybeErr:                errors.Wrapf(err, "submitting tx to minion %x", txHash),
 	}
 }
 
@@ -105,7 +105,7 @@ func (minion *Minion) checkHandleBadSequence(err *horizonclient.Error) {
 	minion.forceRefreshSequence = true
 }
 
-func (minion *Minion) makeTx(destAddress string) (string, error) {
+func (minion *Minion) makeTx(destAddress string) ([32]byte, string, error) {
 	createAccountOp := txnbuild.CreateAccount{
 		Destination:   destAddress,
 		SourceAccount: minion.BotAccount.GetAccountID(),
@@ -117,27 +117,32 @@ func (minion *Minion) makeTx(destAddress string) (string, error) {
 			IncrementSequenceNum: true,
 			Operations:           []txnbuild.Operation{&createAccountOp},
 			BaseFee:              minion.BaseFee,
-			Timebounds:           txnbuild.NewInfiniteTimeout(),
+			Preconditions:        txnbuild.Preconditions{TimeBounds: txnbuild.NewInfiniteTimeout()},
 		},
 	)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to build tx")
+		return [32]byte{}, "", errors.Wrap(err, "unable to build tx")
 	}
 
 	tx, err = tx.Sign(minion.Network, minion.Keypair, minion.BotKeypair)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to sign tx")
+		return [32]byte{}, "", errors.Wrap(err, "unable to sign tx")
 	}
 
 	txe, err := tx.Base64()
 	if err != nil {
-		return "", errors.Wrap(err, "unable to serialize")
+		return [32]byte{}, "", errors.Wrap(err, "unable to serialize")
+	}
+
+	txh, err := tx.Hash(minion.Network)
+	if err != nil {
+		return [32]byte{}, "", errors.Wrap(err, "unable to hash")
 	}
 
 	// Increment the in-memory sequence number, since the tx will be submitted.
 	_, err = minion.Account.IncrementSequenceNumber()
 	if err != nil {
-		return "", errors.Wrap(err, "incrementing minion seq")
+		return [32]byte{}, "", errors.Wrap(err, "incrementing minion seq")
 	}
-	return txe, err
+	return txh, txe, err
 }

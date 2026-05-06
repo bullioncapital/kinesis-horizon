@@ -20,6 +20,7 @@ type Config struct {
 	AdminPort          uint
 
 	EnableCaptiveCoreIngestion  bool
+	EnableIngestionFiltering    bool
 	UsingDefaultPubnetConfig    bool
 	CaptiveCoreBinaryPath       string
 	RemoteCaptiveCoreURL        string
@@ -47,11 +48,13 @@ type Config struct {
 
 	// MaxPathLength is the maximum length of the path returned by `/paths` endpoint.
 	MaxPathLength uint
-	// MaxAssetsPerPathRequest is the maximum number of assets considered for `/paths/strict-send` and `/paths/strict-recieve`
+	// MaxAssetsPerPathRequest is the maximum number of assets considered for `/paths/strict-send` and `/paths/strict-receive`
 	MaxAssetsPerPathRequest int
 	// DisablePoolPathFinding configures horizon to run path finding without including liquidity pools
 	// in the path finding search.
 	DisablePoolPathFinding bool
+	// DisablePathFinding configures horizon without the path finding endpoint.
+	DisablePathFinding bool
 	// MaxPathFindingRequests is the maximum number of path finding requests horizon will allow
 	// in a 1-second period. A value of 0 disables the limit.
 	MaxPathFindingRequests uint
@@ -86,6 +89,14 @@ type Config struct {
 	// IngestDisableStateVerification disables state verification
 	// `System.verifyState()` when set to `true`.
 	IngestDisableStateVerification bool
+	// IngestStateVerificationCheckpointFrequency configures how often state verification is performed.
+	// If IngestStateVerificationCheckpointFrequency is set to 1 state verification is run on every checkpoint,
+	// If IngestStateVerificationCheckpointFrequency is set to 2 state verification is run on every second checkpoint,
+	// etc...
+	IngestStateVerificationCheckpointFrequency uint
+	// IngestStateVerificationTimeout configures a timeout on the state verification routine.
+	// If IngestStateVerificationTimeout is set to 0 the timeout is disabled.
+	IngestStateVerificationTimeout time.Duration
 	// IngestEnableExtendedLogLedgerStats enables extended ledger stats in
 	// logging.
 	IngestEnableExtendedLogLedgerStats bool

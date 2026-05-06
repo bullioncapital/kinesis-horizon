@@ -41,7 +41,7 @@ func TestOperationQueries(t *testing.T) {
 	tt.Assert.Len(transactions, 0)
 
 	// tx filter works
-	hash := "2374e99349b9ef7dba9a5db3339b78fda8f34777b1af33ba468ad5c0df946d4d"
+	hash := "ff5cba32e8918327f1d563f57cd54dc5f5906f33ce53aeb119df06a16f797387"
 	ops, transactions, err = q.Operations().ForTransaction(tt.Ctx, hash).Fetch(tt.Ctx)
 	if tt.Assert.NoError(err) {
 		tt.Assert.Len(ops, 1)
@@ -81,7 +81,7 @@ func TestOperationByLiquidityPool(t *testing.T) {
 	transactionBuilder := q.NewTransactionBatchInsertBuilder(2)
 	firstTransaction := buildLedgerTransaction(tt.T, testTransaction{
 		index:         uint32(txIndex),
-		envelopeXDR:   "AAAAACiSTRmpH6bHC6Ekna5e82oiGY5vKDEEUgkq9CB//t+rAAAAyAEXUhsAADDRAAAAAAAAAAAAAAABAAAAAAAAAAsBF1IbAABX4QAAAAAAAAAA",
+		envelopeXDR:   "AAAAACiSTRmpH6bHC6Ekna5e82oiGY5vKDEEUgkq9CB//t+rAAAAAAAAAMgBF1IbAAAw0QAAAAAAAAAAAAAAAQAAAAAAAAALARdSGwAAV+EAAAAAAAAAAA==",
 		resultXDR:     "AAAAAAAAASwAAAAAAAAAAwAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAFAAAAAAAAAAA=",
 		feeChangesXDR: "AAAAAA==",
 		metaXDR:       "AAAAAQAAAAAAAAAA",
@@ -314,7 +314,7 @@ func TestExtraChecksOperationsTransactionSuccessfulTrueResultFalse(t *testing.T)
 
 	// successful `true` but tx result `false`
 	_, err := tt.HorizonDB.Exec(
-		`UPDATE history_transactions SET successful = true WHERE transaction_hash = 'aa168f12124b7c196c0adaee7c73a64d37f99428cacb59a91ff389626845e7cf'`,
+		`UPDATE history_transactions SET successful = true WHERE transaction_hash = 'e34941080e33bf0ce90c7fac31ec13a0f7e9e5489204e766c3def374164aa3fa'`,
 	)
 	tt.Require.NoError(err)
 
@@ -408,13 +408,13 @@ func TestOperationIncludeTransactions(t *testing.T) {
 func TestValidateTransactionForOperation(t *testing.T) {
 	tt := test.Start(t)
 	tt.Scenario("failed_transactions")
-	selectTransactionCopy := selectTransaction
+	selectTransactionCopy := selectTransactionHistory
 	defer func() {
-		selectTransaction = selectTransactionCopy
+		selectTransactionHistory = selectTransactionCopy
 		tt.Finish()
 	}()
 
-	selectTransaction = sq.Select(
+	selectTransactionHistory = sq.Select(
 		"ht.transaction_hash, " +
 			"ht.tx_result, " +
 			"COALESCE(ht.successful, true) as successful").
@@ -435,7 +435,7 @@ func TestValidateTransactionForOperation(t *testing.T) {
 	tt.Assert.Error(err)
 	tt.Assert.EqualError(err, "transaction id 0 does not match transaction id in operation 17179877376")
 
-	selectTransaction = sq.Select(
+	selectTransactionHistory = sq.Select(
 		"ht.id, " +
 			"ht.transaction_hash, " +
 			"COALESCE(ht.successful, true) as successful").
@@ -452,7 +452,7 @@ func TestValidateTransactionForOperation(t *testing.T) {
 	tt.Assert.Error(err)
 	tt.Assert.EqualError(err, "transaction result  does not match transaction result in operation AAAAAAAAAGQAAAAAAAAAAQAAAAAAAAABAAAAAAAAAAA=")
 
-	selectTransaction = sq.Select(
+	selectTransactionHistory = sq.Select(
 		"ht.id, " +
 			"ht.tx_result, " +
 			"COALESCE(ht.successful, true) as successful").
@@ -469,7 +469,7 @@ func TestValidateTransactionForOperation(t *testing.T) {
 	tt.Assert.Error(err)
 	tt.Assert.EqualError(err, "transaction hash  does not match transaction hash in operation 1c454630267aa8767ec8c8e30450cea6ba660145e9c924abb75d7a6669b6c28a")
 
-	selectTransaction = sq.Select(
+	selectTransactionHistory = sq.Select(
 		"ht.id, " +
 			"ht.tx_result, " +
 			"ht.transaction_hash").

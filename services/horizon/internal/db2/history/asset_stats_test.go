@@ -655,7 +655,7 @@ func TestGetAssetStatsFiltersAndCursor(t *testing.T) {
 			},
 		},
 		{
-			"filter on non existant code without cursor",
+			"filter on non existent code without cursor",
 			"BTC",
 			"",
 			"",
@@ -663,7 +663,7 @@ func TestGetAssetStatsFiltersAndCursor(t *testing.T) {
 			nil,
 		},
 		{
-			"filter on non existant code with cursor",
+			"filter on non existent code with cursor",
 			"BTC",
 			"",
 			"BTC_GA5WBPYA5Y4WAEHXWR2UKO2UO4BUGHUQ74EUPKON2QHV4WRHOIRNKKH2_credit_alphanum4",
@@ -671,7 +671,7 @@ func TestGetAssetStatsFiltersAndCursor(t *testing.T) {
 			nil,
 		},
 		{
-			"filter on non existant issuer without cursor",
+			"filter on non existent issuer without cursor",
 			"",
 			"GAEIHD6U4WSBHJGA2HPWOQ3OQEFQ3Y7QZE2DR76YKZNKPW5YDLYW4UGF",
 			"",
@@ -679,7 +679,7 @@ func TestGetAssetStatsFiltersAndCursor(t *testing.T) {
 			nil,
 		},
 		{
-			"filter on non existant issuer with cursor",
+			"filter on non existent issuer with cursor",
 			"",
 			"GAEIHD6U4WSBHJGA2HPWOQ3OQEFQ3Y7QZE2DR76YKZNKPW5YDLYW4UGF",
 			"AAA_GAEIHD6U4WSBHJGA2HPWOQ3OQEFQ3Y7QZE2DR76YKZNKPW5YDLYW4UGF_credit_alphanum4",
@@ -687,7 +687,7 @@ func TestGetAssetStatsFiltersAndCursor(t *testing.T) {
 			nil,
 		},
 		{
-			"filter on non existant code and non existant issuer without cursor",
+			"filter on non existent code and non existent issuer without cursor",
 			"BTC",
 			"GAEIHD6U4WSBHJGA2HPWOQ3OQEFQ3Y7QZE2DR76YKZNKPW5YDLYW4UGF",
 			"",
@@ -695,7 +695,7 @@ func TestGetAssetStatsFiltersAndCursor(t *testing.T) {
 			nil,
 		},
 		{
-			"filter on non existant code and non existant issuer with cursor",
+			"filter on non existent code and non existent issuer with cursor",
 			"BTC",
 			"GAEIHD6U4WSBHJGA2HPWOQ3OQEFQ3Y7QZE2DR76YKZNKPW5YDLYW4UGF",
 			"AAA_GA5WBPYA5Y4WAEHXWR2UKO2UO4BUGHUQ74EUPKON2QHV4WRHOIRNKKH2_credit_alphanum4",

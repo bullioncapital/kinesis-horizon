@@ -95,12 +95,12 @@ func TestMultipleAccountsForSigner(t *testing.T) {
 	tt.Assert.Equal(int64(1), rowsAffected)
 
 	expected := []AccountSigner{
-		AccountSigner{
+		{
 			Account: account,
 			Signer:  signer,
 			Weight:  weight,
 		},
-		AccountSigner{
+		{
 			Account: anotherAccount,
 			Signer:  signer,
 			Weight:  anotherWeight,
@@ -112,7 +112,7 @@ func TestMultipleAccountsForSigner(t *testing.T) {
 	tt.Assert.Equal(expected, results)
 }
 
-func TestRemoveNonExistantAccountSigner(t *testing.T) {
+func TestRemoveNonExistentAccountSigner(t *testing.T) {
 	tt := test.Start(t)
 	tt.Scenario("base")
 	defer tt.Finish()

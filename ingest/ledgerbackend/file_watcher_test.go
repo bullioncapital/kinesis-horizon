@@ -58,15 +58,14 @@ func createFWFixtures(t *testing.T) (*mockHash, *stellarCoreRunner, *fileWatcher
 	captiveCoreToml, err := NewCaptiveCoreToml(CaptiveCoreTomlParams{})
 	assert.NoError(t, err)
 
-	runner, err := newStellarCoreRunner(CaptiveCoreConfig{
+	runner := newStellarCoreRunner(CaptiveCoreConfig{
 		BinaryPath:         "/some/path",
 		HistoryArchiveURLs: []string{"http://localhost"},
 		Log:                log.New(),
 		Context:            context.Background(),
 		Toml:               captiveCoreToml,
 		StoragePath:        storagePath,
-	}, stellarCoreRunnerModeOffline)
-	assert.NoError(t, err)
+	})
 
 	fw, err := newFileWatcherWithOptions(runner, ms.hashFile, time.Millisecond)
 	assert.NoError(t, err)
@@ -90,15 +89,14 @@ func TestNewFileWatcherError(t *testing.T) {
 	captiveCoreToml, err := NewCaptiveCoreToml(CaptiveCoreTomlParams{})
 	assert.NoError(t, err)
 
-	runner, err := newStellarCoreRunner(CaptiveCoreConfig{
+	runner := newStellarCoreRunner(CaptiveCoreConfig{
 		BinaryPath:         "/some/path",
 		HistoryArchiveURLs: []string{"http://localhost"},
 		Log:                log.New(),
 		Context:            context.Background(),
 		Toml:               captiveCoreToml,
 		StoragePath:        storagePath,
-	}, stellarCoreRunnerModeOffline)
-	assert.NoError(t, err)
+	})
 
 	_, err = newFileWatcherWithOptions(runner, ms.hashFile, time.Millisecond)
 	assert.EqualError(t, err, "could not hash captive core binary: test error")

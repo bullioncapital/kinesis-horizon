@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql/driver"
 	"encoding/json"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -56,32 +57,40 @@ func (cbq ClaimableBalancesQuery) Cursor() (int64, string, error) {
 // ApplyCursor applies cursor to the given sql. For performance reason the limit
 // is not applied here. This allows us to hint the planner later to use the right
 // indexes.
-func (cbq ClaimableBalancesQuery) ApplyCursor(sql sq.SelectBuilder) (sq.SelectBuilder, error) {
-	p := cbq.PageQuery
-	l, r, err := cbq.Cursor()
-	if err != nil {
-		return sql, err
+func applyClaimableBalancesQueriesCursor(sql sq.SelectBuilder, lCursor int64, rCursor string, order string) (sq.SelectBuilder, error) {
+	hasPagedLimit := false
+	if lCursor > 0 && rCursor != "" {
+		hasPagedLimit = true
 	}
 
-	switch p.Order {
+	switch order {
 	case db2.OrderAscending:
-		if l > 0 && r != "" {
+		if hasPagedLimit {
 			sql = sql.
-				Where(sq.Expr("(cb.last_modified_ledger, cb.id) > (?, ?)", l, r))
+				Where(sq.Expr("(last_modified_ledger, id) > (?, ?)", lCursor, rCursor))
+
 		}
-		sql = sql.OrderBy("cb.last_modified_ledger asc, cb.id asc")
+		sql = sql.OrderBy("last_modified_ledger asc, id asc")
 	case db2.OrderDescending:
-		if l > 0 && r != "" {
+		if hasPagedLimit {
 			sql = sql.
-				Where(sq.Expr("(cb.last_modified_ledger, cb.id) < (?, ?)", l, r))
+				Where(sq.Expr("(last_modified_ledger, id) < (?, ?)", lCursor, rCursor))
 		}
 
-		sql = sql.OrderBy("cb.last_modified_ledger desc, cb.id desc")
+		sql = sql.OrderBy("last_modified_ledger desc, id desc")
 	default:
-		return sql, errors.Errorf("invalid order: %s", p.Order)
+		return sql, errors.Errorf("invalid order: %s", order)
 	}
 
 	return sql, nil
+}
+
+// ClaimableBalanceClaimant is a row of data from the `claimable_balances_claimants` table.
+// This table exists to allow faster querying for claimable balances for a specific claimant.
+type ClaimableBalanceClaimant struct {
+	BalanceID          string `db:"id"`
+	Destination        string `db:"destination"`
+	LastModifiedLedger uint32 `db:"last_modified_ledger"`
 }
 
 // ClaimableBalance is a row of data from the `claimable_balances` table.
@@ -119,8 +128,11 @@ type Claimant struct {
 type QClaimableBalances interface {
 	UpsertClaimableBalances(ctx context.Context, cb []ClaimableBalance) error
 	RemoveClaimableBalances(ctx context.Context, ids []string) (int64, error)
+	RemoveClaimableBalanceClaimants(ctx context.Context, ids []string) (int64, error)
 	GetClaimableBalancesByID(ctx context.Context, ids []string) ([]ClaimableBalance, error)
 	CountClaimableBalances(ctx context.Context) (int, error)
+	NewClaimableBalanceClaimantBatchInsertBuilder(maxBatchSize int) ClaimableBalanceClaimantBatchInsertBuilder
+	GetClaimantsByClaimableBalances(ctx context.Context, ids []string) (map[string][]ClaimableBalanceClaimant, error)
 }
 
 // CountClaimableBalances returns the total number of claimable balances in the DB
@@ -141,6 +153,22 @@ func (q *Q) GetClaimableBalancesByID(ctx context.Context, ids []string) ([]Claim
 	sql := selectClaimableBalances.Where(map[string]interface{}{"cb.id": ids})
 	err := q.Select(ctx, &cBalances, sql)
 	return cBalances, err
+}
+
+// GetClaimantsByClaimableBalances finds all claimants for ClaimableBalanceIds.
+// The returned list is sorted by ids and then destination ids for each balance id.
+func (q *Q) GetClaimantsByClaimableBalances(ctx context.Context, ids []string) (map[string][]ClaimableBalanceClaimant, error) {
+	var claimants []ClaimableBalanceClaimant
+	sql := sq.Select("*").From("claimable_balance_claimants cbc").
+		Where(map[string]interface{}{"cbc.id": ids}).
+		OrderBy("id asc, destination asc")
+	err := q.Select(ctx, &claimants, sql)
+
+	claimantsMap := make(map[string][]ClaimableBalanceClaimant)
+	for _, claimant := range claimants {
+		claimantsMap[claimant.BalanceID] = append(claimantsMap[claimant.BalanceID], claimant)
+	}
+	return claimantsMap, err
 }
 
 // UpsertClaimableBalances upserts a batch of claimable balances in the claimable_balances table.
@@ -186,6 +214,19 @@ func (q *Q) RemoveClaimableBalances(ctx context.Context, ids []string) (int64, e
 	return result.RowsAffected()
 }
 
+// RemoveClaimableBalanceClaimants deletes claimable balance claimants.
+// Returns number of rows affected and error.
+func (q *Q) RemoveClaimableBalanceClaimants(ctx context.Context, ids []string) (int64, error) {
+	sql := sq.Delete("claimable_balance_claimants").
+		Where(sq.Eq{"id": ids})
+	result, err := q.Exec(ctx, sql)
+	if err != nil {
+		return 0, err
+	}
+
+	return result.RowsAffected()
+}
+
 // FindClaimableBalanceByID returns a claimable balance.
 func (q *Q) FindClaimableBalanceByID(ctx context.Context, balanceID string) (ClaimableBalance, error) {
 	var claimableBalance ClaimableBalance
@@ -196,12 +237,18 @@ func (q *Q) FindClaimableBalanceByID(ctx context.Context, balanceID string) (Cla
 
 // GetClaimableBalances finds all claimable balances where accountID is one of the claimants
 func (q *Q) GetClaimableBalances(ctx context.Context, query ClaimableBalancesQuery) ([]ClaimableBalance, error) {
-	sql, err := query.ApplyCursor(selectClaimableBalances)
+	l, r, err := query.Cursor()
+	if err != nil {
+		return nil, errors.Wrap(err, "error getting cursor")
+	}
+
+	sql, err := applyClaimableBalancesQueriesCursor(selectClaimableBalances, l, r, query.PageQuery.Order)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not apply query to page")
 	}
 
 	if query.Asset != nil {
+		// when search by asset, profiling has shown best performance to have the LIMIT on inner query
 		sql = sql.Where("cb.asset = ?", query.Asset)
 	}
 
@@ -210,19 +257,26 @@ func (q *Q) GetClaimableBalances(ctx context.Context, query ClaimableBalancesQue
 	}
 
 	if query.Claimant != nil {
+		var selectClaimableBalanceClaimants = sq.Select("id").From("claimable_balance_claimants").
+			Where("destination = ?", query.Claimant.Address()).
+			// Given that each destination can be a claimant for each balance maximum once
+			// we can LIMIT the subquery.
+			Limit(query.PageQuery.Limit)
+		subSql, err := applyClaimableBalancesQueriesCursor(selectClaimableBalanceClaimants, l, r, query.PageQuery.Order)
+		if err != nil {
+			return nil, errors.Wrap(err, "could not apply subquery to page")
+		}
+
+		subSqlString, subSqlArgs, err := subSql.ToSql()
+		if err != nil {
+			return nil, errors.Wrap(err, "could not build subquery")
+		}
+
 		sql = sql.
-			Where(`cb.claimants @> '[{"destination": "` + query.Claimant.Address() + `"}]'`)
+			Where(fmt.Sprintf("cb.id IN (%s)", subSqlString), subSqlArgs...)
 	}
 
-	// we need to use WITH syntax to force the query planner to use the right
-	// indexes, otherwise when the limit is small, it will use an index scan
-	// which will be very slow once we have millions of records
-	sql = sql.
-		Prefix("WITH cb AS (").
-		Suffix(
-			") select "+claimableBalancesSelectStatement+" from cb LIMIT ?",
-			query.PageQuery.Limit,
-		)
+	sql = sql.Limit(query.PageQuery.Limit)
 
 	var results []ClaimableBalance
 	if err := q.Select(ctx, &results, sql); err != nil {

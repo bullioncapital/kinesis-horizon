@@ -19,6 +19,7 @@ type StatsLedgerTransactionProcessorResults struct {
 	Transactions           int64
 	TransactionsSuccessful int64
 	TransactionsFailed     int64
+	TransactionsFiltered   int64
 
 	Operations             int64
 	OperationsInSuccessful int64
@@ -115,7 +116,7 @@ func (p *StatsLedgerTransactionProcessor) ProcessTransaction(ctx context.Context
 		case xdr.OperationTypeLiquidityPoolWithdraw:
 			p.results.OperationsLiquidityPoolWithdraw++
 		default:
-			panic(fmt.Sprintf("Unkown operation type: %d", op.Body.Type))
+			panic(fmt.Sprintf("Unknown operation type: %d", op.Body.Type))
 		}
 	}
 
@@ -131,6 +132,7 @@ func (stats *StatsLedgerTransactionProcessorResults) Map() map[string]interface{
 		"stats_transactions":            stats.Transactions,
 		"stats_transactions_successful": stats.TransactionsSuccessful,
 		"stats_transactions_failed":     stats.TransactionsFailed,
+		"stats_transactions_filtered":   stats.TransactionsFiltered,
 
 		"stats_operations":               stats.Operations,
 		"stats_operations_in_successful": stats.OperationsInSuccessful,

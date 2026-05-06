@@ -187,7 +187,7 @@ func TestPaymentActions_Show_Failed(t *testing.T) {
 		ht.Assert.Equal(1, failed)
 	}
 
-	w = ht.Get("/transactions/aa168f12124b7c196c0adaee7c73a64d37f99428cacb59a91ff389626845e7cf/payments")
+	w = ht.Get("/transactions/e34941080e33bf0ce90c7fac31ec13a0f7e9e5489204e766c3def374164aa3fa/payments")
 
 	if ht.Assert.Equal(200, w.Code) {
 		records := []operations.Base{}
@@ -199,7 +199,7 @@ func TestPaymentActions_Show_Failed(t *testing.T) {
 		}
 	}
 
-	w = ht.Get("/transactions/56e3216045d579bea40f2d35a09406de3a894ecb5be70dbda5ec9c0427a0d5a1/payments")
+	w = ht.Get("/transactions/263b8b93313084b938891187081f8c6d2a756f7f2cb1fc5aaa2f7737517e7f4c/payments")
 
 	if ht.Assert.Equal(200, w.Code) {
 		records := []operations.Base{}
@@ -214,11 +214,11 @@ func TestPaymentActions_Show_Failed(t *testing.T) {
 	// NULL value
 	_, err := ht.HorizonSession().ExecRaw(ht.Ctx,
 		`UPDATE history_transactions SET successful = NULL WHERE transaction_hash = ?`,
-		"56e3216045d579bea40f2d35a09406de3a894ecb5be70dbda5ec9c0427a0d5a1",
+		"263b8b93313084b938891187081f8c6d2a756f7f2cb1fc5aaa2f7737517e7f4c",
 	)
 	ht.Require.NoError(err)
 
-	w = ht.Get("/transactions/56e3216045d579bea40f2d35a09406de3a894ecb5be70dbda5ec9c0427a0d5a1/payments")
+	w = ht.Get("/transactions/263b8b93313084b938891187081f8c6d2a756f7f2cb1fc5aaa2f7737517e7f4c/payments")
 
 	if ht.Assert.Equal(200, w.Code) {
 		records := []operations.Base{}
@@ -250,7 +250,7 @@ func TestPaymentActions_Show_Extra_TxID(t *testing.T) {
 	ht := StartHTTPTest(t, "failed_transactions")
 	defer ht.Finish()
 
-	w := ht.Get("/accounts/GBXGQJWVLWOYHFLVTKWV5FGHA3LNYY2JQKM7OAJAUEQFU6LPCSEFVXON/payments?limit=200&tx_id=aa168f12124b7c196c0adaee7c73a64d37f99428cacb59a91ff389626845e7cf")
+	w := ht.Get("/accounts/GBXGQJWVLWOYHFLVTKWV5FGHA3LNYY2JQKM7OAJAUEQFU6LPCSEFVXON/payments?limit=200&tx_id=e34941080e33bf0ce90c7fac31ec13a0f7e9e5489204e766c3def374164aa3fa")
 
 	ht.Assert.Equal(400, w.Code)
 	payload := ht.UnmarshalExtras(w.Body)

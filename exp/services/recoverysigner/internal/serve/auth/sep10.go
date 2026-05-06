@@ -8,8 +8,8 @@ import (
 	"github.com/stellar/go/keypair"
 	"github.com/stellar/go/support/http/httpauthz"
 	"github.com/stellar/go/support/log"
-	"gopkg.in/square/go-jose.v2"
-	"gopkg.in/square/go-jose.v2/jwt"
+	"github.com/go-jose/go-jose/v4"
+	"github.com/go-jose/go-jose/v4/jwt"
 )
 
 // SEP10Middleware provides middleware for handling an authentication SEP-10 JWT.
@@ -58,7 +58,16 @@ func sep10ClaimsFromRequest(r *http.Request, issuer string, ks jose.JSONWebKeySe
 	if tokenEncoded == "" {
 		return "", jose.JSONWebKey{}, false
 	}
-	token, err := jwt.ParseSigned(tokenEncoded)
+	var algs []jose.SignatureAlgorithm
+	for _, k := range ks.Keys {
+		if k.Algorithm != "" {
+			algs = append(algs, jose.SignatureAlgorithm(k.Algorithm))
+		}
+	}
+	if len(algs) == 0 {
+		algs = []jose.SignatureAlgorithm{jose.ES256}
+	}
+	token, err := jwt.ParseSigned(tokenEncoded, algs)
 	if err != nil {
 		return "", jose.JSONWebKey{}, false
 	}

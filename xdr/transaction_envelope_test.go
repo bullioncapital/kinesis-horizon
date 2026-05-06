@@ -58,9 +58,72 @@ func createTx() TransactionEnvelope {
 					Hash: &Hash{1, 1, 1},
 				},
 				SeqNum: 97,
-				TimeBounds: &TimeBounds{
-					MinTime: 2,
-					MaxTime: 4,
+				Cond: Preconditions{
+					Type: PreconditionTypePrecondTime,
+					TimeBounds: &TimeBounds{
+						MinTime: 2,
+						MaxTime: 4,
+					},
+				},
+				Operations: []Operation{
+					{
+						Body: OperationBody{
+							BumpSequenceOp: &BumpSequenceOp{
+								BumpTo: 98,
+							},
+						},
+					},
+				},
+			},
+			Signatures: []DecoratedSignature{
+				{
+					Hint:      SignatureHint{2, 2, 2, 2},
+					Signature: Signature{20, 20, 20},
+				},
+			},
+		},
+	}
+}
+
+func createCondV2Tx() TransactionEnvelope {
+	minSeqNum := SequenceNumber(7)
+	return TransactionEnvelope{
+		Type: EnvelopeTypeEnvelopeTypeTx,
+		V1: &TransactionV1Envelope{
+			Tx: Transaction{
+				SourceAccount: MuxedAccount{
+					Type: CryptoKeyTypeKeyTypeEd25519,
+					Ed25519: &Uint256{
+						3, 3, 3,
+					},
+				},
+				Fee: 99,
+				Memo: Memo{
+					Type: MemoTypeMemoHash,
+					Hash: &Hash{1, 1, 1},
+				},
+				SeqNum: 97,
+				Cond: Preconditions{
+					Type: PreconditionTypePrecondV2,
+					V2: &PreconditionsV2{
+						TimeBounds: &TimeBounds{
+							MinTime: 2,
+							MaxTime: 4,
+						},
+						LedgerBounds: &LedgerBounds{
+							MinLedger: 5,
+							MaxLedger: 6,
+						},
+						MinSeqNum:       &minSeqNum,
+						MinSeqAge:       Duration(8),
+						MinSeqLedgerGap: Uint32(9),
+						ExtraSigners: []SignerKey{
+							{
+								Type:    SignerKeyTypeSignerKeyTypeEd25519,
+								Ed25519: &Uint256{3, 3, 3},
+							},
+						},
+					},
 				},
 				Operations: []Operation{
 					{
@@ -267,28 +330,66 @@ func TestSeqNum(t *testing.T) {
 	)
 }
 
-func TestTimeBounds(t *testing.T) {
-	legacyTx := createLegacyTx()
-	tx := createTx()
-	feeBumpTx := createFeeBumpTx()
+func TestPreconditions(t *testing.T) {
+	t.Run("v0", func(t *testing.T) {
+		legacyTx := createLegacyTx()
 
-	assert.Equal(
-		t,
-		legacyTx.V0.Tx.TimeBounds,
-		legacyTx.TimeBounds(),
-	)
+		assert.Equal(
+			t,
+			legacyTx.V0.Tx.TimeBounds,
+			legacyTx.TimeBounds(),
+		)
+	})
 
-	assert.Equal(
-		t,
-		tx.V1.Tx.TimeBounds,
-		tx.TimeBounds(),
-	)
+	t.Run("v1", func(t *testing.T) {
+		tx := createTx()
+		assert.Equal(
+			t,
+			tx.V1.Tx.Cond.Type,
+			PreconditionTypePrecondTime,
+		)
 
-	assert.Equal(
-		t,
-		feeBumpTx.FeeBump.Tx.InnerTx.V1.Tx.TimeBounds,
-		feeBumpTx.TimeBounds(),
-	)
+		assert.Equal(
+			t,
+			tx.V1.Tx.Cond.TimeBounds,
+			tx.TimeBounds(),
+		)
+	})
+
+	t.Run("feebump", func(t *testing.T) {
+		feeBumpTx := createFeeBumpTx()
+		assert.Equal(
+			t,
+			feeBumpTx.FeeBump.Tx.InnerTx.V1.Tx.Cond.Type,
+			PreconditionTypePrecondTime,
+		)
+
+		assert.Equal(
+			t,
+			feeBumpTx.FeeBump.Tx.InnerTx.V1.Tx.Cond.TimeBounds,
+			feeBumpTx.TimeBounds(),
+		)
+	})
+
+	t.Run("v2", func(t *testing.T) {
+		tx := createCondV2Tx()
+		assert.Equal(
+			t,
+			tx.V1.Tx.Cond.Type,
+			PreconditionTypePrecondV2,
+		)
+
+		cond := tx.V1.Tx.Cond.V2
+		minSeqNum := int64(*cond.MinSeqNum)
+		if assert.NotNil(t, cond) {
+			assert.Equal(t, cond.TimeBounds, tx.TimeBounds())
+			assert.Equal(t, cond.LedgerBounds, tx.LedgerBounds())
+			assert.Equal(t, &minSeqNum, tx.MinSeqNum())
+			assert.Equal(t, &cond.MinSeqAge, tx.MinSeqAge())
+			assert.Equal(t, &cond.MinSeqLedgerGap, tx.MinSeqLedgerGap())
+			assert.Equal(t, cond.ExtraSigners, tx.ExtraSigners())
+		}
+	})
 }
 
 func TestOperations(t *testing.T) {

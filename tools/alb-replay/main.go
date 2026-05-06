@@ -3,6 +3,7 @@
 package main
 
 import (
+	"compress/gzip"
 	"context"
 	"encoding/csv"
 	"errors"
@@ -14,7 +15,8 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
-	"strconv"
+	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 	"syscall"
@@ -32,23 +34,29 @@ type NumberedURL struct {
 	URL    string
 }
 
-func isSuccesfulStatusCode(statusCode int) bool {
-	// consider all 2XX HTTP errors a success
-	return statusCode/100 == 2
+type ALBLogEntryReader struct {
+	csvReader *csv.Reader
+	config    ALBLogEntryReaderConfig
 }
 
-type ALBLogEntryReader csv.Reader
+type ALBLogEntryReaderConfig struct {
+	pathRegexp       *regexp.Regexp
+	statusCodeRegexp *regexp.Regexp
+}
 
-func newALBLogEntryReader(input io.Reader) *ALBLogEntryReader {
+func newALBLogEntryReader(input io.Reader, config ALBLogEntryReaderConfig) *ALBLogEntryReader {
 	reader := csv.NewReader(input)
 	reader.Comma = ' '
 	reader.FieldsPerRecord = albLogEntryCount
 	reader.ReuseRecord = true
-	return (*ALBLogEntryReader)(reader)
+	return &ALBLogEntryReader{
+		csvReader: reader,
+		config:    config,
+	}
 }
 
 func (r *ALBLogEntryReader) GetRequestURI() (string, error) {
-	records, err := (*csv.Reader)(r).Read()
+	records, err := r.csvReader.Read()
 	if err != nil {
 		return "", err
 	}
@@ -58,13 +66,9 @@ func (r *ALBLogEntryReader) GetRequestURI() (string, error) {
 	if statusCodeStr == "-" {
 		return "", nil
 	}
-	statusCode, err := strconv.Atoi(statusCodeStr)
-	if err != nil {
-		return "", fmt.Errorf("error parsing target status code %q: %v", statusCodeStr, err)
-	}
 
-	// discard unsuccesful requests
-	if !isSuccesfulStatusCode(statusCode) {
+	if !r.config.statusCodeRegexp.MatchString(statusCodeStr) {
+		// discard url
 		return "", nil
 	}
 
@@ -84,6 +88,13 @@ func (r *ALBLogEntryReader) GetRequestURI() (string, error) {
 	parsed, err := url.Parse(urlStr)
 	if err != nil {
 		return "", fmt.Errorf("error parsing url %q: %v", urlStr, err)
+	}
+
+	if r.config.pathRegexp != nil {
+		if !r.config.pathRegexp.MatchString(urlStr) {
+			// discard url
+			return "", nil
+		}
 	}
 
 	return parsed.RequestURI(), nil
@@ -121,7 +132,7 @@ func parseURLs(ctx context.Context, startFrom int, baseURL string, logReader *AL
 	}
 }
 
-func queryURLs(ctx context.Context, timeout time.Duration, urlChan chan NumberedURL) {
+func queryURLs(ctx context.Context, timeout time.Duration, urlChan chan NumberedURL, quiet bool) {
 	client := http.Client{
 		Timeout: timeout,
 	}
@@ -146,18 +157,23 @@ func queryURLs(ctx context.Context, timeout time.Duration, urlChan chan Numbered
 			continue
 		}
 		resp.Body.Close()
-		if !isSuccesfulStatusCode(resp.StatusCode) {
+		if resp.StatusCode/100 != 2 {
 			log.Printf("(%d) unexpected status code: %d %q", numURL.Number, resp.StatusCode, numURL.URL)
 			continue
 		}
-		log.Printf("(%d) %s %s", numURL.Number, time.Since(start), numURL.URL)
+		if !quiet {
+			log.Printf("(%d) %s %s", numURL.Number, time.Since(start), numURL.URL)
+		}
 	}
 }
 
 func main() {
 	workers := flag.Int("workers", 1, "How many parallel workers to use")
 	startFromURLNum := flag.Int("start-from", 1, "What URL number to start from")
+	pathRegexp := flag.String("path-filter", "", "Regular expression with which to filter in requests based on their paths")
+	statusCodeRegexp := flag.String("status-code-filter", "^2[0-9][0-9]$", "Regular expression with which to filter in request based on their status codes")
 	timeout := flag.Duration("timeout", time.Second*5, "HTTP request timeout")
+	quiet := flag.Bool("quiet", false, "Only log failed requests")
 	flag.Parse()
 	if *workers < 1 {
 		log.Fatal("--workers parameter must be > 0")
@@ -165,16 +181,48 @@ func main() {
 	if *startFromURLNum < 1 {
 		log.Fatal("--start-from must be > 0")
 	}
+	var pathRE *regexp.Regexp
+	if *pathRegexp != "" {
+		var err error
+		pathRE, err = regexp.Compile(*pathRegexp)
+		if err != nil {
+			log.Fatalf("error parsing --path-filter %q: %v", *pathRegexp, err)
+		}
+	}
+	var statusCodeRE *regexp.Regexp
+	if *statusCodeRegexp != "" {
+		var err error
+		statusCodeRE, err = regexp.Compile(*statusCodeRegexp)
+		if err != nil {
+			log.Fatalf("error parsing --status-code-filter parameter %q: %v", *statusCodeRegexp, err)
+		}
+	}
 	if flag.NArg() != 2 {
-		log.Fatalf("usage: %s <aws_log_file> <target_host_base_url>", os.Args[0])
+		log.Fatalf("usage: %s <aws_log_file[.gz]> <target_host_base_url>", os.Args[0])
 	}
 
-	file, err := os.Open(flag.Args()[0])
+	var reader io.ReadCloser
+	filePath := flag.Args()[0]
+	reader, err := os.Open(filePath)
 	if err != nil {
-		log.Fatalf("error opening file %q: %v", os.Args[1], err)
+		log.Fatalf("error opening file %q: %v", filePath, err)
 	}
+	defer reader.Close()
+	if filepath.Ext(filePath) == ".gz" {
+		var err error
+		reader, err = gzip.NewReader(reader)
+		if err != nil {
+			log.Fatalf("error opening file %q: %v", filePath, err)
+		}
+		defer reader.Close()
+	}
+
 	baseURL := flag.Args()[1]
-	logReader := newALBLogEntryReader(file)
+	logReaderConfig := ALBLogEntryReaderConfig{
+		pathRegexp:       pathRE,
+		statusCodeRegexp: statusCodeRE,
+	}
+	logReader := newALBLogEntryReader(reader, logReaderConfig)
 	urlChan := make(chan NumberedURL, *workers)
 	var wg sync.WaitGroup
 
@@ -186,7 +234,7 @@ func main() {
 	for i := 0; i < *workers; i++ {
 		wg.Add(1)
 		go func() {
-			queryURLs(ctx, *timeout, urlChan)
+			queryURLs(ctx, *timeout, urlChan, *quiet)
 			wg.Done()
 		}()
 	}

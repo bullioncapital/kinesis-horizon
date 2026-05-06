@@ -2,7 +2,6 @@
 // http servers.  The primary method to use is `Serve`, which sets up
 // an server that can support http/2 and can gracefully quit after receiving a
 // SIGINT signal.
-//
 package http
 
 import (

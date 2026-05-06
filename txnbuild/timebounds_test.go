@@ -8,7 +8,7 @@ import (
 )
 
 func TestTimeboundsRequireConstructor(t *testing.T) {
-	tb := Timebounds{MinTime: -1, MaxTime: 300}
+	tb := TimeBounds{MinTime: -1, MaxTime: 300}
 	err := tb.Validate()
 	expectedErrMsg := "timebounds must be constructed using NewTimebounds(), NewTimeout(), or NewInfiniteTimeout()"
 

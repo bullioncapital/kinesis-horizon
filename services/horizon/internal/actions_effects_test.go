@@ -69,7 +69,7 @@ func TestEffectActions_Index(t *testing.T) {
 		}
 
 		// filtered by transaction
-		w = ht.Get("/transactions/2374e99349b9ef7dba9a5db3339b78fda8f34777b1af33ba468ad5c0df946d4d/effects")
+		w = ht.Get("/transactions/ff5cba32e8918327f1d563f57cd54dc5f5906f33ce53aeb119df06a16f797387/effects")
 		if ht.Assert.Equal(200, w.Code) {
 			ht.Assert.PageOf(3, w.Body)
 		}
@@ -83,7 +83,7 @@ func TestEffectActions_Index(t *testing.T) {
 		w = ht.Get("/transactions/%00%1E4%5E%EF%BF%BD%EF%BF%BD%EF%BF%BDpVP%EF%BF%BDI&R%0BK%EF%BF%BD%1D%EF%BF%BD%EF%BF%BD=%EF%BF%BD%3F%23%EF%BF%BD%EF%BF%BDl%EF%BF%BD%1El%EF%BF%BD%EF%BF%BD/effects")
 		ht.Assert.Equal(400, w.Code)
 
-		w = ht.Get("/transactions/2374e99349b9ef7dba9a5db3339b78fda8f34777b1af33ba468ad5c0df946d4d/effects")
+		w = ht.Get("/transactions/ff5cba32e8918327f1d563f57cd54dc5f5906f33ce53aeb119df06a16f797387/effects")
 		if ht.Assert.Equal(200, w.Code) {
 			ht.Assert.PageOf(3, w.Body)
 		}

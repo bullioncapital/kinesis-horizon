@@ -55,7 +55,7 @@ type Pipeline struct {
 	mutex      sync.Mutex
 	running    bool
 	shutDown   bool
-	cancelled  bool
+	canceled   bool
 	cancelFunc context.CancelFunc
 }
 

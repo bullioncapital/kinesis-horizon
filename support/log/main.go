@@ -4,7 +4,7 @@ import (
 	"context"
 	"os"
 
-	loggly "github.com/segmentio/go-loggly"
+	"github.com/segmentio/go-loggly"
 	"github.com/sirupsen/logrus"
 )
 
@@ -43,7 +43,7 @@ func New() *Entry {
 	l := logrus.New()
 	l.Level = logrus.WarnLevel
 	l.Formatter.(*logrus.TextFormatter).FullTimestamp = true
-	l.Formatter.(*logrus.TextFormatter).TimestampFormat = "2006-01-02T15:04:05.000Z07:00"
+	l.Formatter.(*logrus.TextFormatter).TimestampFormat = timeStampFormat
 	return &Entry{entry: *logrus.NewEntry(l).WithField("pid", os.Getpid())}
 }
 

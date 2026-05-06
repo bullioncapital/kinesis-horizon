@@ -25,6 +25,7 @@ var IngestSubservice = Subservice("ingest")
 
 type QueryType string
 
+var AdvisoryLockQueryType = QueryType("advisory_lock")
 var DeleteQueryType = QueryType("delete")
 var InsertQueryType = QueryType("insert")
 var SelectQueryType = QueryType("select")

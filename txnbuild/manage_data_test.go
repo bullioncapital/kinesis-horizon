@@ -22,7 +22,7 @@ func TestManageDataValidateName(t *testing.T) {
 			IncrementSequenceNum: false,
 			Operations:           []Operation{&manageData},
 			BaseFee:              MinBaseFee,
-			Timebounds:           NewInfiniteTimeout(),
+			Preconditions:        Preconditions{TimeBounds: NewInfiniteTimeout()},
 		},
 	)
 	if assert.Error(t, err) {
@@ -46,7 +46,7 @@ func TestManageDataValidateValue(t *testing.T) {
 			IncrementSequenceNum: false,
 			Operations:           []Operation{&manageData},
 			BaseFee:              MinBaseFee,
-			Timebounds:           NewInfiniteTimeout(),
+			Preconditions:        Preconditions{TimeBounds: NewInfiniteTimeout()},
 		},
 	)
 	if assert.Error(t, err) {
@@ -88,7 +88,7 @@ func TestManageDataRoundTrip(t *testing.T) {
 					IncrementSequenceNum: false,
 					Operations:           []Operation{&manageData},
 					BaseFee:              MinBaseFee,
-					Timebounds:           NewInfiniteTimeout(),
+					Preconditions:        Preconditions{TimeBounds: NewInfiniteTimeout()},
 				},
 			)
 			assert.NoError(t, err)

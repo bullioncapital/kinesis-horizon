@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"testing"
 
 	"github.com/stellar/go/services/ticker/internal/utils"
+	"github.com/stellar/go/support/db/dbtest"
 )
 
 // getDBFieldTags returns all "db" tags for a given struct, optionally excluding the "id".
@@ -135,4 +137,16 @@ func (s *TickerSession) performUpsertQuery(ctx context.Context, dbStruct interfa
 	qs += " " + createOnConflictFragment(conflictConstraint, toUpdateFields) + ";"
 	_, err := s.ExecRaw(ctx, qs, dbValues...)
 	return err
+}
+
+func OpenTestDBConnection(t *testing.T) *dbtest.DB {
+	db := dbtest.Postgres(t)
+	dbVersion := db.Version()
+
+	// Ticker requires Postgres >= v10
+	if dbVersion < 10 {
+		t.Skipf("Skipping test because Postgres v%d found, and Postgres v10+ required for this test.", dbVersion)
+	}
+
+	return db
 }

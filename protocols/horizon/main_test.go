@@ -14,14 +14,14 @@ var exampleAccount = Account{
 		"test":    "aGVsbG8=",
 		"invalid": "a_*&^*",
 	},
-	Sequence: "3002985298788353",
+	Sequence: 3002985298788353,
 }
 
 func TestAccount_IncrementSequenceNumber(t *testing.T) {
 	seqNum, err := exampleAccount.IncrementSequenceNumber()
 
 	assert.Nil(t, err)
-	assert.Equal(t, "3002985298788354", exampleAccount.Sequence, "sequence number string was incremented")
+	assert.Equal(t, int64(3002985298788354), exampleAccount.Sequence, "sequence number was incremented")
 	assert.Equal(t, int64(3002985298788354), seqNum, "incremented sequence number is correct value/type")
 }
 
@@ -237,4 +237,22 @@ func TestTransactionUnmarshalJSON(t *testing.T) {
 func TestTradeAggregation_PagingToken(t *testing.T) {
 	ta := TradeAggregation{Timestamp: 64}
 	assert.Equal(t, "64", ta.PagingToken())
+}
+
+func TestMustKeyTypeFromAddress(t *testing.T) {
+	tests := []struct {
+		address string
+		keyType string
+	}{
+		{"GBUYDJH3AOPFFND3L54DUDWIHOMYKUONDV4RAHOHDBNN2D5N4BPPWDQ3", "ed25519_public_key"},
+		{"SBUYDJH3AOPFFND3L54DUDWIHOMYKUONDV4RAHOHDBNN2D5N4BPPXHDE", "ed25519_secret_seed"},
+		{"MBUYDJH3AOPFFND3L54DUDWIHOMYKUONDV4RAHOHDBNN2D5N4BPPWAAAAAAAAAPCIBYBE", "muxed_account"},
+		{"TBUYDJH3AOPFFND3L54DUDWIHOMYKUONDV4RAHOHDBNN2D5N4BPPX6CK", "preauth_tx"},
+		{"XBUYDJH3AOPFFND3L54DUDWIHOMYKUONDV4RAHOHDBNN2D5N4BPPW2HT", "sha256_hash"},
+		{"PBUYDJH3AOPFFND3L54DUDWIHOMYKUONDV4RAHOHDBNN2D5N4BPPWAAAAACWQZLMNRXQAAAA22YA", "ed25519_signed_payload"},
+	}
+
+	for _, test := range tests {
+		assert.Equal(t, MustKeyTypeFromAddress(test.address), test.keyType)
+	}
 }

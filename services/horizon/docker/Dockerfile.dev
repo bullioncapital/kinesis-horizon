@@ -1,11 +1,12 @@
-FROM golang:1.17 AS builder
+FROM golang:1.20 AS builder
 
+ARG VERSION="devel"
 WORKDIR /go/src/github.com/stellar/go
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . ./
+ENV GOFLAGS="-ldflags=-X=github.com/stellar/go/support/app.version=${VERSION}-(built-from-source)"
 RUN go install github.com/stellar/go/services/horizon
-RUN go install github.com/stellar/go/exp/services/captivecore
 
 FROM ubuntu:20.04
 ARG STELLAR_CORE_VERSION 
@@ -22,7 +23,6 @@ RUN apt-get update && apt-get install -y stellar-core=${STELLAR_CORE_VERSION}
 RUN apt-get clean
 
 COPY --from=builder /go/bin/horizon ./
-COPY --from=builder /go/bin/captivecore ./
 
 ENTRYPOINT ["./horizon"]
     

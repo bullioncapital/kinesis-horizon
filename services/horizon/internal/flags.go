@@ -25,6 +25,8 @@ import (
 const (
 	// DatabaseURLFlagName is the command line flag for configuring the Horizon postgres URL
 	DatabaseURLFlagName = "db-url"
+	// IngestFlagName is the command line flag for enabling ingestion on the Horizon instance
+	IngestFlagName = "ingest"
 	// StellarCoreDBURLFlagName is the command line flag for configuring the postgres Stellar Core URL
 	StellarCoreDBURLFlagName = "stellar-core-db-url"
 	// StellarCoreURLFlagName is the command line flag for configuring the URL fore Stellar Core HTTP endpoint
@@ -175,7 +177,7 @@ func Flags() (*Config, support.ConfigOptions) {
 		&support.ConfigOption{
 			Name:        CaptiveCoreConfigUseDB,
 			OptType:     types.Bool,
-			FlagDefault: false,
+			FlagDefault: true,
 			Required:    false,
 			Usage: `when enabled, Horizon ingestion will instruct the captive
 			              core invocation to use an external db url for ledger states rather than in memory(RAM).\n 
@@ -198,6 +200,14 @@ func Flags() (*Config, support.ConfigOptions) {
 			Required:    false,
 			Usage:       "causes Horizon to ingest from a Captive Stellar Core process instead of a persistent Stellar Core database",
 			ConfigKey:   &config.EnableCaptiveCoreIngestion,
+		},
+		&support.ConfigOption{
+			Name:        "exp-enable-ingestion-filtering",
+			OptType:     types.Bool,
+			FlagDefault: false,
+			Required:    false,
+			Usage:       "causes Horizon to enable the experimental Ingestion Filtering and the ingestion admin HTTP endpoint at /ingestion/filter",
+			ConfigKey:   &config.EnableIngestionFiltering,
 		},
 		&support.ConfigOption{
 			Name:           "captive-core-http-port",
@@ -382,7 +392,7 @@ func Flags() (*Config, support.ConfigOptions) {
 			ConfigKey:   &config.MaxAssetsPerPathRequest,
 			OptType:     types.Int,
 			FlagDefault: int(15),
-			Usage:       "the maximum number of assets in '/paths/strict-send' and '/paths/strict-recieve' endpoints",
+			Usage:       "the maximum number of assets in '/paths/strict-send' and '/paths/strict-receive' endpoints",
 		},
 		&support.ConfigOption{
 			Name:        "disable-pool-path-finding",
@@ -391,6 +401,14 @@ func Flags() (*Config, support.ConfigOptions) {
 			FlagDefault: false,
 			Required:    false,
 			Usage:       "excludes liquidity pools from consideration in the `/paths` endpoint",
+		},
+		&support.ConfigOption{
+			Name:        "disable-path-finding",
+			ConfigKey:   &config.DisablePathFinding,
+			OptType:     types.Bool,
+			FlagDefault: false,
+			Required:    false,
+			Usage:       "disables the path finding endpoints",
 		},
 		&support.ConfigOption{
 			Name:        "max-path-finding-requests",
@@ -440,7 +458,7 @@ func Flags() (*Config, support.ConfigOptions) {
 			Usage:     "TLS private key file to use for securing connections to horizon",
 		},
 		&support.ConfigOption{
-			Name:        "ingest",
+			Name:        IngestFlagName,
 			ConfigKey:   &config.Ingest,
 			OptType:     types.Bool,
 			FlagDefault: true,
@@ -481,6 +499,24 @@ func Flags() (*Config, support.ConfigOptions) {
 			OptType:     types.Bool,
 			FlagDefault: false,
 			Usage:       "ingestion system runs a verification routing to compare state in local database with history buckets, this can be disabled however it's not recommended",
+		},
+		&support.ConfigOption{
+			Name:        "ingest-state-verification-checkpoint-frequency",
+			ConfigKey:   &config.IngestStateVerificationCheckpointFrequency,
+			OptType:     types.Uint,
+			FlagDefault: uint(1),
+			Usage: "the frequency in units per checkpoint for how often state verification is executed. " +
+				"A value of 1 implies running state verification on every checkpoint. " +
+				"A value of 2 implies running state verification on every second checkpoint.",
+		},
+		&support.ConfigOption{
+			Name:           "ingest-state-verification-timeout",
+			ConfigKey:      &config.IngestStateVerificationTimeout,
+			OptType:        types.Int,
+			FlagDefault:    0,
+			CustomSetValue: support.SetDurationMinutes,
+			Usage: "defines an upper bound in minutes for on how long state verification is allowed to run. " +
+				"A value of 0 disables the timeout.",
 		},
 		&support.ConfigOption{
 			Name:        "ingest-enable-extended-log-ledger-stats",
@@ -624,6 +660,7 @@ func ApplyFlags(config *Config, flags support.ConfigOptions, options ApplyOption
 					StellarCoreBinaryPathName, captiveCoreMigrationHint)
 			}
 
+			config.CaptiveCoreTomlParams.CoreBinaryPath = binaryPath
 			if config.RemoteCaptiveCoreURL == "" && (binaryPath == "" || config.CaptiveCoreConfigPath == "") {
 				if options.RequireCaptiveCoreConfig {
 					var err error
@@ -698,9 +735,6 @@ func ApplyFlags(config *Config, flags support.ConfigOptions, options ApplyOption
 		}
 		if config.StellarCoreDatabaseURL != "" {
 			return fmt.Errorf("Invalid config: --%s passed but --ingest not set. ", StellarCoreDBURLFlagName)
-		}
-		if config.CaptiveCoreConfigUseDB {
-			return fmt.Errorf("Invalid config: --%s has been set, but --ingest not set. ", CaptiveCoreConfigUseDB)
 		}
 	}
 

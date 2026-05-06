@@ -35,7 +35,7 @@ type Finder interface {
 	Find(ctx context.Context, q Query, maxLength uint) ([]Path, uint32, error)
 	// FindFixedPaths return a list of payment paths the most recent ledger
 	// Each of the payment paths start by spending `amountToSpend` of `sourceAsset` and end
-	// with delivering a postive amount of `destinationAsset`.
+	// with delivering a positive amount of `destinationAsset`.
 	// The payment paths are accurate and consistent with the returned ledger sequence number
 	FindFixedPaths(
 		ctx context.Context,

@@ -156,12 +156,12 @@ func (r *CheckpointChangeReader) bucketExists(hash historyarchive.Hash) (bool, e
 //
 // However, we can modify this algorithm to work from newest to oldest ledgers:
 //
-//   1. For each `INITENTRY`/`LIVEENTRY` we check if we've seen the key before
-//      (stored in `tempStore`). If the key hasn't been seen, we write that bucket
-//      entry to the stream and add it to the `tempStore` (we don't mark `INITENTRY`,
-//      see the inline comment or CAP-20).
-//   2. For each `DEADENTRY` we keep track of removed bucket entries in
-//      `tempStore` map.
+//  1. For each `INITENTRY`/`LIVEENTRY` we check if we've seen the key before
+//     (stored in `tempStore`). If the key hasn't been seen, we write that bucket
+//     entry to the stream and add it to the `tempStore` (we don't mark `INITENTRY`,
+//     see the inline comment or CAP-20).
+//  2. For each `DEADENTRY` we keep track of removed bucket entries in
+//     `tempStore` map.
 //
 // In such algorithm we just need to store a set of keys that require much less space.
 // The memory requirements will be lowered when CAP-0020 is live and older buckets are

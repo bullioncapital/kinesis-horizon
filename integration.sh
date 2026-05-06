@@ -3,11 +3,10 @@ set -e
 
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
-export HORIZON_INTEGRATION_TESTS=true
-export HORIZON_INTEGRATION_ENABLE_CAP_35=${HORIZON_INTEGRATION_ENABLE_CAP_35:-}
-export HORIZON_INTEGRATION_ENABLE_CAPTIVE_CORE=${HORIZON_INTEGRATION_ENABLE_CAPTIVE_CORE:-}
-export HORIZON_INTEGRATION_ENABLE_CAPTIVE_CORE_USE_DB=${HORIZON_INTEGRATION_ENABLE_CAPTIVE_CORE_USE_DB:-}
-export CAPTIVE_CORE_BIN=${CAPTIVE_CORE_BIN:-/usr/bin/stellar-core}
+export HORIZON_INTEGRATION_TESTS_ENABLED=true
+export HORIZON_INTEGRATION_TESTS_ENABLE_CAPTIVE_CORE=${HORIZON_INTEGRATION_TESTS_ENABLE_CAPTIVE_CORE:-}
+export HORIZON_INTEGRATION_TESTS_CAPTIVE_CORE_USE_DB=${HORIZON_INTEGRATION_TESTS_CAPTIVE_CORE_USE_DB:-}
+export HORIZON_INTEGRATION_TESTS_CAPTIVE_CORE_BIN=${HORIZON_INTEGRATION_TESTS_CAPTIVE_CORE_BIN:-/usr/bin/stellar-core}
 export TRACY_NO_INVARIANT_CHECK=1 # This fails on my dev vm. - Paul
 
 # launch postgres if it's not already.
@@ -21,4 +20,4 @@ if [[ "$(docker inspect integration_postgres -f '{{.State.Running}}')" != "true"
     circleci/postgres:9.6.5-alpine
 fi
 
-exec go test -timeout 25m github.com/stellar/go/services/horizon/internal/integration/... "$@"
+exec go test -timeout 35m github.com/stellar/go/services/horizon/internal/integration/... "$@"

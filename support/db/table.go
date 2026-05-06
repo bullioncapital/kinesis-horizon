@@ -3,7 +3,6 @@ package db
 import sq "github.com/Masterminds/squirrel"
 
 // Delete returns a new query builder configured to delete rows from the table.
-//
 func (tbl *Table) Delete(
 	pred interface{},
 	args ...interface{},

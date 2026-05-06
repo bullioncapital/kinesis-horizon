@@ -1,7 +1,6 @@
 package integration
 
 import (
-	"strconv"
 	"sync"
 	"testing"
 
@@ -58,7 +57,7 @@ func TestTxsub(t *testing.T) {
 					tt.Equal(accounts[i].GetAccountID(), txResp.Account)
 					seq, err := account.GetSequenceNumber()
 					assert.NoError(t, err)
-					tt.Equal(strconv.FormatInt(seq, 10), txResp.AccountSequence)
+					tt.Equal(seq, txResp.AccountSequence)
 					t.Logf("%d/%d done", i, j)
 				}(i, j, account)
 			}

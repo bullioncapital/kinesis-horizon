@@ -25,7 +25,7 @@ Authoring tests to assert coverage is key importance, to facilitate best experie
 
   * For multi-table db seeding as part of test setup, use the newer notion of 'fixtures' for sql batch datasets. A 'fixture' is just a helper function that programatically loads DB from a hardcoded set of seed data and uses the session interface to do so. Refer to `services/horizon/internal/db2/history/trade_scenario.go` for example of a 'fixture' dataset.   
   
-* For integration tests, they should be located in services/horizon/integration package. Tests located in this package will only run when `HORIZON_INTEGRATION_TESTS=true` is present in environment.
+* For integration tests, they should be located in services/horizon/integration package. Tests located in this package will only run when `HORIZON_INTEGRATION_TESTS_ENABLED=true` is present in environment.
 
 ## Leverage Scaffolding for Test Cases
 * Mocked DB unit tests that avoid needing a live db connection: 
@@ -48,7 +48,7 @@ Authoring tests to assert coverage is key importance, to facilitate best experie
 
   * `services/horizon/internal/integration/clawback_test.go` is good example of integration test that uses the scaffolding. 
   
-  * integration tests only execute when `HORIZON_INTEGRATION_TESTS=true` is present as environment variable.
+  * integration tests only execute when `HORIZON_INTEGRATION_TESTS_ENABLED=true` is present as environment variable.
 
 
 

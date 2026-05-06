@@ -6,9 +6,10 @@ import (
 	"math"
 	"net/http"
 	"net/url"
+	"strings"
 	"testing"
 
-	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 
 	horizonContext "github.com/stellar/go/services/horizon/internal/context"
@@ -141,7 +142,7 @@ func TestValidateCursorWithinHistory(t *testing.T) {
 			if tc.valid {
 				tt.NoError(err)
 			} else {
-				tt.EqualError(err, "problem: before_history")
+				tt.True(strings.Contains(err.Error(), "problem: before_history"))
 			}
 		})
 	}

@@ -18,11 +18,7 @@ import (
 )
 
 type NetworkSubmitter interface {
-	Submit(
-		ctx context.Context,
-		rawTx string,
-		envelope xdr.TransactionEnvelope,
-		hash string) <-chan txsub.Result
+	Submit(ctx context.Context, rawTx string, envelope xdr.TransactionEnvelope, hash string) <-chan txsub.Result
 }
 
 type SubmitTransactionHandler struct {
@@ -32,9 +28,10 @@ type SubmitTransactionHandler struct {
 }
 
 type envelopeInfo struct {
-	hash   string
-	raw    string
-	parsed xdr.TransactionEnvelope
+	hash      string
+	innerHash string
+	raw       string
+	parsed    xdr.TransactionEnvelope
 }
 
 func extractEnvelopeInfo(raw string, passphrase string) (envelopeInfo, error) {
@@ -50,6 +47,13 @@ func extractEnvelopeInfo(raw string, passphrase string) (envelopeInfo, error) {
 		return result, err
 	}
 	result.hash = hex.EncodeToString(hash[:])
+	if result.parsed.IsFeeBump() {
+		hash, err = network.HashTransaction(result.parsed.FeeBump.Tx.InnerTx.V1.Tx, passphrase)
+		if err != nil {
+			return result, err
+		}
+		result.innerHash = hex.EncodeToString(hash[:])
+	}
 	return result, nil
 }
 
@@ -151,12 +155,7 @@ func (handler SubmitTransactionHandler) GetResource(w HeaderWriter, r *http.Requ
 		return nil, hProblem.StaleHistory
 	}
 
-	submission := handler.Submitter.Submit(
-		r.Context(),
-		info.raw,
-		info.parsed,
-		info.hash,
-	)
+	submission := handler.Submitter.Submit(r.Context(), info.raw, info.parsed, info.hash)
 
 	select {
 	case result := <-submission:

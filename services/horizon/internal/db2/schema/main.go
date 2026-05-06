@@ -2,14 +2,15 @@ package schema
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 	stdLog "log"
 	"text/tabwriter"
 	"time"
 
 	migrate "github.com/rubenv/sql-migrate"
+	"github.com/stellar/go/support/errors"
 )
 
 //go:generate go run github.com/kevinburke/go-bindata/go-bindata@v3.18.0+incompatible -nometadata -pkg schema -o bindata.go migrations/
@@ -46,6 +47,51 @@ var Migrations migrate.MigrationSource = &migrate.AssetMigrationSource{
 // upward back to the current version at the start of the process. If count is
 // 0, a count of 1 will be assumed.
 func Migrate(db *sql.DB, dir MigrateDir, count int) (int, error) {
+	if dir == MigrateUp {
+		// The code below locks ingestion to apply DB migrations. This works
+		// for MigrateUp migrations only because it's possible that MigrateDown
+		// can remove `key_value_store` table and it will deadlock the process.
+		txConn, err := db.Conn(context.Background())
+		if err != nil {
+			return 0, err
+		}
+
+		defer txConn.Close()
+
+		tx, err := txConn.BeginTx(context.Background(), nil)
+		if err != nil {
+			return 0, err
+		}
+
+		// Unlock ingestion when done. DB migrations run in a separate DB connection
+		// so no need to Commit().
+		defer tx.Rollback()
+
+		// Check if table exists
+		row := tx.QueryRow(`select exists (
+			select from information_schema.tables where table_schema = 'public' and table_name = 'key_value_store'
+		)`)
+		err = row.Err()
+		if err != nil {
+			return 0, err
+		}
+
+		var tableExists bool
+		err = row.Scan(&tableExists)
+		if err != nil {
+			return 0, err
+		}
+
+		if tableExists {
+			// Lock ingestion
+			row := tx.QueryRow("select value from key_value_store where key = 'exp_ingest_last_ledger' for update")
+			err = row.Err()
+			if err != nil {
+				return 0, err
+			}
+		}
+	}
+
 	switch dir {
 	case MigrateUp:
 		return migrate.ExecMax(db, "postgres", Migrations, migrate.Up, count)

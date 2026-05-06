@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"runtime"
 	"sync"
 	"time"
 
@@ -17,6 +18,8 @@ import (
 	"github.com/stellar/go/ingest"
 	"github.com/stellar/go/ingest/ledgerbackend"
 	"github.com/stellar/go/services/horizon/internal/db2/history"
+	"github.com/stellar/go/services/horizon/internal/ingest/filters"
+	apkg "github.com/stellar/go/support/app"
 	"github.com/stellar/go/support/db"
 	"github.com/stellar/go/support/errors"
 	logpkg "github.com/stellar/go/support/log"
@@ -25,7 +28,7 @@ import (
 const (
 	// MaxSupportedProtocolVersion defines the maximum supported version of
 	// the Stellar protocol.
-	MaxSupportedProtocolVersion uint32 = 18
+	MaxSupportedProtocolVersion uint32 = 19
 
 	// CurrentVersion reflects the latest version of the ingestion
 	// algorithm. This value is stored in KV store and is used to decide
@@ -34,7 +37,7 @@ const (
 	// Version history:
 	// - 1: Initial version
 	// - 2: Added the orderbook, offers processors and distributed ingestion.
-	// - 3: Fixed a bug that could potentialy result in invalid state
+	// - 3: Fixed a bug that could potentially result in invalid state
 	//      (#1722). Update the version to clear the state.
 	// - 4: Fixed a bug in AccountSignersChanged method.
 	// - 5: Added trust lines.
@@ -52,7 +55,9 @@ const (
 	// - 13: Trigger state rebuild to include more than just authorized assets.
 	// - 14: Trigger state rebuild to include claimable balances in the asset stats processor.
 	// - 15: Fixed bug in asset stat ingestion where clawback is enabled (#3846).
-	CurrentVersion = 15
+	// - 16: Extract claimants to a separate table for better performance of
+	//       claimable balances for claimant queries.
+	CurrentVersion = 16
 
 	// MaxDBConnections is the size of the postgres connection pool dedicated to Horizon ingestion:
 	//  * Ledger ingestion,
@@ -78,19 +83,40 @@ type Config struct {
 	RemoteCaptiveCoreURL   string
 	NetworkPassphrase      string
 
-	HistorySession    db.SessionInterface
-	HistoryArchiveURL string
+	HistorySession     db.SessionInterface
+	HistoryArchiveURLs []string
 
 	DisableStateVerification     bool
+	EnableReapLookupTables       bool
 	EnableExtendedLogLedgerStats bool
 
+	ReingestEnabled             bool
 	MaxReingestRetries          int
 	ReingestRetryBackoffSeconds int
 
 	// The checkpoint frequency will be 64 unless you are using an exotic test setup.
-	CheckpointFrequency uint32
+	CheckpointFrequency                  uint32
+	StateVerificationCheckpointFrequency uint32
+	StateVerificationTimeout             time.Duration
 
 	RoundingSlippageFilter int
+
+	EnableIngestionFiltering bool
+}
+
+// LocalCaptiveCoreEnabled returns true if configured to run
+// a local captive core instance for ingestion.
+func (c Config) LocalCaptiveCoreEnabled() bool {
+	// c.EnableCaptiveCore is true for both local and remote captive core
+	// and c.RemoteCaptiveCoreURL is always empty when running
+	// local captive core.
+	return c.EnableCaptiveCore && c.RemoteCaptiveCoreURL == ""
+}
+
+// RemoteCaptiveCoreEnabled returns true if configured to run
+// a remote captive core instance for ingestion.
+func (c Config) RemoteCaptiveCoreEnabled() bool {
+	return c.EnableCaptiveCore && c.RemoteCaptiveCoreURL != ""
 }
 
 const (
@@ -121,6 +147,10 @@ type Metrics struct {
 	// duration of rebuilding trade aggregation buckets.
 	LedgerIngestionTradeAggregationDuration prometheus.Summary
 
+	// LedgerIngestionReapLookupTablesDuration exposes timing metrics about the rate and
+	// duration of reaping lookup tables.
+	LedgerIngestionReapLookupTablesDuration prometheus.Summary
+
 	// StateVerifyDuration exposes timing metrics about the rate and
 	// duration of state verification.
 	StateVerifyDuration prometheus.Summary
@@ -137,7 +167,7 @@ type Metrics struct {
 	LedgerStatsCounter *prometheus.CounterVec
 
 	// ProcessorsRunDuration exposes processors run durations.
-	// Deprecated in favour of: ProcessorsRunDurationSummary.
+	// Deprecated in favor of: ProcessorsRunDurationSummary.
 	ProcessorsRunDuration *prometheus.CounterVec
 
 	// ProcessorsRunDurationSummary exposes processors run durations.
@@ -162,9 +192,11 @@ type System interface {
 	Metrics() Metrics
 	StressTest(numTransactions, changesPerTransaction int) error
 	VerifyRange(fromLedger, toLedger uint32, verifyState bool) error
+	BuildState(sequence uint32, skipChecks bool) error
 	ReingestRange(ledgerRanges []history.LedgerRange, force bool) error
 	BuildGenesisState() error
 	Shutdown()
+	GetCurrentState() State
 }
 
 type system struct {
@@ -194,18 +226,24 @@ type system struct {
 	stateVerificationRunning bool
 	disableStateVerification bool
 
-	checkpointManager historyarchive.CheckpointManager
+	runStateVerificationOnLedger func(uint32) bool
+
+	reapOffsets map[string]int64
+
+	currentStateMutex sync.Mutex
+	currentState      State
 }
 
 func NewSystem(config Config) (System, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
-	archive, err := historyarchive.Connect(
-		config.HistoryArchiveURL,
+	archive, err := historyarchive.NewArchivePool(
+		config.HistoryArchiveURLs,
 		historyarchive.ConnectOptions{
 			Context:             ctx,
 			NetworkPassphrase:   config.NetworkPassphrase,
 			CheckpointFrequency: config.CheckpointFrequency,
+			UserAgent:           fmt.Sprintf("horizon/%s golang/%s", apkg.Version(), runtime.Version()),
 		},
 	)
 	if err != nil {
@@ -214,33 +252,32 @@ func NewSystem(config Config) (System, error) {
 	}
 
 	var ledgerBackend ledgerbackend.LedgerBackend
-	if config.EnableCaptiveCore {
-		if len(config.RemoteCaptiveCoreURL) > 0 {
-			ledgerBackend, err = ledgerbackend.NewRemoteCaptive(config.RemoteCaptiveCoreURL)
-			if err != nil {
-				cancel()
-				return nil, errors.Wrap(err, "error creating captive core backend")
-			}
-		} else {
-			logger := log.WithField("subservice", "stellar-core")
-			ledgerBackend, err = ledgerbackend.NewCaptive(
-				ledgerbackend.CaptiveCoreConfig{
-					BinaryPath:          config.CaptiveCoreBinaryPath,
-					StoragePath:         config.CaptiveCoreStoragePath,
-					UseDB:               config.CaptiveCoreConfigUseDB,
-					Toml:                config.CaptiveCoreToml,
-					NetworkPassphrase:   config.NetworkPassphrase,
-					HistoryArchiveURLs:  []string{config.HistoryArchiveURL},
-					CheckpointFrequency: config.CheckpointFrequency,
-					LedgerHashStore:     ledgerbackend.NewHorizonDBLedgerHashStore(config.HistorySession),
-					Log:                 logger,
-					Context:             ctx,
-				},
-			)
-			if err != nil {
-				cancel()
-				return nil, errors.Wrap(err, "error creating captive core backend")
-			}
+	if config.RemoteCaptiveCoreEnabled() {
+		ledgerBackend, err = ledgerbackend.NewRemoteCaptive(config.RemoteCaptiveCoreURL)
+		if err != nil {
+			cancel()
+			return nil, errors.Wrap(err, "error creating captive core backend")
+		}
+	} else if config.LocalCaptiveCoreEnabled() {
+		logger := log.WithField("subservice", "stellar-core")
+		ledgerBackend, err = ledgerbackend.NewCaptive(
+			ledgerbackend.CaptiveCoreConfig{
+				BinaryPath:          config.CaptiveCoreBinaryPath,
+				StoragePath:         config.CaptiveCoreStoragePath,
+				UseDB:               config.CaptiveCoreConfigUseDB,
+				Toml:                config.CaptiveCoreToml,
+				NetworkPassphrase:   config.NetworkPassphrase,
+				HistoryArchiveURLs:  config.HistoryArchiveURLs,
+				CheckpointFrequency: config.CheckpointFrequency,
+				LedgerHashStore:     ledgerbackend.NewHorizonDBLedgerHashStore(config.HistorySession),
+				Log:                 logger,
+				Context:             ctx,
+				UserAgent:           fmt.Sprintf("captivecore horizon/%s golang/%s", apkg.Version(), runtime.Version()),
+			},
+		)
+		if err != nil {
+			cancel()
+			return nil, errors.Wrap(err, "error creating captive core backend")
 		}
 	} else {
 		coreSession := config.CoreSession.Clone()
@@ -252,13 +289,14 @@ func NewSystem(config Config) (System, error) {
 	}
 
 	historyQ := &history.Q{config.HistorySession.Clone()}
-
 	historyAdapter := newHistoryArchiveAdapter(archive)
+	filters := filters.NewFilters()
 
 	system := &system{
 		cancel:                      cancel,
 		config:                      config,
 		ctx:                         ctx,
+		currentState:                None,
 		disableStateVerification:    config.DisableStateVerification,
 		historyAdapter:              historyAdapter,
 		historyQ:                    historyQ,
@@ -273,12 +311,25 @@ func NewSystem(config Config) (System, error) {
 			config:         config,
 			historyQ:       historyQ,
 			historyAdapter: historyAdapter,
+			filters:        filters,
 		},
-		checkpointManager: historyarchive.NewCheckpointManager(config.CheckpointFrequency),
+		runStateVerificationOnLedger: ledgerEligibleForStateVerification(
+			config.CheckpointFrequency,
+			config.StateVerificationCheckpointFrequency,
+		),
 	}
 
 	system.initMetrics()
 	return system, nil
+}
+
+func ledgerEligibleForStateVerification(checkpointFrequency, stateVerificationFrequency uint32) func(ledger uint32) bool {
+	stateVerificationCheckpointManager := historyarchive.NewCheckpointManager(
+		checkpointFrequency * stateVerificationFrequency,
+	)
+	return func(ledger uint32) bool {
+		return stateVerificationCheckpointManager.IsCheckpoint(ledger)
+	}
 }
 
 func (s *system) initMetrics() {
@@ -302,6 +353,11 @@ func (s *system) initMetrics() {
 	s.metrics.LedgerIngestionTradeAggregationDuration = prometheus.NewSummary(prometheus.SummaryOpts{
 		Namespace: "horizon", Subsystem: "ingest", Name: "ledger_ingestion_trade_aggregation_duration_seconds",
 		Help: "ledger ingestion trade aggregation rebuild durations, sliding window = 10m",
+	})
+
+	s.metrics.LedgerIngestionReapLookupTablesDuration = prometheus.NewSummary(prometheus.SummaryOpts{
+		Namespace: "horizon", Subsystem: "ingest", Name: "ledger_ingestion_reap_lookup_tables_duration_seconds",
+		Help: "ledger ingestion reap lookup tables durations, sliding window = 10m",
 	})
 
 	s.metrics.StateVerifyDuration = prometheus.NewSummary(prometheus.SummaryOpts{
@@ -373,7 +429,8 @@ func (s *system) initMetrics() {
 			Help: "1 if sync, 0 if not synced, -1 if unable to connect or HTTP server disabled.",
 		},
 		func() float64 {
-			if !s.config.EnableCaptiveCore || (s.config.CaptiveCoreToml.HTTPPort == 0) {
+			if !s.config.LocalCaptiveCoreEnabled() || // local captive core is disabled
+				(s.config.CaptiveCoreToml.HTTPPort == 0) { // captive core http port is disabled
 				return -1
 			}
 
@@ -404,7 +461,8 @@ func (s *system) initMetrics() {
 			Help: "determines the supported version of the protocol by Captive-Core",
 		},
 		func() float64 {
-			if !s.config.EnableCaptiveCore || (s.config.CaptiveCoreToml.HTTPPort == 0) {
+			if !s.config.LocalCaptiveCoreEnabled() || // local captive core is disabled
+				(s.config.CaptiveCoreToml.HTTPPort == 0) { // captive core http port is disabled
 				return -1
 			}
 
@@ -426,6 +484,12 @@ func (s *system) initMetrics() {
 	)
 }
 
+func (s *system) GetCurrentState() State {
+	s.currentStateMutex.Lock()
+	defer s.currentStateMutex.Unlock()
+	return s.currentState
+}
+
 func (s *system) Metrics() Metrics {
 	return s.metrics
 }
@@ -436,6 +500,7 @@ func (s *system) RegisterMetrics(registry *prometheus.Registry) {
 	registry.MustRegister(s.metrics.LocalLatestLedger)
 	registry.MustRegister(s.metrics.LedgerIngestionDuration)
 	registry.MustRegister(s.metrics.LedgerIngestionTradeAggregationDuration)
+	registry.MustRegister(s.metrics.LedgerIngestionReapLookupTablesDuration)
 	registry.MustRegister(s.metrics.StateVerifyDuration)
 	registry.MustRegister(s.metrics.StateInvalidGauge)
 	registry.MustRegister(s.metrics.LedgerStatsCounter)
@@ -467,14 +532,15 @@ func (s *system) RegisterMetrics(registry *prometheus.Registry) {
 // Finally, 1a and 1b are tricky because we need to keep the latest version
 // of order book graph in memory of each Horizon instance. To solve this:
 // * For state init:
-//   * If instance is a leader, we update the order book graph by running state
+//   - If instance is a leader, we update the order book graph by running state
 //     pipeline normally.
-//   * If instance is NOT a leader, we build a graph from offers present in a
+//   - If instance is NOT a leader, we build a graph from offers present in a
 //     database. We completely omit state pipeline in this case.
+//
 // * For resuming:
-//   * If instances is a leader, it runs full ledger pipeline, including updating
+//   - If instances is a leader, it runs full ledger pipeline, including updating
 //     a database.
-//   * If instances is a NOT leader, it runs ledger pipeline without updating a
+//   - If instances is a NOT leader, it runs ledger pipeline without updating a
 //     a database so order book graph is updated but database is not overwritten.
 func (s *system) Run() {
 	s.runStateMachine(startState{})
@@ -503,6 +569,16 @@ func (s *system) VerifyRange(fromLedger, toLedger uint32, verifyState bool) erro
 		fromLedger:  fromLedger,
 		toLedger:    toLedger,
 		verifyState: verifyState,
+	})
+}
+
+// BuildState runs the state ingestion on selected checkpoint ledger then exits.
+// When skipChecks is true it skips bucket list hash verification and protocol version check.
+func (s *system) BuildState(sequence uint32, skipChecks bool) error {
+	return s.runStateMachine(buildState{
+		checkpointLedger: sequence,
+		skipChecks:       skipChecks,
+		stop:             true,
 	})
 }
 
@@ -579,6 +655,10 @@ func (s *system) runStateMachine(cur stateMachineNode) error {
 			panic("unexpected transaction")
 		}
 
+		s.currentStateMutex.Lock()
+		s.currentState = cur.GetState()
+		s.currentStateMutex.Unlock()
+
 		next, err := cur.run(s)
 		if err != nil {
 			logger := log.WithFields(logpkg.F{
@@ -618,14 +698,17 @@ func (s *system) runStateMachine(cur stateMachineNode) error {
 
 func (s *system) maybeVerifyState(lastIngestedLedger uint32) {
 	stateInvalid, err := s.historyQ.GetExpStateInvalid(s.ctx)
-	if err != nil && !isCancelledError(err) {
-		log.WithField("err", err).Error("Error getting state invalid value")
+	if err != nil {
+		if !isCancelledError(err) {
+			log.WithField("err", err).Error("Error getting state invalid value")
+		}
+		return
 	}
 
 	// Run verification routine only when...
 	if !stateInvalid && // state has not been proved to be invalid...
 		!s.disableStateVerification && // state verification is not disabled...
-		s.checkpointManager.IsCheckpoint(lastIngestedLedger) { // it's a checkpoint ledger.
+		s.runStateVerificationOnLedger(lastIngestedLedger) { // it's a ledger eligible for state verification.
 		s.wg.Add(1)
 		go func() {
 			defer s.wg.Done()
@@ -652,6 +735,71 @@ func (s *system) maybeVerifyState(lastIngestedLedger uint32) {
 			}
 		}()
 	}
+}
+
+func (s *system) maybeReapLookupTables(lastIngestedLedger uint32) {
+	if !s.config.EnableReapLookupTables {
+		return
+	}
+
+	// Check if lastIngestedLedger is the last one available in the backend
+	sequence, err := s.ledgerBackend.GetLatestLedgerSequence(s.ctx)
+	if err != nil {
+		log.WithField("err", err).Error("Error getting latest ledger sequence from backend")
+		return
+	}
+
+	if sequence != lastIngestedLedger {
+		// Catching up - skip reaping tables in this cycle.
+		return
+	}
+
+	err = s.historyQ.Begin()
+	if err != nil {
+		log.WithField("err", err).Error("Error starting a transaction")
+		return
+	}
+	defer s.historyQ.Rollback()
+
+	// If so block ingestion in the cluster to reap tables
+	_, err = s.historyQ.GetLastLedgerIngest(s.ctx)
+	if err != nil {
+		log.WithField("err", err).Error(getLastIngestedErrMsg)
+		return
+	}
+
+	// Make sure reaping will not take more than 5s, which is average ledger
+	// closing time.
+	ctx, cancel := context.WithTimeout(s.ctx, 5*time.Second)
+	defer cancel()
+
+	reapStart := time.Now()
+	deletedCount, newOffsets, err := s.historyQ.ReapLookupTables(ctx, s.reapOffsets)
+	if err != nil {
+		log.WithField("err", err).Warn("Error reaping lookup tables")
+		return
+	}
+
+	err = s.historyQ.Commit()
+	if err != nil {
+		log.WithField("err", err).Error("Error committing a transaction")
+		return
+	}
+
+	totalDeleted := int64(0)
+	reapLog := log
+	for table, c := range deletedCount {
+		totalDeleted += c
+		reapLog = reapLog.WithField(table, c)
+	}
+
+	if totalDeleted > 0 {
+		reapLog.Info("Reaper deleted rows from lookup tables")
+	}
+
+	s.reapOffsets = newOffsets
+	reapDuration := time.Since(reapStart).Seconds()
+	s.Metrics().LedgerIngestionReapLookupTablesDuration.Observe(float64(reapDuration))
 }
 
 func (s *system) incrementStateVerificationErrors() int {
@@ -697,6 +845,7 @@ func (s *system) Shutdown() {
 	s.cancel()
 	// wait for ingestion state machine to terminate
 	s.wg.Wait()
+	s.historyQ.Close()
 	if err := s.ledgerBackend.Close(); err != nil {
 		log.WithError(err).Info("could not close ledger backend")
 	}

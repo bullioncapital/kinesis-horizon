@@ -14,9 +14,14 @@ go install ./tools/alb-replay
 
 ```
 Usage of ./alb-replay:
-  alb-replay <aws_log_file> <target_host_base_url>
+  -path-filter string
+    	Regular expression with which to filter in requests based on their paths
+  -quiet
+    	Only log failed requests
   -start-from int
     	What URL number to start from (default 1)
+  -status-code-filter string
+    	Regular expression with which to filter in request based on their status codes (default "^2[0-9][0-9]$")
   -timeout duration
     	HTTP request timeout (default 5s)
   -workers int

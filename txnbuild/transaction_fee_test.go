@@ -16,7 +16,7 @@ func TestBaseFeeCanBeZeroOrPositive(t *testing.T) {
 				SourceAccount: &SimpleAccount{keypair.MustRandom().Address(), 1},
 				Operations:    []Operation{&Inflation{}},
 				BaseFee:       bf,
-				Timebounds:    NewInfiniteTimeout(),
+				Preconditions: Preconditions{TimeBounds: NewInfiniteTimeout()},
 			},
 		)
 		assert.NoError(t, err)
@@ -30,7 +30,7 @@ func TestBaseFeeErrorWhenNegative(t *testing.T) {
 			SourceAccount: &SimpleAccount{keypair.MustRandom().Address(), 1},
 			Operations:    []Operation{&Inflation{}},
 			BaseFee:       -1,
-			Timebounds:    NewInfiniteTimeout(),
+			Preconditions: Preconditions{TimeBounds: NewInfiniteTimeout()},
 		},
 	)
 	assert.EqualError(t, err, "base fee cannot be negative")
@@ -45,7 +45,7 @@ func TestFeeBumpMinBaseFee(t *testing.T) {
 			SourceAccount: &sourceAccount,
 			Operations:    []Operation{&Inflation{}},
 			BaseFee:       MinBaseFee,
-			Timebounds:    NewInfiniteTimeout(),
+			Preconditions: Preconditions{TimeBounds: NewInfiniteTimeout()},
 		},
 	)
 	assert.NoError(t, err)
@@ -70,7 +70,7 @@ func TestFeeOverflow(t *testing.T) {
 			SourceAccount: &sourceAccount,
 			Operations:    []Operation{&Inflation{}, &Inflation{}},
 			BaseFee:       math.MaxUint32 / 2,
-			Timebounds:    NewInfiniteTimeout(),
+			Preconditions: Preconditions{TimeBounds: NewInfiniteTimeout()},
 		},
 	)
 	assert.NoError(t, err)
@@ -80,7 +80,7 @@ func TestFeeOverflow(t *testing.T) {
 			SourceAccount: &sourceAccount,
 			Operations:    []Operation{&Inflation{}, &Inflation{}, &Inflation{}},
 			BaseFee:       math.MaxUint32 / 2,
-			Timebounds:    NewInfiniteTimeout(),
+			Preconditions: Preconditions{TimeBounds: NewInfiniteTimeout()},
 		},
 	)
 	assert.EqualError(t, err, "base fee 2147483647 results in an overflow of max fee")
@@ -95,7 +95,7 @@ func TestFeeBumpOverflow(t *testing.T) {
 			SourceAccount: &sourceAccount,
 			Operations:    []Operation{&Inflation{}},
 			BaseFee:       MinBaseFee,
-			Timebounds:    NewInfiniteTimeout(),
+			Preconditions: Preconditions{TimeBounds: NewInfiniteTimeout()},
 		},
 	)
 	assert.NoError(t, err)
@@ -128,7 +128,7 @@ func TestFeeBumpFeeGreaterThanOrEqualInner(t *testing.T) {
 			SourceAccount: &sourceAccount,
 			Operations:    []Operation{&Inflation{}},
 			BaseFee:       2 * MinBaseFee,
-			Timebounds:    NewInfiniteTimeout(),
+			Preconditions: Preconditions{TimeBounds: NewInfiniteTimeout()},
 		},
 	)
 	assert.NoError(t, err)

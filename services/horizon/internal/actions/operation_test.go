@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -150,7 +151,7 @@ func TestGetOperationsFilterByTxID(t *testing.T) {
 	}{
 		{
 			desc:          "operations for 2374...6d4d",
-			transactionID: "2374e99349b9ef7dba9a5db3339b78fda8f34777b1af33ba468ad5c0df946d4d",
+			transactionID: "ff5cba32e8918327f1d563f57cd54dc5f5906f33ce53aeb119df06a16f797387",
 			expected:      1,
 		},
 		{
@@ -176,7 +177,7 @@ func TestGetOperationsFilterByTxID(t *testing.T) {
 		},
 	}
 	for _, tc := range testCases {
-		t.Run(fmt.Sprintf(tc.desc), func(t *testing.T) {
+		t.Run(tc.desc, func(t *testing.T) {
 			records, err := handler.GetResourcePage(
 				httptest.NewRecorder(),
 				makeRequest(
@@ -270,7 +271,7 @@ func TestGetOperationsIncludeFailed(t *testing.T) {
 		httptest.NewRecorder(),
 		makeRequest(
 			t, map[string]string{
-				"tx_id": "aa168f12124b7c196c0adaee7c73a64d37f99428cacb59a91ff389626845e7cf",
+				"tx_id": "e34941080e33bf0ce90c7fac31ec13a0f7e9e5489204e766c3def374164aa3fa",
 			}, map[string]string{}, q,
 		),
 	)
@@ -285,7 +286,7 @@ func TestGetOperationsIncludeFailed(t *testing.T) {
 		httptest.NewRecorder(),
 		makeRequest(
 			t, map[string]string{
-				"tx_id": "56e3216045d579bea40f2d35a09406de3a894ecb5be70dbda5ec9c0427a0d5a1",
+				"tx_id": "263b8b93313084b938891187081f8c6d2a756f7f2cb1fc5aaa2f7737517e7f4c",
 			}, map[string]string{}, q,
 		),
 	)
@@ -299,7 +300,7 @@ func TestGetOperationsIncludeFailed(t *testing.T) {
 	// NULL value
 	_, err = tt.HorizonSession().ExecRaw(tt.Ctx,
 		`UPDATE history_transactions SET successful = NULL WHERE transaction_hash = ?`,
-		"56e3216045d579bea40f2d35a09406de3a894ecb5be70dbda5ec9c0427a0d5a1",
+		"263b8b93313084b938891187081f8c6d2a756f7f2cb1fc5aaa2f7737517e7f4c",
 	)
 	tt.Assert.NoError(err)
 
@@ -307,7 +308,7 @@ func TestGetOperationsIncludeFailed(t *testing.T) {
 		httptest.NewRecorder(),
 		makeRequest(
 			t, map[string]string{
-				"tx_id": "56e3216045d579bea40f2d35a09406de3a894ecb5be70dbda5ec9c0427a0d5a1",
+				"tx_id": "263b8b93313084b938891187081f8c6d2a756f7f2cb1fc5aaa2f7737517e7f4c",
 			}, map[string]string{}, q,
 		),
 	)
@@ -569,7 +570,7 @@ func TestGetOperationsPagination(t *testing.T) {
 		),
 	)
 	tt.Assert.Error(err)
-	tt.Assert.EqualError(err, "problem: before_history")
+	tt.Assert.True(strings.Contains(err.Error(), "problem: before_history"))
 }
 
 func TestGetOperations_IncludeTransactions(t *testing.T) {
@@ -645,7 +646,7 @@ func TestGetOperation(t *testing.T) {
 	tt.Assert.NoError(err)
 	op := record.(operations.Operation)
 	tt.Assert.Equal("8589938689", op.PagingToken())
-	tt.Assert.Equal("2374e99349b9ef7dba9a5db3339b78fda8f34777b1af33ba468ad5c0df946d4d", op.GetTransactionHash())
+	tt.Assert.Equal("ff5cba32e8918327f1d563f57cd54dc5f5906f33ce53aeb119df06a16f797387", op.GetTransactionHash())
 
 	_, err = handler.GetResource(
 		httptest.NewRecorder(),

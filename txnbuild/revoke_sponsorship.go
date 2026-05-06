@@ -162,7 +162,7 @@ func (r *RevokeSponsorship) FromXDR(xdrOp xdr.Operation) error {
 	r.SourceAccount = accountFromXDR(xdrOp.SourceAccount)
 	op, ok := xdrOp.Body.GetRevokeSponsorshipOp()
 	if !ok {
-		return errors.New("error parsing revoke_sponsorhip operation from xdr")
+		return errors.New("error parsing revoke_sponsorship operation from xdr")
 	}
 	switch op.Type {
 	case xdr.RevokeSponsorshipTypeRevokeSponsorshipLedgerEntry:

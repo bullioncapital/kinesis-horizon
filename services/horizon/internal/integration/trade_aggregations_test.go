@@ -18,7 +18,7 @@ import (
 func TestTradeAggregations(t *testing.T) {
 	itest := integration.NewTest(t, integration.Config{})
 	ctx := context.Background()
-	historyQ := itest.Horizon().HistoryQ()
+	historyQ := itest.HorizonIngest().HistoryQ()
 
 	// Insert some trades
 	now := strtime.Now().RoundDown(60_000)

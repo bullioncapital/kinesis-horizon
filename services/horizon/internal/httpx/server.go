@@ -58,6 +58,7 @@ func init() {
 	problem.RegisterError(context.Canceled, hProblem.ClientDisconnected)
 	problem.RegisterError(db.ErrCancelled, hProblem.ClientDisconnected)
 	problem.RegisterError(db.ErrTimeout, hProblem.ServiceUnavailable)
+	problem.RegisterError(db.ErrStatementTimeout, hProblem.ServiceUnavailable)
 	problem.RegisterError(db.ErrConflictWithRecovery, hProblem.ServiceUnavailable)
 	problem.RegisterError(db.ErrBadConnection, hProblem.ServiceUnavailable)
 }

@@ -138,7 +138,7 @@ func (p *SignersProcessor) Commit(ctx context.Context) error {
 					sponsor,
 				)
 				if err != nil {
-					return errors.Wrap(err, "Error inserting a signer")
+					return errors.Wrapf(err, "Error inserting a signer (%s)", signer)
 				}
 
 				if rowsAffected != 1 {

@@ -10,9 +10,10 @@ import (
 )
 
 type ClaimableBalancesChangeProcessor struct {
-	encodingBuffer     *xdr.EncodingBuffer
-	qClaimableBalances history.QClaimableBalances
-	cache              *ingest.ChangeCompactor
+	encodingBuffer         *xdr.EncodingBuffer
+	qClaimableBalances     history.QClaimableBalances
+	cache                  *ingest.ChangeCompactor
+	claimantsInsertBuilder history.ClaimableBalanceClaimantBatchInsertBuilder
 }
 
 func NewClaimableBalancesChangeProcessor(Q history.QClaimableBalances) *ClaimableBalancesChangeProcessor {
@@ -26,6 +27,7 @@ func NewClaimableBalancesChangeProcessor(Q history.QClaimableBalances) *Claimabl
 
 func (p *ClaimableBalancesChangeProcessor) reset() {
 	p.cache = ingest.NewChangeCompactor()
+	p.claimantsInsertBuilder = p.qClaimableBalances.NewClaimableBalanceClaimantBatchInsertBuilder(maxBatchSize)
 }
 
 func (p *ClaimableBalancesChangeProcessor) ProcessChange(ctx context.Context, change ingest.Change) error {
@@ -86,6 +88,25 @@ func (p *ClaimableBalancesChangeProcessor) Commit(ctx context.Context) error {
 		if err := p.qClaimableBalances.UpsertClaimableBalances(ctx, cbsToUpsert); err != nil {
 			return errors.Wrap(err, "error executing upsert")
 		}
+
+		// Add ClaimableBalanceClaimants
+		for _, cb := range cbsToUpsert {
+			for _, claimant := range cb.Claimants {
+				claimant := history.ClaimableBalanceClaimant{
+					BalanceID:          cb.BalanceID,
+					Destination:        claimant.Destination,
+					LastModifiedLedger: cb.LastModifiedLedger,
+				}
+				if err := p.claimantsInsertBuilder.Add(ctx, claimant); err != nil {
+					return errors.Wrap(err, "error adding to claimantsInsertBuilder")
+				}
+			}
+		}
+
+		err := p.claimantsInsertBuilder.Exec(ctx)
+		if err != nil {
+			return errors.Wrap(err, "error executing claimantsInsertBuilder")
+		}
 	}
 
 	if len(cbIDsToDelete) > 0 {
@@ -99,6 +120,12 @@ func (p *ClaimableBalancesChangeProcessor) Commit(ctx context.Context) error {
 				count,
 				len(cbIDsToDelete),
 			))
+		}
+
+		// Remove ClaimableBalanceClaimants
+		_, err = p.qClaimableBalances.RemoveClaimableBalanceClaimants(ctx, cbIDsToDelete)
+		if err != nil {
+			return errors.Wrap(err, "error executing removal of claimants")
 		}
 	}
 

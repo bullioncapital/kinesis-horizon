@@ -137,7 +137,7 @@ func (suite *SubmissionListTestSuite) TestSubmissionList_Clean() {
 	}
 }
 
-//Tests that Pending works as expected
+// Tests that Pending works as expected
 func (suite *SubmissionListTestSuite) TestSubmissionList_Pending() {
 	assert.Equal(suite.T(), 0, len(suite.list.Pending(suite.ctx)))
 	suite.list.Add(suite.ctx, suite.hashes[0], suite.listeners[0])

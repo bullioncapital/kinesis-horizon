@@ -6,7 +6,7 @@ import (
 	stdhttp "net/http"
 	"os"
 
-	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/v5"
 	"github.com/spf13/cobra"
 	"github.com/stellar/go/services/friendbot/internal"
 	"github.com/stellar/go/support/app"

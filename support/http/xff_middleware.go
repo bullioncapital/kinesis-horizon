@@ -14,10 +14,10 @@ type XFFMiddlewareConfig struct {
 // XFFMiddleware is a middleware that replaces http.Request.RemoteAddr with a
 // visitor value based on a given config:
 //
-//   * If BehindCloudflare is true CF-Connecting-IP header is used.
-//   * If BehindAWSLoadBalancer is true the last value of X-Forwarded-For header
+//   - If BehindCloudflare is true CF-Connecting-IP header is used.
+//   - If BehindAWSLoadBalancer is true the last value of X-Forwarded-For header
 //     is used.
-//   * If none of above is set the first value of X-Forwarded-For header is
+//   - If none of above is set the first value of X-Forwarded-For header is
 //     used. Note: it's easy to spoof the real IP address if the application is
 //     not behind a proxy that maintains a X-Forwarded-For header.
 //

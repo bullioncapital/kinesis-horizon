@@ -14,6 +14,9 @@ package db
 import (
 	"context"
 	"database/sql"
+	"net/url"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/Masterminds/squirrel"
@@ -25,8 +28,8 @@ import (
 )
 
 const (
-	// postgresQueryMaxParams defines the maximum number of parameters in a query.
-	postgresQueryMaxParams = 65535
+	// PostgresQueryMaxParams defines the maximum number of parameters in a query.
+	PostgresQueryMaxParams = 65535
 	maxDBPingAttempts      = 30
 )
 
@@ -35,7 +38,7 @@ var (
 	// taken longer than context's deadline max duration
 	ErrTimeout = errors.New("canceling statement due to lack of response within timeout period")
 	// ErrCancelled is an error returned by Session methods when request has
-	// been cancelled (ex. context cancelled).
+	// been canceled (ex. context canceled).
 	ErrCancelled = errors.New("canceling statement due to user request")
 	// ErrConflictWithRecovery is an error returned by Session methods when
 	// read replica cancels the query due to conflict with about-to-be-applied
@@ -44,6 +47,9 @@ var (
 	// ErrBadConnection is an error returned when driver returns `bad connection`
 	// error.
 	ErrBadConnection = errors.New("bad connection")
+	// ErrStatementTimeout is an error returned by Session methods when request has
+	// been canceled due to a statement timeout.
+	ErrStatementTimeout = errors.New("canceling statement due to statement timeout")
 )
 
 // Conn represents a connection to a single database.
@@ -163,8 +169,59 @@ func pingDB(db *sqlx.DB) error {
 	return errors.Wrapf(err, "failed to connect to DB after %v attempts", maxDBPingAttempts)
 }
 
+type ClientConfig struct {
+	Key   string
+	Value string
+}
+
+func StatementTimeout(timeout time.Duration) ClientConfig {
+	return ClientConfig{
+		Key:   "statement_timeout",
+		Value: strconv.FormatInt(timeout.Milliseconds(), 10),
+	}
+}
+
+func IdleTransactionTimeout(timeout time.Duration) ClientConfig {
+	return ClientConfig{
+		Key:   "idle_in_transaction_session_timeout",
+		Value: strconv.FormatInt(timeout.Milliseconds(), 10),
+	}
+}
+
+func augmentDSN(dsn string, clientConfigs []ClientConfig) string {
+	parsed, err := url.Parse(dsn)
+	// dsn can either be a postgres url like "postgres://postgres:123456@127.0.0.1:5432"
+	// or, it can be a white space separated string of key value pairs like
+	// "host=localhost port=5432 user=bob password=secret"
+	if err != nil || parsed.Scheme == "" {
+		// if dsn does not parse as a postgres url, we assume it must be take
+		// the form of a white space separated string
+		parts := []string{dsn}
+		for _, config := range clientConfigs {
+			// do not override if the key is already present in dsn
+			if strings.Contains(dsn, config.Key+"=") {
+				continue
+			}
+			parts = append(parts, config.Key+"="+config.Value)
+		}
+		return strings.Join(parts, " ")
+	}
+
+	q := parsed.Query()
+	for _, config := range clientConfigs {
+		// do not override if the key is already present in dsn
+		if len(q.Get(config.Key)) > 0 {
+			continue
+		}
+		q.Set(config.Key, config.Value)
+	}
+	parsed.RawQuery = q.Encode()
+	return parsed.String()
+}
+
 // Open the database at `dsn` and returns a new *Session using it.
-func Open(dialect, dsn string) (*Session, error) {
+func Open(dialect, dsn string, clientConfigs ...ClientConfig) (*Session, error) {
+	dsn = augmentDSN(dsn, clientConfigs)
 	db, err := sqlx.Open(dialect, dsn)
 	if err != nil {
 		return nil, errors.Wrap(err, "open failed")

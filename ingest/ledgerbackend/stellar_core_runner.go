@@ -3,12 +3,11 @@ package ledgerbackend
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math/rand"
 	"os"
-	"os/exec"
 	"path"
 	"path/filepath"
 	"regexp"
@@ -18,6 +17,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/stellar/go/protocols/stellarcore"
 	"github.com/stellar/go/support/log"
 )
 
@@ -33,7 +33,8 @@ type stellarCoreRunnerInterface interface {
 type stellarCoreRunnerMode int
 
 const (
-	stellarCoreRunnerModeOnline stellarCoreRunnerMode = iota
+	_ stellarCoreRunnerMode = iota // unset
+	stellarCoreRunnerModeOnline
 	stellarCoreRunnerModeOffline
 )
 
@@ -53,7 +54,7 @@ type stellarCoreRunner struct {
 	executablePath string
 
 	started      bool
-	cmd          *exec.Cmd
+	cmd          cmdI
 	wg           sync.WaitGroup
 	ctx          context.Context
 	cancel       context.CancelFunc
@@ -61,11 +62,14 @@ type stellarCoreRunner struct {
 	pipe         pipe
 	mode         stellarCoreRunnerMode
 
+	systemCaller systemCaller
+
 	lock             sync.Mutex
 	processExited    bool
 	processExitError error
 
 	storagePath string
+	toml        *CaptiveCoreToml
 	useDB       bool
 	nonce       string
 
@@ -81,9 +85,30 @@ func createRandomHexString(n int) string {
 	return string(b)
 }
 
-func newStellarCoreRunner(config CaptiveCoreConfig, mode stellarCoreRunnerMode) (*stellarCoreRunner, error) {
-	var fullStoragePath string
-	if runtime.GOOS == "windows" || mode == stellarCoreRunnerModeOffline {
+func newStellarCoreRunner(config CaptiveCoreConfig) *stellarCoreRunner {
+	ctx, cancel := context.WithCancel(config.Context)
+
+	runner := &stellarCoreRunner{
+		executablePath: config.BinaryPath,
+		ctx:            ctx,
+		cancel:         cancel,
+		storagePath:    config.StoragePath,
+		useDB:          config.UseDB,
+		nonce: fmt.Sprintf(
+			"captive-stellar-core-%x",
+			rand.New(rand.NewSource(time.Now().UnixNano())).Uint64(),
+		),
+		log:  config.Log,
+		toml: config.Toml,
+
+		systemCaller: realSystemCaller{},
+	}
+
+	return runner
+}
+
+func (r *stellarCoreRunner) getFullStoragePath() string {
+	if runtime.GOOS == "windows" || r.mode == stellarCoreRunnerModeOffline {
 		// On Windows, first we ALWAYS append something to the base storage path,
 		// because we will delete the directory entirely when Horizon stops. We also
 		// add a random suffix in order to ensure that there aren't naming
@@ -93,61 +118,41 @@ func newStellarCoreRunner(config CaptiveCoreConfig, mode stellarCoreRunnerMode) 
 		// We also want to use random directories in offline mode (reingestion)
 		// because it's possible it's running multiple Stellar-Cores on a single
 		// machine.
-		fullStoragePath = path.Join(config.StoragePath, "captive-core-"+createRandomHexString(8))
+		return path.Join(r.storagePath, "captive-core-"+createRandomHexString(8))
 	} else {
 		// Use the specified directory to store Captive Core's data:
 		//    https://github.com/stellar/go/issues/3437
 		// but be sure to re-use rather than replace it:
 		//    https://github.com/stellar/go/issues/3631
-		fullStoragePath = path.Join(config.StoragePath, "captive-core")
+		return path.Join(r.storagePath, "captive-core")
 	}
-
-	info, err := os.Stat(fullStoragePath)
-	if os.IsNotExist(err) {
-		innerErr := os.MkdirAll(fullStoragePath, os.FileMode(int(0755))) // rwx|rx|rx
-		if innerErr != nil {
-			return nil, errors.Wrap(innerErr, fmt.Sprintf(
-				"failed to create storage directory (%s)", fullStoragePath))
-		}
-	} else if !info.IsDir() {
-		return nil, errors.New(fmt.Sprintf("%s is not a directory", fullStoragePath))
-	} else if err != nil {
-		return nil, errors.Wrap(err, fmt.Sprintf(
-			"error accessing storage directory (%s)", fullStoragePath))
-	}
-
-	ctx, cancel := context.WithCancel(config.Context)
-
-	runner := &stellarCoreRunner{
-		executablePath: config.BinaryPath,
-		ctx:            ctx,
-		cancel:         cancel,
-		storagePath:    fullStoragePath,
-		useDB:          config.UseDB,
-		mode:           mode,
-		nonce: fmt.Sprintf(
-			"captive-stellar-core-%x",
-			rand.New(rand.NewSource(time.Now().UnixNano())).Uint64(),
-		),
-		log: config.Log,
-	}
-
-	if conf, err := writeConf(config.Toml, mode, runner.getConfFileName()); err != nil {
-		return nil, errors.Wrap(err, "error writing configuration")
-	} else {
-		runner.log.Debugf("captive core config file contents:\n%s", conf)
-	}
-
-	return runner, nil
 }
 
-func writeConf(captiveCoreToml *CaptiveCoreToml, mode stellarCoreRunnerMode, location string) (string, error) {
-	text, err := generateConfig(captiveCoreToml, mode)
+func (r *stellarCoreRunner) establishStorageDirectory() error {
+	info, err := r.systemCaller.stat(r.storagePath)
+	if os.IsNotExist(err) {
+		innerErr := r.systemCaller.mkdirAll(r.storagePath, os.FileMode(int(0755))) // rwx|rx|rx
+		if innerErr != nil {
+			return errors.Wrap(innerErr, fmt.Sprintf(
+				"failed to create storage directory (%s)", r.storagePath))
+		}
+	} else if !info.IsDir() {
+		return errors.New(fmt.Sprintf("%s is not a directory", r.storagePath))
+	} else if err != nil {
+		return errors.Wrap(err, fmt.Sprintf(
+			"error accessing storage directory (%s)", r.storagePath))
+	}
+
+	return nil
+}
+
+func (r *stellarCoreRunner) writeConf() (string, error) {
+	text, err := generateConfig(r.toml, r.mode)
 	if err != nil {
 		return "", err
 	}
 
-	return string(text), ioutil.WriteFile(location, text, 0644)
+	return string(text), r.systemCaller.writeFile(r.getConfFileName(), text, 0644)
 }
 
 func generateConfig(captiveCoreToml *CaptiveCoreToml, mode stellarCoreRunnerMode) ([]byte, error) {
@@ -234,13 +239,40 @@ func (r *stellarCoreRunner) getLogLineWriter() io.Writer {
 	return wr
 }
 
-func (r *stellarCoreRunner) createCmd(params ...string) *exec.Cmd {
-	allParams := append([]string{"--conf", r.getConfFileName()}, params...)
-	cmd := exec.Command(r.executablePath, allParams...)
-	cmd.Dir = r.storagePath
-	cmd.Stdout = r.getLogLineWriter()
-	cmd.Stderr = r.getLogLineWriter()
-	return cmd
+func (r *stellarCoreRunner) offlineInfo() (stellarcore.InfoResponse, error) {
+	allParams := []string{"--conf", r.getConfFileName(), "offline-info"}
+	cmd := r.systemCaller.command(r.executablePath, allParams...)
+	cmd.setDir(r.storagePath)
+	output, err := cmd.Output()
+	if err != nil {
+		return stellarcore.InfoResponse{}, errors.Wrap(err, "error executing offline-info cmd")
+	}
+	var info stellarcore.InfoResponse
+	err = json.Unmarshal(output, &info)
+	if err != nil {
+		return stellarcore.InfoResponse{}, errors.Wrap(err, "invalid output of offline-info cmd")
+	}
+	return info, nil
+}
+
+func (r *stellarCoreRunner) createCmd(params ...string) (cmdI, error) {
+	err := r.establishStorageDirectory()
+	if err != nil {
+		return nil, err
+	}
+
+	if conf, err := r.writeConf(); err != nil {
+		return nil, errors.Wrap(err, "error writing configuration")
+	} else {
+		r.log.Debugf("captive core config file contents:\n%s", conf)
+	}
+
+	allParams := append([]string{"--conf", r.getConfFileName(), "--console"}, params...)
+	cmd := r.systemCaller.command(r.executablePath, allParams...)
+	cmd.setDir(r.storagePath)
+	cmd.setStdout(r.getLogLineWriter())
+	cmd.setStderr(r.getLogLineWriter())
+	return cmd, nil
 }
 
 // context returns the context.Context instance associated with the running captive core instance
@@ -252,6 +284,9 @@ func (r *stellarCoreRunner) context() context.Context {
 func (r *stellarCoreRunner) catchup(from, to uint32) error {
 	r.lock.Lock()
 	defer r.lock.Unlock()
+
+	r.mode = stellarCoreRunnerModeOffline
+	r.storagePath = r.getFullStoragePath()
 
 	// check if we have already been closed
 	if r.ctx.Err() != nil {
@@ -271,16 +306,23 @@ func (r *stellarCoreRunner) catchup(from, to uint32) error {
 	// when using external storage of ledgers, use new-db to first set the state of
 	// remote db storage to genesis to purge any prior state and reset.
 	if r.useDB {
-		if err := r.createCmd("new-db").Run(); err != nil {
+		cmd, err := r.createCmd("new-db")
+		if err != nil {
+			return errors.Wrap(err, "error creating command")
+		}
+		if err := cmd.Run(); err != nil {
 			return errors.Wrap(err, "error initializing core db")
 		}
 	} else {
 		params = append(params, "--in-memory")
 	}
 
-	r.cmd = r.createCmd(params...)
-
 	var err error
+	r.cmd, err = r.createCmd(params...)
+	if err != nil {
+		return errors.Wrap(err, "error creating command")
+	}
+
 	r.pipe, err = r.start(r.cmd)
 	if err != nil {
 		r.closeLogLineWriters(r.cmd)
@@ -308,6 +350,9 @@ func (r *stellarCoreRunner) runFrom(from uint32, hash string) error {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
+	r.mode = stellarCoreRunnerModeOnline
+	r.storagePath = r.getFullStoragePath()
+
 	// check if we have already been closed
 	if r.ctx.Err() != nil {
 		return r.ctx.Err()
@@ -317,27 +362,61 @@ func (r *stellarCoreRunner) runFrom(from uint32, hash string) error {
 		return errors.New("runner already started")
 	}
 
+	var err error
+
 	if r.useDB {
-		if err := r.createCmd("new-db").Run(); err != nil {
-			return errors.Wrap(err, "error initializing core db")
-		}
-		// Do a quick catch-up to set the LCL in core to be our expected starting
-		// point.
-		if from > 2 {
-			if err := r.createCmd("catchup", fmt.Sprintf("%d/0", from-1)).Run(); err != nil {
-				return errors.Wrap(err, "error runing stellar-core catchup")
-			}
-		} else if err := r.createCmd("catchup", "2/0").Run(); err != nil {
-			return errors.Wrap(err, "error runing stellar-core catchup")
+		// Check if on-disk core DB exists and what's the LCL there. If not what
+		// we need remove storage dir and start from scratch.
+		removeStorageDir := false
+		var info stellarcore.InfoResponse
+		info, err = r.offlineInfo()
+		if err != nil {
+			r.log.Infof("Error running offline-info: %v, removing existing storage-dir contents", err)
+			removeStorageDir = true
+		} else if uint32(info.Info.Ledger.Num) > from {
+			r.log.Infof("Unexpected LCL in Stellar-Core DB: %d (want: %d), removing existing storage-dir contents", info.Info.Ledger.Num, from)
+			removeStorageDir = true
 		}
 
-		r.cmd = r.createCmd(
+		if removeStorageDir {
+			if err = r.systemCaller.removeAll(r.storagePath); err != nil {
+				return errors.Wrap(err, "error removing existing storage-dir contents")
+			}
+
+			var cmd cmdI
+			cmd, err = r.createCmd("new-db")
+			if err != nil {
+				return errors.Wrap(err, "error creating command")
+			}
+
+			if err = cmd.Run(); err != nil {
+				return errors.Wrap(err, "error initializing core db")
+			}
+
+			// Do a quick catch-up to set the LCL in core to be our expected starting
+			// point.
+			if from > 2 {
+				cmd, err = r.createCmd("catchup", fmt.Sprintf("%d/0", from-1))
+			} else {
+				cmd, err = r.createCmd("catchup", "2/0")
+			}
+
+			if err != nil {
+				return errors.Wrap(err, "error creating command")
+			}
+
+			if err = cmd.Run(); err != nil {
+				return errors.Wrap(err, "error runing stellar-core catchup")
+			}
+		}
+
+		r.cmd, err = r.createCmd(
 			"run",
 			"--metadata-output-stream",
 			r.getPipeName(),
 		)
 	} else {
-		r.cmd = r.createCmd(
+		r.cmd, err = r.createCmd(
 			"run",
 			"--in-memory",
 			"--start-at-ledger", fmt.Sprintf("%d", from),
@@ -346,7 +425,10 @@ func (r *stellarCoreRunner) runFrom(from uint32, hash string) error {
 		)
 	}
 
-	var err error
+	if err != nil {
+		return errors.Wrap(err, "error creating command")
+	}
+
 	r.pipe, err = r.start(r.cmd)
 	if err != nil {
 		r.closeLogLineWriters(r.cmd)
@@ -390,7 +472,7 @@ func (r *stellarCoreRunner) handleExit() {
 		case <-r.ctx.Done():
 		}
 
-		err := r.cmd.Process.Signal(interrupt)
+		err := r.cmd.getProcess().Signal(interrupt)
 		if err == nil {
 			err = r.ctx.Err() // Report ctx.Err() as the reason we interrupted.
 		} else if err.Error() == "os: process already finished" {
@@ -414,7 +496,7 @@ func (r *stellarCoreRunner) handleExit() {
 		// Ignore any error: if cmd.Process has already terminated, we still
 		// want to send ctx.Err() (or the error from the Interrupt call)
 		// to properly attribute the signal that may have terminated it.
-		_ = r.cmd.Process.Kill()
+		_ = r.cmd.getProcess().Kill()
 
 		errc <- err
 	}()
@@ -441,9 +523,9 @@ func (r *stellarCoreRunner) handleExit() {
 }
 
 // closeLogLineWriters closes the go routines created by getLogLineWriter()
-func (r *stellarCoreRunner) closeLogLineWriters(cmd *exec.Cmd) {
-	cmd.Stdout.(*io.PipeWriter).Close()
-	cmd.Stderr.(*io.PipeWriter).Close()
+func (r *stellarCoreRunner) closeLogLineWriters(cmd cmdI) {
+	cmd.getStdout().(*io.PipeWriter).Close()
+	cmd.getStderr().(*io.PipeWriter).Close()
 }
 
 // getMetaPipe returns a channel which contains ledgers streamed from the captive core subprocess
@@ -501,15 +583,15 @@ func (r *stellarCoreRunner) close() error {
 		r.pipe.Reader.Close()
 	}
 
-	if runtime.GOOS == "windows" ||
+	if r.mode != 0 && (runtime.GOOS == "windows" ||
 		(r.processExitError != nil && r.processExitError != context.Canceled) ||
-		r.mode == stellarCoreRunnerModeOffline {
+		r.mode == stellarCoreRunnerModeOffline) {
 		// It's impossible to send SIGINT on Windows so buckets can become
 		// corrupted. If we can't reuse it, then remove it.
 		// We also remove the storage path if there was an error terminating the
 		// process (files can be corrupted).
 		// We remove all files when reingesting to save disk space.
-		return os.RemoveAll(storagePath)
+		return r.systemCaller.removeAll(storagePath)
 	}
 
 	return nil

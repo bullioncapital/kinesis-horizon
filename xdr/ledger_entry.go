@@ -99,6 +99,14 @@ func (entry *LedgerEntry) Normalize() *LedgerEntry {
 				SignerSponsoringIDs: make([]SponsorshipDescriptor, len(accountEntry.Signers)),
 			}
 		}
+		// if AccountEntryExtensionV2Ext is v=0, then create v3 with 0 values
+		if accountEntry.Ext.V1.Ext.V2.Ext.V == 0 {
+			accountEntry.Ext.V1.Ext.V2.Ext.V = 3
+			accountEntry.Ext.V1.Ext.V2.Ext.V3 = &AccountEntryExtensionV3{
+				SeqLedger: Uint32(0),
+				SeqTime:   TimePoint(0),
+			}
+		}
 
 		signerSponsoringIDs := accountEntry.Ext.V1.Ext.V2.SignerSponsoringIDs
 

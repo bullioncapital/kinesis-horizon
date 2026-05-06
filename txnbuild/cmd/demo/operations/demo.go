@@ -215,7 +215,7 @@ func bumpSequence(source *hProtocol.Account, seqNum int64, signer Account) (stri
 			IncrementSequenceNum: true,
 			Operations:           []txnbuild.Operation{&bumpSequenceOp},
 			BaseFee:              txnbuild.MinBaseFee,
-			Timebounds:           txnbuild.NewTimeout(300),
+			Preconditions:        txnbuild.Preconditions{TimeBounds: txnbuild.NewTimeout(300)},
 		},
 	)
 	if err != nil {
@@ -245,7 +245,7 @@ func createAccount(source *hProtocol.Account, dest string, signer Account) (stri
 			IncrementSequenceNum: true,
 			Operations:           []txnbuild.Operation{&createAccountOp},
 			BaseFee:              txnbuild.MinBaseFee,
-			Timebounds:           txnbuild.NewTimeout(300),
+			Preconditions:        txnbuild.Preconditions{TimeBounds: txnbuild.NewTimeout(300)},
 		},
 	)
 	if err != nil {
@@ -274,7 +274,7 @@ func deleteData(source *hProtocol.Account, dataKey string, signer Account) (stri
 			IncrementSequenceNum: true,
 			Operations:           []txnbuild.Operation{&manageDataOp},
 			BaseFee:              txnbuild.MinBaseFee,
-			Timebounds:           txnbuild.NewTimeout(300),
+			Preconditions:        txnbuild.Preconditions{TimeBounds: txnbuild.NewTimeout(300)},
 		},
 	)
 	if err != nil {
@@ -305,7 +305,7 @@ func payment(source *hProtocol.Account, dest, amount string, asset txnbuild.Asse
 			IncrementSequenceNum: true,
 			Operations:           []txnbuild.Operation{&paymentOp},
 			BaseFee:              txnbuild.MinBaseFee,
-			Timebounds:           txnbuild.NewTimeout(300),
+			Preconditions:        txnbuild.Preconditions{TimeBounds: txnbuild.NewTimeout(300)},
 		},
 	)
 	if err != nil {
@@ -332,7 +332,7 @@ func deleteTrustline(source *hProtocol.Account, asset txnbuild.ChangeTrustAsset,
 			IncrementSequenceNum: true,
 			Operations:           []txnbuild.Operation{&deleteTrustline},
 			BaseFee:              txnbuild.MinBaseFee,
-			Timebounds:           txnbuild.NewTimeout(300),
+			Preconditions:        txnbuild.Preconditions{TimeBounds: txnbuild.NewTimeout(300)},
 		},
 	)
 	if err != nil {
@@ -362,7 +362,7 @@ func deleteOffer(source *hProtocol.Account, offerID int64, signer Account) (stri
 			IncrementSequenceNum: true,
 			Operations:           []txnbuild.Operation{&deleteOffer},
 			BaseFee:              txnbuild.MinBaseFee,
-			Timebounds:           txnbuild.NewTimeout(300),
+			Preconditions:        txnbuild.Preconditions{TimeBounds: txnbuild.NewTimeout(300)},
 		},
 	)
 	if err != nil {
@@ -391,7 +391,7 @@ func mergeAccount(source *hProtocol.Account, destAddress string, signer Account)
 			IncrementSequenceNum: true,
 			Operations:           []txnbuild.Operation{&accountMerge},
 			BaseFee:              txnbuild.MinBaseFee,
-			Timebounds:           txnbuild.NewTimeout(300),
+			Preconditions:        txnbuild.Preconditions{TimeBounds: txnbuild.NewTimeout(300)},
 		},
 	)
 	if err != nil {

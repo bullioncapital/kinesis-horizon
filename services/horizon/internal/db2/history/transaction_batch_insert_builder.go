@@ -2,12 +2,9 @@ package history
 
 import (
 	"context"
-	"database/sql/driver"
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
-	"math"
-	"strconv"
 	"strings"
 	"time"
 
@@ -17,7 +14,6 @@ import (
 	"github.com/stellar/go/ingest"
 	"github.com/stellar/go/services/horizon/internal/utf8"
 	"github.com/stellar/go/support/db"
-	"github.com/stellar/go/support/errors"
 	"github.com/stellar/go/toid"
 	"github.com/stellar/go/xdr"
 )
@@ -46,9 +42,20 @@ func (q *Q) NewTransactionBatchInsertBuilder(maxBatchSize int) TransactionBatchI
 	}
 }
 
+// NewTransactionBatchInsertBuilder constructs a new TransactionBatchInsertBuilder instance
+func (q *Q) NewTransactionFilteredTmpBatchInsertBuilder(maxBatchSize int) TransactionBatchInsertBuilder {
+	return &transactionBatchInsertBuilder{
+		encodingBuffer: xdr.NewEncodingBuffer(),
+		builder: db.BatchInsertBuilder{
+			Table:        q.GetTable("history_transactions_filtered_tmp"),
+			MaxBatchSize: maxBatchSize,
+		},
+	}
+}
+
 // Add adds a new transaction to the batch
 func (i *transactionBatchInsertBuilder) Add(ctx context.Context, transaction ingest.LedgerTransaction, sequence uint32) error {
-	row, err := i.transactionToRow(transaction, sequence)
+	row, err := transactionToRow(transaction, sequence, i.encodingBuffer)
 	if err != nil {
 		return err
 	}
@@ -58,91 +65,6 @@ func (i *transactionBatchInsertBuilder) Add(ctx context.Context, transaction ing
 
 func (i *transactionBatchInsertBuilder) Exec(ctx context.Context) error {
 	return i.builder.Exec(ctx)
-}
-
-// TimeBounds represents the time bounds of a Stellar transaction
-type TimeBounds struct {
-	Null  bool
-	Upper null.Int
-	Lower null.Int
-}
-
-// Scan implements the database/sql Scanner interface.
-func (t *TimeBounds) Scan(src interface{}) error {
-	if src == nil {
-		*t = TimeBounds{Null: true}
-		return nil
-	}
-
-	var rangeText string
-	switch src := src.(type) {
-	case string:
-		rangeText = src
-	case []byte:
-		rangeText = string(src)
-	default:
-		return errors.Errorf("cannot scan %T", src)
-	}
-
-	rangeText = strings.TrimSpace(rangeText)
-	if len(rangeText) < 3 {
-		return errors.Errorf("range is invalid %s", rangeText)
-	}
-	inner := rangeText[1 : len(rangeText)-1]
-	parts := strings.Split(inner, ",")
-	if len(parts) != 2 {
-		return errors.Errorf("%s does not have 2 comma separated values", rangeText)
-	}
-
-	lower, upper := parts[0], parts[1]
-	if len(lower) > 0 {
-		if err := t.Lower.Scan(lower); err != nil {
-			return errors.Wrap(err, "cannot parse lower bound")
-		}
-	}
-	if len(upper) > 0 {
-		if err := t.Upper.Scan(upper); err != nil {
-			return errors.Wrap(err, "cannot parse upper bound")
-		}
-	}
-
-	return nil
-}
-
-// Value implements the database/sql/driver Valuer interface.
-func (t TimeBounds) Value() (driver.Value, error) {
-	if t.Null {
-		return nil, nil
-	}
-
-	if !t.Upper.Valid {
-		return fmt.Sprintf("[%d,)", t.Lower.Int64), nil
-	}
-
-	return fmt.Sprintf("[%d, %d)", t.Lower.Int64, t.Upper.Int64), nil
-}
-
-func formatTimeBounds(transaction ingest.LedgerTransaction) TimeBounds {
-	timeBounds := transaction.Envelope.TimeBounds()
-	if timeBounds == nil {
-		return TimeBounds{Null: true}
-	}
-
-	if timeBounds.MaxTime == 0 {
-		return TimeBounds{
-			Lower: null.IntFrom(int64(timeBounds.MinTime)),
-		}
-	}
-
-	maxTime := timeBounds.MaxTime
-	if maxTime > math.MaxInt64 {
-		maxTime = math.MaxInt64
-	}
-
-	return TimeBounds{
-		Lower: null.IntFrom(int64(timeBounds.MinTime)),
-		Upper: null.IntFrom(int64(maxTime)),
-	}
 }
 
 func signatures(xdrSignatures []xdr.DecoratedSignature) pq.StringArray {
@@ -204,47 +126,52 @@ func memo(transaction ingest.LedgerTransaction) null.String {
 
 type TransactionWithoutLedger struct {
 	TotalOrderID
-	TransactionHash      string         `db:"transaction_hash"`
-	LedgerSequence       int32          `db:"ledger_sequence"`
-	ApplicationOrder     int32          `db:"application_order"`
-	Account              string         `db:"account"`
-	AccountMuxed         null.String    `db:"account_muxed"`
-	AccountSequence      string         `db:"account_sequence"`
-	MaxFee               int64          `db:"max_fee"`
-	FeeCharged           int64          `db:"fee_charged"`
-	OperationCount       int32          `db:"operation_count"`
-	TxEnvelope           string         `db:"tx_envelope"`
-	TxResult             string         `db:"tx_result"`
-	TxMeta               string         `db:"tx_meta"`
-	TxFeeMeta            string         `db:"tx_fee_meta"`
-	Signatures           pq.StringArray `db:"signatures"`
-	MemoType             string         `db:"memo_type"`
-	Memo                 null.String    `db:"memo"`
-	TimeBounds           TimeBounds     `db:"time_bounds"`
-	CreatedAt            time.Time      `db:"created_at"`
-	UpdatedAt            time.Time      `db:"updated_at"`
-	Successful           bool           `db:"successful"`
-	FeeAccount           null.String    `db:"fee_account"`
-	FeeAccountMuxed      null.String    `db:"fee_account_muxed"`
-	InnerTransactionHash null.String    `db:"inner_transaction_hash"`
-	NewMaxFee            null.Int       `db:"new_max_fee"`
-	InnerSignatures      pq.StringArray `db:"inner_signatures"`
+	TransactionHash             string         `db:"transaction_hash"`
+	LedgerSequence              int32          `db:"ledger_sequence"`
+	ApplicationOrder            int32          `db:"application_order"`
+	Account                     string         `db:"account"`
+	AccountMuxed                null.String    `db:"account_muxed"`
+	AccountSequence             int64          `db:"account_sequence"`
+	MaxFee                      int64          `db:"max_fee"`
+	FeeCharged                  int64          `db:"fee_charged"`
+	OperationCount              int32          `db:"operation_count"`
+	TxEnvelope                  string         `db:"tx_envelope"`
+	TxResult                    string         `db:"tx_result"`
+	TxMeta                      string         `db:"tx_meta"`
+	TxFeeMeta                   string         `db:"tx_fee_meta"`
+	Signatures                  pq.StringArray `db:"signatures"`
+	MemoType                    string         `db:"memo_type"`
+	Memo                        null.String    `db:"memo"`
+	TimeBounds                  TimeBounds     `db:"time_bounds"`
+	LedgerBounds                LedgerBounds   `db:"ledger_bounds"`
+	MinAccountSequence          null.Int       `db:"min_account_sequence"`
+	MinAccountSequenceAge       null.String    `db:"min_account_sequence_age"`
+	MinAccountSequenceLedgerGap null.Int       `db:"min_account_sequence_ledger_gap"`
+	ExtraSigners                pq.StringArray `db:"extra_signers"`
+	CreatedAt                   time.Time      `db:"created_at"`
+	UpdatedAt                   time.Time      `db:"updated_at"`
+	Successful                  bool           `db:"successful"`
+	FeeAccount                  null.String    `db:"fee_account"`
+	FeeAccountMuxed             null.String    `db:"fee_account_muxed"`
+	InnerTransactionHash        null.String    `db:"inner_transaction_hash"`
+	NewMaxFee                   null.Int       `db:"new_max_fee"`
+	InnerSignatures             pq.StringArray `db:"inner_signatures"`
 }
 
-func (i *transactionBatchInsertBuilder) transactionToRow(transaction ingest.LedgerTransaction, sequence uint32) (TransactionWithoutLedger, error) {
-	envelopeBase64, err := i.encodingBuffer.MarshalBase64(transaction.Envelope)
+func transactionToRow(transaction ingest.LedgerTransaction, sequence uint32, encodingBuffer *xdr.EncodingBuffer) (TransactionWithoutLedger, error) {
+	envelopeBase64, err := encodingBuffer.MarshalBase64(transaction.Envelope)
 	if err != nil {
 		return TransactionWithoutLedger{}, err
 	}
-	resultBase64, err := i.encodingBuffer.MarshalBase64(&transaction.Result.Result)
+	resultBase64, err := encodingBuffer.MarshalBase64(&transaction.Result.Result)
 	if err != nil {
 		return TransactionWithoutLedger{}, err
 	}
-	metaBase64, err := i.encodingBuffer.MarshalBase64(transaction.UnsafeMeta)
+	metaBase64, err := encodingBuffer.MarshalBase64(transaction.UnsafeMeta)
 	if err != nil {
 		return TransactionWithoutLedger{}, err
 	}
-	feeMetaBase64, err := i.encodingBuffer.MarshalBase64(transaction.FeeChanges)
+	feeMetaBase64, err := encodingBuffer.MarshalBase64(transaction.FeeChanges)
 	if err != nil {
 		return TransactionWithoutLedger{}, err
 	}
@@ -255,26 +182,32 @@ func (i *transactionBatchInsertBuilder) transactionToRow(transaction ingest.Ledg
 	if source.Type == xdr.CryptoKeyTypeKeyTypeMuxedEd25519 {
 		accountMuxed = null.StringFrom(source.Address())
 	}
+
 	t := TransactionWithoutLedger{
-		TransactionHash:  hex.EncodeToString(transaction.Result.TransactionHash[:]),
-		LedgerSequence:   int32(sequence),
-		ApplicationOrder: int32(transaction.Index),
-		Account:          account.Address(),
-		AccountMuxed:     accountMuxed,
-		AccountSequence:  strconv.FormatInt(transaction.Envelope.SeqNum(), 10),
-		MaxFee:           int64(transaction.Envelope.Fee()),
-		FeeCharged:       int64(transaction.Result.Result.FeeCharged),
-		OperationCount:   int32(len(transaction.Envelope.Operations())),
-		TxEnvelope:       envelopeBase64,
-		TxResult:         resultBase64,
-		TxMeta:           metaBase64,
-		TxFeeMeta:        feeMetaBase64,
-		TimeBounds:       formatTimeBounds(transaction),
-		MemoType:         memoType(transaction),
-		Memo:             memo(transaction),
-		CreatedAt:        time.Now().UTC(),
-		UpdatedAt:        time.Now().UTC(),
-		Successful:       transaction.Result.Successful(),
+		TransactionHash:             hex.EncodeToString(transaction.Result.TransactionHash[:]),
+		LedgerSequence:              int32(sequence),
+		ApplicationOrder:            int32(transaction.Index),
+		Account:                     account.Address(),
+		AccountMuxed:                accountMuxed,
+		AccountSequence:             transaction.Envelope.SeqNum(),
+		MaxFee:                      int64(transaction.Envelope.Fee()),
+		FeeCharged:                  int64(transaction.Result.Result.FeeCharged),
+		OperationCount:              int32(len(transaction.Envelope.Operations())),
+		TxEnvelope:                  envelopeBase64,
+		TxResult:                    resultBase64,
+		TxMeta:                      metaBase64,
+		TxFeeMeta:                   feeMetaBase64,
+		TimeBounds:                  formatTimeBounds(transaction.Envelope.TimeBounds()),
+		LedgerBounds:                formatLedgerBounds(transaction.Envelope.LedgerBounds()),
+		MinAccountSequence:          formatMinSequenceNumber(transaction.Envelope.MinSeqNum()),
+		MinAccountSequenceAge:       formatDuration(transaction.Envelope.MinSeqAge()),
+		MinAccountSequenceLedgerGap: formatUint32(transaction.Envelope.MinSeqLedgerGap()),
+		ExtraSigners:                formatSigners(transaction.Envelope.ExtraSigners()),
+		MemoType:                    memoType(transaction),
+		Memo:                        memo(transaction),
+		CreatedAt:                   time.Now().UTC(),
+		UpdatedAt:                   time.Now().UTC(),
+		Successful:                  transaction.Result.Successful(),
 	}
 	t.TotalOrderID.ID = toid.New(int32(sequence), int32(transaction.Index), 0).ToInt64()
 
@@ -302,4 +235,37 @@ func (i *transactionBatchInsertBuilder) transactionToRow(transaction ingest.Ledg
 	}
 
 	return t, nil
+}
+
+func formatMinSequenceNumber(minSeqNum *int64) null.Int {
+	if minSeqNum == nil {
+		return null.Int{}
+	}
+	return null.IntFrom(int64(*minSeqNum))
+}
+
+func formatDuration(d *xdr.Duration) null.String {
+	if d == nil {
+		return null.String{}
+	}
+	return null.StringFrom(fmt.Sprint(uint64(*d)))
+}
+
+func formatUint32(u *xdr.Uint32) null.Int {
+	if u == nil {
+		return null.Int{}
+	}
+	return null.IntFrom(int64(*u))
+}
+
+func formatSigners(s []xdr.SignerKey) pq.StringArray {
+	if s == nil {
+		return nil
+	}
+
+	signers := make([]string, len(s))
+	for i, key := range s {
+		signers[i] = key.Address()
+	}
+	return signers
 }

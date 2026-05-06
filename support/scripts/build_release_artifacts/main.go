@@ -317,7 +317,7 @@ func prepareDest(pkg, bin, version, os, arch string) string {
 
 	// make destination directories
 	run("mkdir", "-p", dest)
-	run("cp", "LICENSE-APACHE.txt", dest)
+	run("cp", "LICENSE", dest)
 	run("cp", "COPYING", dest)
 	run("cp", filepath.Join(pkg, "README.md"), dest)
 	run("cp", filepath.Join(pkg, "CHANGELOG.md"), dest)

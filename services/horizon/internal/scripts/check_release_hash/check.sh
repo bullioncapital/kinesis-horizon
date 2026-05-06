@@ -20,6 +20,14 @@ unzip $TAG-windows-amd64.zip
 
 cd -
 
+# Since Go 1.18 vcs (git) info is added to the binary. One of the values is:
+# vcs.modified which determines if git working dir is clean. We need to
+# specifically add the files below to .gitignore to make git ignore them.
+touch ~/.gitignore
+echo -e "check.sh\n" >> ~/.gitignore
+echo -e "released/\n" >> ~/.gitignore
+git config --global core.excludesFile '~/.gitignore'
+
 git pull origin --tags
 git checkout $TAG
 # -keep: artifact directories are not removed after packaging

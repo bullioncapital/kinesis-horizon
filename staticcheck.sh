@@ -1,11 +1,7 @@
 #! /bin/bash
 set -e
 
-gover=$(go version | { read _ _ gover _; printf $gover; })
-
-# This unreleased version of staticcheck has support for Go 1.18.
-# TODO: Update this to v3.0.0 when released.
-version='d5c28addcbbbafca0b9a0f9ad8957912e9371015'
+version='2023.1.1'
 
 staticcheck='go run honnef.co/go/tools/cmd/staticcheck@'"$version"
 

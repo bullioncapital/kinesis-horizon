@@ -49,12 +49,14 @@ var IsPtr Selector = func(name string, xdrType goxdr.XdrType) bool {
 }
 
 // IsNestedInnerSet is a Selector which identifies nesting for the following xdr type:
+//
 //	struct SCPQuorumSet
 //	{
 //		uint32 threshold;
 //		PublicKey validators<>;
 //		SCPQuorumSet innerSets<>;
 //	};
+//
 // supports things like: A,B,C,(D,E,F),(G,H,(I,J,K,L))
 // only allows 2 levels of nesting
 var IsNestedInnerSet Selector = func(name string, xdrType goxdr.XdrType) bool {

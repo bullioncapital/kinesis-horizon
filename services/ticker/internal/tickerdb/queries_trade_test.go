@@ -9,12 +9,11 @@ import (
 
 	_ "github.com/lib/pq"
 	migrate "github.com/rubenv/sql-migrate"
-	"github.com/stellar/go/support/db/dbtest"
 	"github.com/stretchr/testify/require"
 )
 
 func TestBulkInsertTrades(t *testing.T) {
-	db := dbtest.Postgres(t)
+	db := OpenTestDBConnection(t)
 	defer db.Close()
 
 	var session TickerSession
@@ -81,13 +80,13 @@ func TestBulkInsertTrades(t *testing.T) {
 
 	// Now let's create the trades:
 	trades := []Trade{
-		Trade{
+		{
 			HorizonID:       "hrzid1",
 			BaseAssetID:     asset1.ID,
 			CounterAssetID:  asset2.ID,
 			LedgerCloseTime: time.Now(),
 		},
-		Trade{
+		{
 			HorizonID:       "hrzid2",
 			BaseAssetID:     asset2.ID,
 			CounterAssetID:  asset1.ID,
@@ -120,7 +119,7 @@ func TestBulkInsertTrades(t *testing.T) {
 }
 
 func TestGetLastTrade(t *testing.T) {
-	db := dbtest.Postgres(t)
+	db := OpenTestDBConnection(t)
 	defer db.Close()
 
 	var session TickerSession
@@ -194,19 +193,19 @@ func TestGetLastTrade(t *testing.T) {
 
 	// Now let's create the trades:
 	trades := []Trade{
-		Trade{
+		{
 			HorizonID:       "hrzid2",
 			BaseAssetID:     asset2.ID,
 			CounterAssetID:  asset1.ID,
 			LedgerCloseTime: oneYearBefore,
 		},
-		Trade{
+		{
 			HorizonID:       "hrzid1",
 			BaseAssetID:     asset1.ID,
 			CounterAssetID:  asset2.ID,
 			LedgerCloseTime: now,
 		},
-		Trade{
+		{
 			HorizonID:       "hrzid2",
 			BaseAssetID:     asset2.ID,
 			CounterAssetID:  asset1.ID,
@@ -224,7 +223,7 @@ func TestGetLastTrade(t *testing.T) {
 }
 
 func TestDeleteOldTrades(t *testing.T) {
-	db := dbtest.Postgres(t)
+	db := OpenTestDBConnection(t)
 	defer db.Close()
 
 	var session TickerSession
@@ -297,25 +296,25 @@ func TestDeleteOldTrades(t *testing.T) {
 
 	// Now let's create the trades:
 	trades := []Trade{
-		Trade{
+		{
 			HorizonID:       "hrzid1",
 			BaseAssetID:     asset1.ID,
 			CounterAssetID:  asset2.ID,
 			LedgerCloseTime: now,
 		},
-		Trade{
+		{
 			HorizonID:       "hrzid2",
 			BaseAssetID:     asset2.ID,
 			CounterAssetID:  asset1.ID,
 			LedgerCloseTime: oneDayAgo,
 		},
-		Trade{
+		{
 			HorizonID:       "hrzid3",
 			BaseAssetID:     asset2.ID,
 			CounterAssetID:  asset1.ID,
 			LedgerCloseTime: oneMonthAgo,
 		},
-		Trade{
+		{
 			HorizonID:       "hrzid4",
 			BaseAssetID:     asset2.ID,
 			CounterAssetID:  asset1.ID,

@@ -8,56 +8,69 @@ import (
 	"log"
 	"testing"
 
-	"github.com/jmoiron/sqlx"
 	// pq enables postgres support
+	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	db "github.com/stellar/go/support/db/dbtest"
 )
 
 var (
-	coreDB     *sqlx.DB
-	coreUrl    *string
-	horizonDB  *sqlx.DB
-	horizonUrl *string
+	horizonDB     *db.DB
+	coreDB        *db.DB
+	coreDBConn    *sqlx.DB
+	horizonDBConn *sqlx.DB
 )
 
-// Horizon returns a connection to the horizon test database
-func Horizon(t *testing.T) *sqlx.DB {
+func horizonPostgres(t *testing.T) *db.DB {
 	if horizonDB != nil {
 		return horizonDB
 	}
-	postgres := db.Postgres(t)
-	horizonUrl = &postgres.DSN
-	horizonDB = postgres.Open()
-
+	horizonDB = db.Postgres(t)
 	return horizonDB
 }
 
-// HorizonURL returns the database connection the url any test
-// use when connecting to the history/horizon database
-func HorizonURL() string {
-	if horizonUrl == nil {
-		log.Panic(fmt.Errorf("Horizon not initialized"))
-	}
-	return *horizonUrl
-}
-
-// StellarCore returns a connection to the stellar core test database
-func StellarCore(t *testing.T) *sqlx.DB {
+func corePostgres(t *testing.T) *db.DB {
 	if coreDB != nil {
 		return coreDB
 	}
-	postgres := db.Postgres(t)
-	coreUrl = &postgres.DSN
-	coreDB = postgres.Open()
+	coreDB = db.Postgres(t)
 	return coreDB
 }
 
-// StellarCoreURL returns the database connection the url any test
-// use when connecting to the stellar-core database
+func Horizon(t *testing.T) *sqlx.DB {
+	if horizonDBConn != nil {
+		return horizonDBConn
+	}
+
+	horizonDBConn = horizonPostgres(t).Open()
+	return horizonDBConn
+}
+
+func HorizonURL() string {
+	if horizonDB == nil {
+		log.Panic(fmt.Errorf("Horizon not initialized"))
+	}
+	return horizonDB.DSN
+}
+
+func HorizonROURL() string {
+	if horizonDB == nil {
+		log.Panic(fmt.Errorf("Horizon not initialized"))
+	}
+	return horizonDB.RO_DSN
+}
+
+func StellarCore(t *testing.T) *sqlx.DB {
+	if coreDBConn != nil {
+		return coreDBConn
+	}
+	coreDBConn = corePostgres(t).Open()
+	return coreDBConn
+}
+
 func StellarCoreURL() string {
-	if coreUrl == nil {
+	if coreDB == nil {
 		log.Panic(fmt.Errorf("StellarCore not initialized"))
 	}
-	return *coreUrl
+	return coreDB.DSN
 }

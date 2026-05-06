@@ -2,9 +2,10 @@ package txnbuild
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/stellar/go/price"
 	"github.com/stellar/go/xdr"
-	"time"
 
 	"github.com/stellar/go/keypair"
 	"github.com/stellar/go/network"
@@ -26,7 +27,7 @@ func ExampleInflation() {
 			IncrementSequenceNum: true,
 			Operations:           []Operation{&op},
 			BaseFee:              MinBaseFee,
-			Timebounds:           NewInfiniteTimeout(), // Use a real timeout in production!
+			Preconditions:        Preconditions{TimeBounds: NewInfiniteTimeout()}, // Use a real timeout in production!
 		},
 	)
 	check(err)
@@ -59,7 +60,7 @@ func ExampleCreateAccount() {
 			IncrementSequenceNum: true,
 			Operations:           []Operation{&op},
 			BaseFee:              MinBaseFee,
-			Timebounds:           NewInfiniteTimeout(), // Use a real timeout in production!
+			Preconditions:        Preconditions{TimeBounds: NewInfiniteTimeout()}, // Use a real timeout in production!
 		},
 	)
 	check(err)
@@ -93,7 +94,7 @@ func ExamplePayment() {
 			IncrementSequenceNum: true,
 			Operations:           []Operation{&op},
 			BaseFee:              MinBaseFee,
-			Timebounds:           NewInfiniteTimeout(), // Use a real timeout in production!
+			Preconditions:        Preconditions{TimeBounds: NewInfiniteTimeout()}, // Use a real timeout in production!
 		},
 	)
 	check(err)
@@ -137,7 +138,7 @@ func ExamplePayment_setBaseFee() {
 			IncrementSequenceNum: true,
 			Operations:           []Operation{&op1, &op2},
 			BaseFee:              feeStats.MaxFee.P50,
-			Timebounds:           NewInfiniteTimeout(), // Use a real timeout in production!
+			Preconditions:        Preconditions{TimeBounds: NewInfiniteTimeout()}, // Use a real timeout in production!
 		},
 	)
 	check(err)
@@ -169,7 +170,7 @@ func ExampleBumpSequence() {
 			IncrementSequenceNum: true,
 			Operations:           []Operation{&op},
 			BaseFee:              MinBaseFee,
-			Timebounds:           NewInfiniteTimeout(), // Use a real timeout in production!
+			Preconditions:        Preconditions{TimeBounds: NewInfiniteTimeout()}, // Use a real timeout in production!
 		},
 	)
 	check(err)
@@ -201,7 +202,7 @@ func ExampleAccountMerge() {
 			IncrementSequenceNum: true,
 			Operations:           []Operation{&op},
 			BaseFee:              MinBaseFee,
-			Timebounds:           NewInfiniteTimeout(), // Use a real timeout in production!
+			Preconditions:        Preconditions{TimeBounds: NewInfiniteTimeout()}, // Use a real timeout in production!
 		},
 	)
 	check(err)
@@ -234,7 +235,7 @@ func ExampleManageData() {
 			IncrementSequenceNum: true,
 			Operations:           []Operation{&op},
 			BaseFee:              MinBaseFee,
-			Timebounds:           NewInfiniteTimeout(), // Use a real timeout in production!
+			Preconditions:        Preconditions{TimeBounds: NewInfiniteTimeout()}, // Use a real timeout in production!
 		},
 	)
 	check(err)
@@ -266,7 +267,7 @@ func ExampleManageData_removeDataEntry() {
 			IncrementSequenceNum: true,
 			Operations:           []Operation{&op},
 			BaseFee:              MinBaseFee,
-			Timebounds:           NewInfiniteTimeout(), // Use a real timeout in production!
+			Preconditions:        Preconditions{TimeBounds: NewInfiniteTimeout()}, // Use a real timeout in production!
 		},
 	)
 	check(err)
@@ -306,7 +307,7 @@ func ExampleSetOptions() {
 			IncrementSequenceNum: true,
 			Operations:           []Operation{&op},
 			BaseFee:              MinBaseFee,
-			Timebounds:           NewInfiniteTimeout(), // Use a real timeout in production!
+			Preconditions:        Preconditions{TimeBounds: NewInfiniteTimeout()}, // Use a real timeout in production!
 		},
 	)
 	check(err)
@@ -342,7 +343,7 @@ func ExampleChangeTrust() {
 			IncrementSequenceNum: true,
 			Operations:           []Operation{&op},
 			BaseFee:              MinBaseFee,
-			Timebounds:           NewInfiniteTimeout(), // Use a real timeout in production!
+			Preconditions:        Preconditions{TimeBounds: NewInfiniteTimeout()}, // Use a real timeout in production!
 		},
 	)
 	check(err)
@@ -372,7 +373,7 @@ func ExampleChangeTrust_removeTrustline() {
 			IncrementSequenceNum: true,
 			Operations:           []Operation{&op},
 			BaseFee:              MinBaseFee,
-			Timebounds:           NewInfiniteTimeout(), // Use a real timeout in production!
+			Preconditions:        Preconditions{TimeBounds: NewInfiniteTimeout()}, // Use a real timeout in production!
 		},
 	)
 	check(err)
@@ -406,7 +407,7 @@ func ExampleAllowTrust() {
 			IncrementSequenceNum: true,
 			Operations:           []Operation{&op},
 			BaseFee:              MinBaseFee,
-			Timebounds:           NewInfiniteTimeout(), // Use a real timeout in production!
+			Preconditions:        Preconditions{TimeBounds: NewInfiniteTimeout()}, // Use a real timeout in production!
 		},
 	)
 	check(err)
@@ -440,7 +441,7 @@ func ExampleManageSellOffer() {
 			IncrementSequenceNum: true,
 			Operations:           []Operation{&op},
 			BaseFee:              MinBaseFee,
-			Timebounds:           NewInfiniteTimeout(), // Use a real timeout in production!
+			Preconditions:        Preconditions{TimeBounds: NewInfiniteTimeout()}, // Use a real timeout in production!
 		},
 	)
 	check(err)
@@ -472,7 +473,7 @@ func ExampleManageSellOffer_deleteOffer() {
 			IncrementSequenceNum: true,
 			Operations:           []Operation{&op},
 			BaseFee:              MinBaseFee,
-			Timebounds:           NewInfiniteTimeout(), // Use a real timeout in production!
+			Preconditions:        Preconditions{TimeBounds: NewInfiniteTimeout()}, // Use a real timeout in production!
 		},
 	)
 	check(err)
@@ -507,7 +508,7 @@ func ExampleManageSellOffer_updateOffer() {
 			IncrementSequenceNum: true,
 			Operations:           []Operation{&op},
 			BaseFee:              MinBaseFee,
-			Timebounds:           NewInfiniteTimeout(), // Use a real timeout in production!
+			Preconditions:        Preconditions{TimeBounds: NewInfiniteTimeout()}, // Use a real timeout in production!
 		},
 	)
 	check(err)
@@ -542,7 +543,7 @@ func ExampleCreatePassiveSellOffer() {
 			IncrementSequenceNum: true,
 			Operations:           []Operation{&op},
 			BaseFee:              MinBaseFee,
-			Timebounds:           NewInfiniteTimeout(), // Use a real timeout in production!
+			Preconditions:        Preconditions{TimeBounds: NewInfiniteTimeout()}, // Use a real timeout in production!
 		},
 	)
 	check(err)
@@ -580,7 +581,7 @@ func ExamplePathPayment() {
 			IncrementSequenceNum: true,
 			Operations:           []Operation{&op},
 			BaseFee:              MinBaseFee,
-			Timebounds:           NewInfiniteTimeout(), // Use a real timeout in production!
+			Preconditions:        Preconditions{TimeBounds: NewInfiniteTimeout()}, // Use a real timeout in production!
 		},
 	)
 	check(err)
@@ -618,7 +619,7 @@ func ExamplePathPaymentStrictReceive() {
 			IncrementSequenceNum: true,
 			Operations:           []Operation{&op},
 			BaseFee:              MinBaseFee,
-			Timebounds:           NewInfiniteTimeout(), // Use a real timeout in production!
+			Preconditions:        Preconditions{TimeBounds: NewInfiniteTimeout()}, // Use a real timeout in production!
 		},
 	)
 	check(err)
@@ -656,7 +657,7 @@ func ExamplePathPaymentStrictSend() {
 			IncrementSequenceNum: true,
 			Operations:           []Operation{&op},
 			BaseFee:              MinBaseFee,
-			Timebounds:           NewInfiniteTimeout(), // Use a real timeout in production!
+			Preconditions:        Preconditions{TimeBounds: NewInfiniteTimeout()}, // Use a real timeout in production!
 		},
 	)
 	check(err)
@@ -692,7 +693,7 @@ func ExampleManageBuyOffer() {
 			IncrementSequenceNum: true,
 			Operations:           []Operation{&buyOffer},
 			BaseFee:              MinBaseFee,
-			Timebounds:           NewInfiniteTimeout(), // Use a real timeout in production!
+			Preconditions:        Preconditions{TimeBounds: NewInfiniteTimeout()}, // Use a real timeout in production!
 		},
 	)
 	check(err)
@@ -725,7 +726,7 @@ func ExampleFeeBumpTransaction() {
 			IncrementSequenceNum: true,
 			Operations:           []Operation{&op},
 			BaseFee:              MinBaseFee,
-			Timebounds:           NewInfiniteTimeout(), // Use a real timeout in production!
+			Preconditions:        Preconditions{TimeBounds: NewInfiniteTimeout()}, // Use a real timeout in production!
 		},
 	)
 	check(err)
@@ -759,7 +760,7 @@ func ExampleBuildChallengeTx() {
 	webAuthDomain := "webauthdomain.example.org"
 	timebound := time.Duration(5 * time.Minute)
 
-	tx, err := BuildChallengeTx(serverSignerSeed, clientAccountID, webAuthDomain, anchorName, network.TestNetworkPassphrase, timebound)
+	tx, err := BuildChallengeTx(serverSignerSeed, clientAccountID, webAuthDomain, anchorName, network.TestNetworkPassphrase, timebound, nil)
 	check(err)
 
 	txeBase64, err := tx.Base64()
@@ -799,7 +800,7 @@ func ExampleCreateClaimableBalance() {
 			SourceAccount:        &aAccount,
 			IncrementSequenceNum: true,
 			BaseFee:              MinBaseFee,
-			Timebounds:           NewInfiniteTimeout(),
+			Preconditions:        Preconditions{TimeBounds: NewInfiniteTimeout()},
 			Operations:           []Operation{&claimableBalanceEntry},
 		},
 	)
@@ -827,7 +828,7 @@ func ExampleClaimClaimableBalance() {
 			SourceAccount:        &aAccount, // or Account B, depending on the condition!
 			IncrementSequenceNum: true,
 			BaseFee:              MinBaseFee,
-			Timebounds:           NewInfiniteTimeout(),
+			Preconditions:        Preconditions{TimeBounds: NewInfiniteTimeout()},
 			Operations:           []Operation{&claimBalance},
 		},
 		network.TestNetworkPassphrase,
@@ -893,7 +894,7 @@ func ExampleBeginSponsoringFutureReserves() {
 		TransactionParams{
 			SourceAccount:        &test.Aaccount,
 			Operations:           sponsorTrustline,
-			Timebounds:           NewInfiniteTimeout(),
+			Preconditions:        Preconditions{TimeBounds: NewInfiniteTimeout()},
 			BaseFee:              MinBaseFee,
 			IncrementSequenceNum: true,
 		},
@@ -934,7 +935,7 @@ func ExampleBeginSponsoringFutureReserves_transfer() {
 		TransactionParams{
 			SourceAccount:        &test.S1account,
 			Operations:           transferOps,
-			Timebounds:           NewInfiniteTimeout(),
+			Preconditions:        Preconditions{TimeBounds: NewInfiniteTimeout()},
 			BaseFee:              MinBaseFee,
 			IncrementSequenceNum: true,
 		},
@@ -981,7 +982,7 @@ func ExampleRevokeSponsorship() {
 		TransactionParams{
 			SourceAccount:        &test.S2account,
 			Operations:           revokeOps,
-			Timebounds:           NewInfiniteTimeout(),
+			Preconditions:        Preconditions{TimeBounds: NewInfiniteTimeout()},
 			BaseFee:              MinBaseFee,
 			IncrementSequenceNum: true,
 		},
@@ -1050,7 +1051,7 @@ func ExampleLiquidityPoolDeposit() {
 		TransactionParams{
 			SourceAccount:        &test.AAccount,
 			Operations:           depositOps,
-			Timebounds:           NewInfiniteTimeout(),
+			Preconditions:        Preconditions{TimeBounds: NewInfiniteTimeout()},
 			BaseFee:              MinBaseFee,
 			IncrementSequenceNum: true,
 		},
@@ -1085,7 +1086,7 @@ func ExampleLiquidityPoolWithdraw() {
 		TransactionParams{
 			SourceAccount:        &test.AAccount,
 			Operations:           withdrawOps,
-			Timebounds:           NewInfiniteTimeout(),
+			Preconditions:        Preconditions{TimeBounds: NewInfiniteTimeout()},
 			BaseFee:              MinBaseFee,
 			IncrementSequenceNum: true,
 		},

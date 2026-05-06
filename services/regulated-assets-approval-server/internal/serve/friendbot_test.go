@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/v5"
 	"github.com/stellar/go/clients/horizonclient"
 	"github.com/stellar/go/network"
 	"github.com/stellar/go/protocols/horizon"
@@ -295,7 +295,7 @@ func TestFriendbotHandler_serveHTTP(t *testing.T) {
 		On("AccountDetail", horizonclient.AccountRequest{AccountID: "GDDIO6SFRD4SJEQFJOSKPIDYTDM7LM4METFBKN4NFGVR5DTGB7H75N5S"}).
 		Return(horizon.Account{
 			AccountID: "GDDIO6SFRD4SJEQFJOSKPIDYTDM7LM4METFBKN4NFGVR5DTGB7H75N5S",
-			Sequence:  "1",
+			Sequence:  1,
 		}, nil)
 	horizonMock.
 		On("SubmitTransaction", mock.AnythingOfType("*txnbuild.Transaction")).

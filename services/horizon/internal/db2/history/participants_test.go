@@ -48,10 +48,10 @@ func TestTransactionParticipantsBatch(t *testing.T) {
 	participants := getTransactionParticipants(tt, q)
 	tt.Assert.Equal(
 		[]transactionParticipant{
-			transactionParticipant{TransactionID: 1, AccountID: 100},
-			transactionParticipant{TransactionID: 1, AccountID: 101},
-			transactionParticipant{TransactionID: 1, AccountID: 102},
-			transactionParticipant{TransactionID: 2, AccountID: 100},
+			{TransactionID: 1, AccountID: 100},
+			{TransactionID: 1, AccountID: 101},
+			{TransactionID: 1, AccountID: 102},
+			{TransactionID: 2, AccountID: 100},
 		},
 		participants,
 	)

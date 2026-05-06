@@ -10,13 +10,6 @@ func getPoolAssets(pool xdr.LiquidityPoolEntry) (xdr.Asset, xdr.Asset) {
 	return params.AssetA, params.AssetB
 }
 
-func max(a, b xdr.Int64) xdr.Int64 {
-	if a < b {
-		return b
-	}
-	return a
-}
-
 // positiveMin returns the smallest positive value possible
 func positiveMin(a, b xdr.Int64) xdr.Int64 {
 	if b <= 0 {
